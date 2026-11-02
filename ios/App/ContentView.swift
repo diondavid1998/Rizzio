@@ -136,11 +136,12 @@ struct SetupView: View {
                     Step("Add Action → search \"Get Rizzio Replies\" and add it. Its Screenshot field should say \"Screenshot\" (the result of the step above).")
                     Step("Name it \"Rizzio\". Optional: add \"Get Rizzio Replies\" a second time as a copy with Type set to Chat, for text conversations.")
                 }
-                Section("3. Put it on Back Tap") {
-                    Step("Settings → Accessibility → Touch → Back Tap → Double Tap → choose the Rizzio shortcut.")
+                Section("3. Put it on a button") {
+                    Step("Action Button (iPhone 15 Pro / 16 and newer): Settings → Action Button → swipe to Shortcut → choose Rizzio.")
+                    Step("Or Back Tap: Settings → Accessibility → Touch → Back Tap → Double Tap → choose Rizzio. You can set up both.")
                 }
                 Section("4. Use it") {
-                    Step("On a Hinge profile, double-tap the back of your phone. In a few seconds you'll see \"5 replies ready\".")
+                    Step("On a Hinge profile, press the Action Button (or double-tap the back of your phone). In a few seconds you'll see \"5 replies ready\".")
                     Step("Tap the comment box, hold the 🌐 key, pick Rizzio, and tap a reply to insert it. Tap 🌐 again to go back to your normal keyboard.")
                     Step("For texts: copy their message, then tap \"Clipboard\" in the Rizzio keyboard. Or type a draft and tap \"Polish\".")
                 }

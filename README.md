@@ -4,7 +4,7 @@ AI reply suggestions for Hinge prompts and any text conversation, without leavin
 
 **How it works**
 
-1. On a Hinge profile, **double-tap the back of your iPhone** (Back Tap).
+1. On a Hinge profile, **press the Action Button** (iPhone 15 Pro / 16 and newer) or **double-tap the back of your iPhone** (Back Tap).
 2. A Shortcut takes a screenshot and sends it to Rizzio in the background. Rizzio doesn't open.
 3. A few seconds later you see "5 replies ready".
 4. Tap the comment box, switch to the **Rizzio keyboard**, and tap a reply to insert it.
@@ -14,7 +14,7 @@ The keyboard can also:
 - **Polish**: type a rough draft and get 5 better versions.
 - **Tones**: Witty, Flirty, Chill, Bold, Sweet, Corny. Tap ↻ to redo the last screenshot in a new tone.
 
-> Why a screenshot? iOS doesn't let keyboards see the screen. Back Tap + Shortcuts is the most seamless way Apple allows.
+> Why a screenshot? iOS doesn't let keyboards see the screen. Action Button / Back Tap + Shortcuts is the most seamless way Apple allows.
 
 ## Repo layout
 
@@ -51,7 +51,7 @@ curl -X POST https://rizzio-backend.<you>.workers.dev/v1/replies \
 
 ### 2. iOS app (on a Mac)
 
-Requirements: a Mac with **Xcode 15 or newer**, an iPhone on **iOS 16+**, and an Apple ID (free works for testing, but the app expires every 7 days; a $99/yr Developer account removes that).
+Requirements: a Mac with **the latest Xcode** (it must support your iPhone's iOS version, e.g. Xcode 27 for iOS 27), an iPhone on **iOS 16+**, and an Apple ID (free works for testing, but the app expires every 7 days; a $99/yr Developer account removes that).
 
 ```bash
 brew install xcodegen
@@ -70,7 +70,7 @@ In Xcode:
 ### 3. On the iPhone
 
 1. Open **Rizzio → Settings**, paste your server URL and APP_TOKEN, and tap Save. Add a few comments that worked for you so it copies your style.
-2. Follow the **Setup** tab: add the keyboard and turn on Full Access, build the Shortcut (Take Screenshot → Get Rizzio Replies), and assign it to Back Tap (Settings → Accessibility → Touch → Back Tap).
+2. Follow the **Setup** tab: add the keyboard and turn on Full Access, build the Shortcut (Take Screenshot → Get Rizzio Replies), and assign it to the Action Button (Settings → Action Button → Shortcut) or Back Tap (Settings → Accessibility → Touch → Back Tap).
 3. Test it on the **Try it** tab with a saved screenshot first.
 
 ## Cost
