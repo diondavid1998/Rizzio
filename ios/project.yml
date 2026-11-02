@@ -1,0 +1,71 @@
+# Generate the Xcode project on your Mac with:  brew install xcodegen && xcodegen
+# Before generating, change BUNDLE_PREFIX below to something unique to you (e.g. com.dion).
+name: Rizzio
+options:
+  bundleIdPrefix: com.CHANGE_ME
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    BUNDLE_PREFIX: com.CHANGE_ME
+    RIZZIO_APP_GROUP: group.$(BUNDLE_PREFIX).rizzio
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1"
+    CODE_SIGN_STYLE: Automatic
+    # DEVELOPMENT_TEAM: ABCDE12345   # optional: your Apple team ID, or pick it in Xcode
+targets:
+  Rizzio:
+    type: application
+    platform: iOS
+    sources:
+      - App
+      - Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_PREFIX).rizzio
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Rizzio
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        RizzioAppGroup: $(RIZZIO_APP_GROUP)
+        NSPhotoLibraryUsageDescription: Rizzio reads the screenshot you pick to suggest replies.
+    entitlements:
+      path: App/Rizzio.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - $(RIZZIO_APP_GROUP)
+    dependencies:
+      - target: RizzioKeyboard
+        embed: true
+  RizzioKeyboard:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Keyboard
+      - Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_PREFIX).rizzio.keyboard
+    info:
+      path: Keyboard/Info.plist
+      properties:
+        CFBundleDisplayName: Rizzio
+        RizzioAppGroup: $(RIZZIO_APP_GROUP)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
+          NSExtensionAttributes:
+            IsASCIICapable: false
+            PrefersRightToLeft: false
+            PrimaryLanguage: en-US
+            RequestsOpenAccess: true
+    entitlements:
+      path: Keyboard/RizzioKeyboard.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - $(RIZZIO_APP_GROUP)
