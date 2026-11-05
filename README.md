@@ -14,40 +14,56 @@ The keyboard can also:
 - **Polish**: type a rough draft and get 5 better versions.
 - **Tones**: Witty, Flirty, Chill, Bold, Sweet, Corny. Tap ↻ to redo the last screenshot in a new tone.
 
+## It learns you
+
+Rizzio is meant to act like you, not like a generic pickup-line bot. It keeps a memory of how you text and gets better the more you use it:
+
+| What you do | What Rizzio learns |
+|---|---|
+| Add messages that worked, or teach it with chat screenshots | Your real voice: length, capitalization, emoji, humor |
+| Tap a reply in the keyboard | Which style you prefer |
+| Change a reply before sending | Your exact wording (strongest signal of your voice) |
+| 👎 a reply | What to avoid |
+| Mark 💘 Match / 💬 Replied in History | What actually works for you (weighted highest) |
+
+Every few signals it rewrites a short **voice profile** of you, which you can read (and correct) in the **You** tab. Every reply is written with that profile plus your best real messages. You can delete anything it learned, or reset it.
+
 > Why a screenshot? iOS doesn't let keyboards see the screen. Action Button / Back Tap + Shortcuts is the most seamless way Apple allows.
 
 ## Repo layout
 
 | Folder | What it is |
 |---|---|
-| `backend/` | Small Cloudflare Worker that holds your Claude API key and writes the replies |
+| `backend/` | Node server (Railway) that holds your Claude API key, writes replies, and stores what Rizzio learns about you |
 | `ios/App/` | The Rizzio app: settings, setup guide, test screen, and the "Get Rizzio Replies" Shortcut action |
 | `ios/Keyboard/` | The Rizzio keyboard extension |
 | `ios/Shared/` | Code used by both (API client, shared storage) |
 
 ## Setup
 
-### 1. Backend (about 10 minutes, free tier)
+### 1. Backend on Railway (next to StreamScout)
 
-You need a [Claude API key](https://console.anthropic.com/) and a free [Cloudflare](https://dash.cloudflare.com/sign-up) account.
+The backend is a small Node server (`backend/`) that holds your Claude API key, writes the replies, and keeps Rizzio's memory of you in SQLite.
+
+1. In Railway, open the **same project as StreamScout** → **+ New** → **GitHub Repo** → `Rizzio`.
+2. In the new service → **Settings** → **Root Directory**: `backend`.
+3. **Variables**:
+   - `ANTHROPIC_API_KEY` = `${{StreamScout.ANTHROPIC_API_KEY}}` (reuses StreamScout's key; replace `StreamScout` with that service's exact name in Railway, or just paste the key)
+   - `APP_TOKEN` = a long random password (e.g. from `openssl rand -hex 24`)
+   - `DB_PATH` = `/data/rizzio.sqlite`
+4. Right-click the service → **Attach Volume** → mount path `/data`. This is where your learned voice lives, so it survives redeploys.
+5. **Settings → Networking → Generate Domain**. You get a URL like `https://rizzio-backend-production.up.railway.app`.
+
+Check it works:
 
 ```bash
-cd backend
-npm install
-npx wrangler login
-npx wrangler secret put ANTHROPIC_API_KEY   # paste your Claude API key
-npx wrangler secret put APP_TOKEN           # make up a long random password, e.g. from `openssl rand -hex 24`
-npx wrangler deploy
-```
-
-It prints a URL like `https://rizzio-backend.<you>.workers.dev`. Check it works:
-
-```bash
-curl https://rizzio-backend.<you>.workers.dev/health        # {"ok":true}
-curl -X POST https://rizzio-backend.<you>.workers.dev/v1/replies \
-  -H "Authorization: Bearer <APP_TOKEN>" -H "Content-Type: application/json" \
+curl https://<your-domain>/health        # {"ok":true}
+curl -X POST https://<your-domain>/v1/replies \
+  -H "Authorization: Bearer <APP_TOKEN>" -H "X-Rizzio-User: test-user-123" -H "Content-Type: application/json" \
   -d '{"mode":"prompt","tone":"witty","text":"Prompt: My most irrational fear. Answer: geese. they know what they did."}'
 ```
+
+Run it locally with `cd backend && npm install && cp .env.example .env && npm run dev`. Tests: `npm test`.
 
 ### 2. iOS app (on a Mac)
 
@@ -69,14 +85,15 @@ In Xcode:
 
 ### 3. On the iPhone
 
-1. Open **Rizzio → Settings**, paste your server URL and APP_TOKEN, and tap Save. Add a few comments that worked for you so it copies your style.
-2. Follow the **Setup** tab: add the keyboard and turn on Full Access, build the Shortcut (Take Screenshot → Get Rizzio Replies), and assign it to the Action Button (Settings → Action Button → Shortcut) or Back Tap (Settings → Accessibility → Touch → Back Tap).
-3. Test it on the **Try it** tab with a saved screenshot first.
+1. Open **Rizzio → Setup**, paste your server URL and APP_TOKEN, and tap Save.
+2. Open the **You** tab: add a bit about yourself and a few messages that worked, then **Teach from chat screenshots** with 5–10 screenshots of your best conversations.
+3. Follow the rest of the **Setup** tab: add the keyboard and turn on Full Access, build the Shortcut (Take Screenshot → Get Rizzio Replies), and assign it to the Action Button (Settings → Action Button → Shortcut) or Back Tap (Settings → Accessibility → Touch → Back Tap).
+4. Test it on the **Try it** tab with a saved screenshot first.
 
 ## Cost
 
-Each suggestion is one Claude API call with a compressed screenshot. To make it faster or cheaper, change `RIZZIO_MODEL` in `backend/wrangler.toml` (e.g. `claude-sonnet-5-5` or `claude-haiku-5-5`) and redeploy.
+Each suggestion is one Claude API call with a compressed screenshot. To make it faster or cheaper, set the `RIZZIO_MODEL` variable in Railway (e.g. `claude-sonnet-5-5` or `claude-haiku-5-5`).
 
 ## Privacy
 
-Screenshots go only to your own backend and the Claude API. They aren't stored on the server. The latest screenshot is kept on your phone (App Group) so you can regenerate in a different tone.
+Screenshots go only to your own backend and the Claude API. They aren't stored on the server; only the text replies, your feedback, and messages it learned from are kept, in your own Railway database. The latest screenshot is kept on your phone (App Group) so you can regenerate in a different tone.

@@ -11,6 +11,7 @@ final class KeyboardViewController: UIInputViewController {
         super.viewDidLoad()
 
         model.insert = { [weak self] text in self?.insertReply(text) }
+        model.currentFieldText = { [weak self] in self?.currentText() ?? "" }
         model.deleteBackward = { [weak self] in self?.textDocumentProxy.deleteBackward() }
         model.insertPlain = { [weak self] text in self?.textDocumentProxy.insertText(text) }
         model.nextKeyboard = { [weak self] in self?.advanceToNextInputMode() }
@@ -40,6 +41,7 @@ final class KeyboardViewController: UIInputViewController {
         super.viewWillAppear(animated)
         model.hasFullAccess = hasFullAccess
         model.reload()
+        model.checkForEdit(immediate: true) // you may have edited the reply with another keyboard
         // Picks up new replies from the Back Tap shortcut while the keyboard is open.
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
             self?.model.reload()
@@ -50,6 +52,12 @@ final class KeyboardViewController: UIInputViewController {
         super.viewWillDisappear(animated)
         refreshTimer?.invalidate()
         refreshTimer = nil
+        model.checkForEdit(immediate: true)
+    }
+
+    override func textDidChange(_ textInput: UITextInput?) {
+        super.textDidChange(textInput)
+        model.checkForEdit()
     }
 
     private func currentText() -> String {
@@ -83,6 +91,7 @@ final class KeyboardModel: ObservableObject {
     var deleteBackward: () -> Void = {}
     var nextKeyboard: () -> Void = {}
     var currentDraft: () -> String = { "" }
+    var currentFieldText: () -> String = { "" }
 
     private var lastLoaded: Date?
 
@@ -91,8 +100,49 @@ final class KeyboardModel: ObservableObject {
         if latest.createdAt != lastLoaded {
             lastLoaded = latest.createdAt
             batch = latest
+            rejected = []
         }
     }
+
+    /// Inserts a reply and tells the agent you picked it.
+    func use(_ reply: Reply, at index: Int) {
+        insert(reply.text)
+        guard let id = batch?.generationId else { return }
+        SharedStore.shared.pendingInsert = PendingInsert(generationId: id, replyIndex: index, text: reply.text)
+        if hasFullAccess { RizzAPI.feedbackInBackground(.picked, generationId: id, replyIndex: index) }
+    }
+
+    /// "Not me": the agent learns to avoid this kind of reply.
+    func reject(at index: Int) {
+        guard let id = batch?.generationId, hasFullAccess else { return }
+        rejected.insert(index)
+        RizzAPI.feedbackInBackground(.rejected, generationId: id, replyIndex: index)
+    }
+
+    @Published var rejected: Set<Int> = []
+
+    /// If you changed an inserted reply before sending, your version is the best example of your voice.
+    func checkForEdit(immediate: Bool = false) {
+        guard hasFullAccess, let pending = SharedStore.shared.pendingInsert else { return }
+        let current = currentFieldText().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !current.isEmpty, current != pending.text, current.count >= 3 else { return }
+        // Only count it if it still looks like a version of the reply (not a new message).
+        let overlap = Set(current.lowercased().split(separator: " ")).intersection(Set(pending.text.lowercased().split(separator: " "))).count
+        guard overlap >= 2 else { return }
+        editDebounce?.invalidate()
+        let report = {
+            RizzAPI.feedbackInBackground(.edited, generationId: pending.generationId, replyIndex: pending.replyIndex, text: current)
+            SharedStore.shared.pendingInsert = nil
+        }
+        if immediate {
+            report()
+        } else {
+            // Wait until you stop typing, so we learn from the finished version.
+            editDebounce = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { _ in report() }
+        }
+    }
+
+    private var editDebounce: Timer?
 
     /// Same screenshot, new tone.
     func regenerate() {
@@ -136,6 +186,7 @@ final class KeyboardModel: ObservableObject {
                 let newBatch = try await work()
                 self.lastLoaded = newBatch.createdAt
                 self.batch = newBatch
+                self.rejected = []
             } catch {
                 self.message = error.localizedDescription
             }
@@ -202,8 +253,9 @@ struct KeyboardRootView: View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
-                    ForEach(Array(batch.replies.enumerated()), id: \.offset) { _, reply in
-                        Button { model.insert(reply.text) } label: {
+                    ForEach(Array(batch.replies.enumerated()), id: \.offset) { index, reply in
+                        HStack(alignment: .top, spacing: 4) {
+                        Button { model.use(reply, at: index) } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(reply.text)
                                     .font(.callout)
@@ -219,6 +271,15 @@ struct KeyboardRootView: View {
                             .background(Color(.secondarySystemBackground))
                             .clipShape(RoundedRectangle(cornerRadius: 10))
                         }
+                        Button { model.reject(at: index) } label: {
+                            Image(systemName: model.rejected.contains(index) ? "hand.thumbsdown.fill" : "hand.thumbsdown")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(8)
+                        }
+                        .accessibilityLabel("Not me")
+                        }
+                        .opacity(model.rejected.contains(index) ? 0.4 : 1)
                     }
                 }
             }

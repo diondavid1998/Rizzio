@@ -17,7 +17,17 @@ final class SharedStore {
     /// False if the App Group isn't set up (or, in the keyboard, Full Access is off).
     var isGroupAvailable: Bool { containerURL != nil }
 
-    // MARK: Settings
+    // MARK: Identity
+
+    /// Random id made on first launch. The server keeps your learned voice under it.
+    var userId: String {
+        if let id = defaults.string(forKey: "userId") { return id }
+        let id = UUID().uuidString
+        defaults.set(id, forKey: "userId")
+        return id
+    }
+
+    // MARK: Server settings
 
     var serverURL: String {
         get { defaults.string(forKey: "serverURL") ?? "" }
@@ -27,16 +37,6 @@ final class SharedStore {
     var appToken: String {
         get { defaults.string(forKey: "appToken") ?? "" }
         set { defaults.set(newValue.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "appToken") }
-    }
-
-    var aboutMe: String {
-        get { defaults.string(forKey: "aboutMe") ?? "" }
-        set { defaults.set(newValue, forKey: "aboutMe") }
-    }
-
-    var styleExamples: String {
-        get { defaults.string(forKey: "styleExamples") ?? "" }
-        set { defaults.set(newValue, forKey: "styleExamples") }
     }
 
     var tone: Tone {
@@ -49,13 +49,13 @@ final class SharedStore {
     // MARK: Latest suggestions
 
     var latestBatch: SuggestionBatch? {
-        get {
-            guard let data = defaults.data(forKey: "latestBatch") else { return nil }
-            return try? JSONDecoder().decode(SuggestionBatch.self, from: data)
-        }
-        set {
-            defaults.set(try? JSONEncoder().encode(newValue), forKey: "latestBatch")
-        }
+        get { decode(SuggestionBatch.self, key: "latestBatch") }
+        set { encode(newValue, key: "latestBatch") }
+    }
+
+    var pendingInsert: PendingInsert? {
+        get { decode(PendingInsert.self, key: "pendingInsert") }
+        set { encode(newValue, key: "pendingInsert") }
     }
 
     // MARK: Last screenshot (compressed JPEG), for "regenerate" from the keyboard
@@ -70,5 +70,20 @@ final class SharedStore {
     func loadScreenshot() -> Data? {
         guard let url = screenshotURL else { return nil }
         return try? Data(contentsOf: url)
+    }
+
+    // MARK: Helpers
+
+    private func decode<T: Decodable>(_ type: T.Type, key: String) -> T? {
+        guard let data = defaults.data(forKey: key) else { return nil }
+        return try? JSONDecoder().decode(T.self, from: data)
+    }
+
+    private func encode<T: Encodable>(_ value: T?, key: String) {
+        if let value, let data = try? JSONEncoder().encode(value) {
+            defaults.set(data, forKey: key)
+        } else {
+            defaults.removeObject(forKey: key)
+        }
     }
 }
