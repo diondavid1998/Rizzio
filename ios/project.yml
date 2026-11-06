@@ -37,6 +37,7 @@ targets:
         LSApplicationCategoryType: public.app-category.lifestyle
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIRequiresFullScreen: true
         RizzioAppGroup: $(RIZZIO_APP_GROUP)
         NSPhotoLibraryUsageDescription: Rizzio reads the screenshot you pick to suggest replies.
     entitlements:
