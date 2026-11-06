@@ -80,7 +80,7 @@ def profile_app_groups(raw: bytes):
 
 
 def describe_capabilities(resource_id):
-    caps = api("GET", f"/bundleIds/{resource_id}/bundleIdCapabilities?limit=50")["data"]
+    caps = api("GET", f"/bundleIds/{resource_id}/bundleIdCapabilities")["data"]
     return sorted(c["attributes"].get("capabilityType", "?") for c in caps)
 
 
@@ -91,7 +91,7 @@ def setup(out):
     run("openssl", "genrsa", "-out", str(key), "2048")
     run("openssl", "req", "-new", "-key", str(key), "-out", str(csr), "-subj", "/CN=Rizzio CI/O=Rizzio")
 
-    print("  Creating a temporary Apple Distribution certificate…")
+    print("  Creating a temporary Apple Distribution certificate…", flush=True)
     cert = api("POST", "/certificates", {
         "data": {"type": "certificates", "attributes": {"certificateType": "DISTRIBUTION", "csrContent": csr.read_text()}}
     })["data"]
@@ -113,7 +113,7 @@ def setup(out):
 
     stamp = time.strftime("%Y%m%d%H%M%S")
     for role, identifier in BUNDLE_IDS.items():
-        print(f"  Creating an App Store profile for {identifier}…")
+        print(f"  Creating an App Store profile for {identifier}…", flush=True)
         profile = api("POST", "/profiles", {
             "data": {
                 "type": "profiles",
@@ -128,19 +128,18 @@ def setup(out):
         path = out / f"{role}.mobileprovision"
         raw = base64.b64decode(attrs["profileContent"])
         path.write_bytes(raw)
+        state["profiles"][role] = {"id": profile["id"]}  # so cleanup deletes it even if we stop below
+        (out / "state.json").write_text(json.dumps(state))
         groups = profile_app_groups(raw)
-        resource_id = profile["relationships"]["bundleId"]["data"]["id"] if "relationships" in profile else None
         if not groups or APP_GROUP not in groups:
+            print(f"  ✗ {identifier}: Apple's profile has App Groups = {groups!r}.", flush=True)
             caps = describe_capabilities(bundle_resource_id(identifier))
-            print(f"  ✗ {identifier}: Apple's profile has App Groups = {groups!r}.")
             print(f"    Capabilities enabled on this ID: {', '.join(caps) or 'none'}")
             if "APP_GROUPS" not in caps:
                 print("    → App Groups isn't ticked on this ID. Tick it at developer.apple.com → Identifiers → this ID → Save.")
             else:
                 print(f"    → App Groups is on, but {APP_GROUP} isn't assigned to this ID.")
                 print("      developer.apple.com → Identifiers → this ID → App Groups → Configure/Edit → tick the group → Continue → Save.")
-            state["profiles"][role] = {"id": profile["id"]}
-            (out / "state.json").write_text(json.dumps(state))
             raise SystemExit(1)
         print(f"  ✓ {identifier} profile includes {APP_GROUP}.")
         state["profiles"][role] = {
