@@ -119,7 +119,8 @@ describe("learning loop", () => {
 
     await call("POST", "/v1/replies", { mode: "chat", text: "next" });
     const memory = ai.calls.replies.at(-1).memory;
-    assert.ok(memory.indexOf("[WORKED] my own version lol") < memory.indexOf("reply 2"));
+    assert.match(memory, /\[WORKED\] my own version lol/);
+    assert.doesNotMatch(memory, /reply 2/); // AI-written pick: used for learning, not quoted as their voice
   });
 
   test("re-learns the voice profile after enough feedback", async () => {
@@ -176,6 +177,35 @@ describe("learning loop", () => {
     assert.deepEqual(me.styleExamples, ["seed one"]);
     assert.equal(me.learnedExamples.length, 0);
     assert.equal(me.voiceProfile, "");
+  });
+});
+
+describe("review fixes", () => {
+  test("auto mode asks the AI to detect profile vs chat", async () => {
+    const r = await call("POST", "/v1/replies", { mode: "auto", text: "hey" });
+    assert.equal(r.status, 200);
+    assert.match(ai.calls.replies.at(-1).requestText, /first work out whether this is a dating profile/);
+  });
+
+  test("AI-written picks aren't fed back as the user's voice, but their own words are", async () => {
+    const g = (await call("POST", "/v1/replies", { mode: "chat", text: "hi" })).body.generationId;
+    await call("POST", "/v1/feedback", { generationId: g, replyIndex: 1, kind: "picked" });
+    await call("POST", "/v1/feedback", { generationId: g, replyIndex: 2, kind: "edited", text: "nah ur wild for that" });
+    await call("POST", "/v1/replies", { mode: "chat", text: "next" });
+    const memory = ai.calls.replies.at(-1).memory;
+    assert.doesNotMatch(memory, /reply 1/);
+    assert.match(memory, /nah ur wild for that/);
+  });
+
+  test("rate limits AI calls per user", async () => {
+    server.close();
+    const app = createApp({ store, ai, appToken: TOKEN, log: { error() {} }, hourlyLimit: 2 });
+    await new Promise((resolve) => { server = app.listen(0, resolve); });
+    base = `http://127.0.0.1:${server.address().port}`;
+    assert.equal((await call("POST", "/v1/replies", { mode: "auto", text: "a" })).status, 200);
+    assert.equal((await call("POST", "/v1/replies", { mode: "auto", text: "b" })).status, 200);
+    assert.equal((await call("POST", "/v1/replies", { mode: "auto", text: "c" })).status, 429);
+    assert.equal((await call("POST", "/v1/replies", { mode: "auto", text: "d" }, { user: "other-user-1234" })).status, 200);
   });
 });
 

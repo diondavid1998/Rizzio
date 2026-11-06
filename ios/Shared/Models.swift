@@ -1,6 +1,7 @@
 import Foundation
 
 enum RizzMode: String, Codable {
+    case auto     // let the AI work out profile vs chat
     case prompt   // a dating-app profile prompt
     case chat     // an ongoing conversation
     case draft    // improve what the user already typed

@@ -72,6 +72,10 @@ export function renderMemory(user, examples) {
 
 export function renderReplyRequest({ mode, tone, text, draft, hasImage }) {
   const parts = [];
+  if (mode === "auto")
+    parts.push(
+      "Task: first work out whether this is a dating profile (write 5 comments to get a match) or a conversation (write 5 options for the user's next message), then do that. Say which in \"context\".",
+    );
   if (mode === "prompt") parts.push("Task: write 5 comments the user can send on this dating profile to get a match.");
   if (mode === "chat") parts.push("Task: write 5 options for the user's next message in this conversation.");
   if (mode === "draft") parts.push("Task: the user wrote a draft. Rewrite it 5 ways that keep their meaning and their voice but land better.");

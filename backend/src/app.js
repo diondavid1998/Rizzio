@@ -5,7 +5,7 @@ import { SIGNAL_KINDS } from "./db.js";
 import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, renderPersona, sanitizePersona } from "./persona.js";
 import { renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
-const MODES = ["prompt", "chat", "draft"];
+const MODES = ["auto", "prompt", "chat", "draft"];
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_IMAGE_B64 = 7_000_000; // ~5 MB
 const USER_ID = /^[A-Za-z0-9-]{8,64}$/;
@@ -30,8 +30,23 @@ function safeEqual(a, b) {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
-export function createApp({ store, ai, appToken, log = console }) {
+/** Max AI calls per user per hour. */
+export const HOURLY_LIMIT = Number(process.env.RIZZIO_HOURLY_LIMIT) || 120;
+
+export function createApp({ store, ai, appToken, log = console, hourlyLimit = HOURLY_LIMIT }) {
   const app = express();
+  const usage = new Map(); // userId -> timestamps of AI calls in the last hour
+
+  function rateLimit(req, res, next) {
+    const now = Date.now();
+    const recent = (usage.get(req.userId) ?? []).filter((t) => now - t < 3_600_000);
+    if (recent.length >= hourlyLimit) {
+      return res.status(429).json({ error: "You've hit the hourly limit. Try again in a bit." });
+    }
+    recent.push(now);
+    usage.set(req.userId, recent);
+    next();
+  }
   app.use(express.json({ limit: "8mb" }));
 
   const rebuilding = new Map(); // userId -> Promise, so two rebuilds never overlap
@@ -71,10 +86,10 @@ export function createApp({ store, ai, appToken, log = console }) {
   });
 
   /** Write 5 replies in the user's voice. */
-  app.post("/v1/replies", async (req, res, next) => {
+  app.post("/v1/replies", rateLimit, async (req, res, next) => {
     try {
       const b = req.body ?? {};
-      if (!MODES.includes(b.mode)) return res.status(400).json({ error: "mode must be prompt, chat or draft." });
+      if (!MODES.includes(b.mode)) return res.status(400).json({ error: "mode must be auto, prompt, chat or draft." });
       const image = parseImage(b.image);
       const text = str(b.text, 8000);
       const draft = str(b.draft, 2000);
@@ -85,7 +100,7 @@ export function createApp({ store, ai, appToken, log = console }) {
       // A preview (the app's Test drive) can try unsaved slider settings and isn't saved or learned from.
       const preview = b.preview === true;
       const persona = preview && b.persona ? sanitizePersona(b.persona) : sanitizePersona(store.getPersona(req.userId));
-      const memory = renderMemory(user, store.bestExamples(req.userId, 25)) + "\n\n" + renderPersona(persona);
+      const memory = renderMemory(user, store.bestExamples(req.userId, 25, { ownWordsOnly: true })) + "\n\n" + renderPersona(persona);
       const requestText = renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image });
       const result = await ai.generateReplies({ memory, requestText, image });
       const generationId = preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, ...result });
@@ -140,7 +155,7 @@ export function createApp({ store, ai, appToken, log = console }) {
   });
 
   /** Teach Rizzio from a screenshot of one of your own chats. */
-  app.post("/v1/learn/screenshot", async (req, res, next) => {
+  app.post("/v1/learn/screenshot", rateLimit, async (req, res, next) => {
     try {
       const image = parseImage(req.body?.image);
       if (!image) return res.status(400).json({ error: "Send an image." });
@@ -176,7 +191,7 @@ export function createApp({ store, ai, appToken, log = console }) {
   });
 
   /** Suggests slider values from how the user actually texts. Doesn't save; the app shows them first. */
-  app.post("/v1/me/persona/autotune", async (req, res, next) => {
+  app.post("/v1/me/persona/autotune", rateLimit, async (req, res, next) => {
     try {
       const user = store.getUser(req.userId);
       const examples = store.bestExamples(req.userId, 60);
@@ -191,7 +206,7 @@ export function createApp({ store, ai, appToken, log = console }) {
   });
 
   /** Re-learn now and return the new profile. */
-  app.post("/v1/me/rebuild", async (req, res, next) => {
+  app.post("/v1/me/rebuild", rateLimit, async (req, res, next) => {
     try {
       res.json({ voiceProfile: await rebuildProfile(req.userId) });
     } catch (err) {

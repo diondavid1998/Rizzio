@@ -126,9 +126,16 @@ export class Store {
     this.db.prepare("DELETE FROM examples WHERE user_id = ? AND id = ?").run(userId, id);
   }
 
-  /** The examples that best show the user's voice, strongest evidence first. */
-  bestExamples(userId, limit = 25) {
-    const rows = this.db.prepare("SELECT * FROM examples WHERE user_id = ?").all(userId);
+  /**
+   * The examples that best show the user's voice, strongest evidence first.
+   * ownWordsOnly skips "picked" replies: those were written by the AI, so feeding them back
+   * as "the user's voice" would slowly make Rizzio sound like itself instead of the user.
+   */
+  bestExamples(userId, limit = 25, { ownWordsOnly = false } = {}) {
+    const rows = this.db
+      .prepare("SELECT * FROM examples WHERE user_id = ?")
+      .all(userId)
+      .filter((e) => !ownWordsOnly || e.source !== "picked");
     return rows
       .sort((a, b) => (SOURCE_RANK[b.source] ?? 0) - (SOURCE_RANK[a.source] ?? 0) || b.id - a.id)
       .slice(0, limit);

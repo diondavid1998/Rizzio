@@ -22,7 +22,12 @@ struct GenerateRepliesIntent: AppIntent {
         guard let jpeg = ImageTools.compressedJPEG(from: screenshot.data) else {
             throw RizzError.server("Couldn't read that screenshot.")
         }
-        let mode: RizzMode = kind == .chat ? .chat : .prompt
+        let mode: RizzMode
+        switch kind {
+        case .auto: mode = .auto
+        case .profile: mode = .prompt
+        case .chat: mode = .chat
+        }
         let batch = try await RizzAPI.generateAndStore(
             mode: mode,
             tone: tone.flatMap { Tone(rawValue: $0.rawValue) },
@@ -32,16 +37,22 @@ struct GenerateRepliesIntent: AppIntent {
         let list = batch.replies.enumerated().map { "\($0.offset + 1). \($0.element.text)" }.joined(separator: "\n")
         return .result(
             value: list,
-            dialog: IntentDialog(stringLiteral: "\(batch.replies.count) replies ready. Tap the comment box and switch to the Rizzio keyboard.")
+            dialog: IntentDialog(stringLiteral: topReplyBanner(batch))
         )
     }
+}
+
+/// The banner after the Action Button: show the best reply right away, the rest are in the keyboard.
+private func topReplyBanner(_ batch: SuggestionBatch) -> String {
+    guard let best = batch.replies.first else { return "No replies this time. Try another screenshot." }
+    return "💬 \(best.text)\n\n+\(batch.replies.count - 1) more in the Rizzio keyboard"
 }
 
 enum ScreenKind: String, AppEnum {
     case auto, profile, chat
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "Screen type"
     static var caseDisplayRepresentations: [ScreenKind: DisplayRepresentation] = [
-        .auto: "Auto (profile)",
+        .auto: "Auto-detect",
         .profile: "Dating profile",
         .chat: "Chat conversation",
     ]
