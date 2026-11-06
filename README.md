@@ -14,6 +14,14 @@ The keyboard can also:
 - **Polish**: type a rough draft and get 5 better versions.
 - **Tones**: Witty, Flirty, Chill, Bold, Sweet, Corny. Tap ↻ to redo the last screenshot in a new tone.
 
+## The app is the control room
+
+The everyday flow is the Action Button and the keyboard. The app is where you shape how Rizzio sounds:
+
+- **Persona**: 12 sliders (Flirty, Humor, Boldness, Warmth, Spice, Humor style, Teasing, Length, Emoji, Polish, Questions, Pace), presets (Smooth, Golden retriever, Dry wit, Hopeless romantic, Chaos, Chill), rules like "all lowercase" and "no pickup lines", a goal (match, keep it going, number, date, friends), a "never mention" list, and a **Test drive** to see sample replies before saving. **Auto-tune** sets the sliders from how you really text.
+- **Train**: upload chat screenshots (up to 20 at a time) and see exactly which of your messages Rizzio learned from each, paste messages that worked, add facts about you, and watch the **Voice match** meter fill up.
+- **History**: mark which replies got a match, so Rizzio learns what works.
+
 ## It learns you
 
 Rizzio is meant to act like you, not like a generic pickup-line bot. It keeps a memory of how you text and gets better the more you use it:

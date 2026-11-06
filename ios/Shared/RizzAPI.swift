@@ -72,6 +72,47 @@ enum RizzAPI {
         return batch
     }
 
+    // MARK: Persona
+
+    private struct PersonaEnvelope: Codable { let persona: Persona }
+
+    static func persona() async throws -> Persona {
+        let result: PersonaEnvelope = try await send("GET", "v1/me/persona")
+        SharedStore.shared.persona = result.persona
+        return result.persona
+    }
+
+    static func savePersona(_ persona: Persona) async throws {
+        let result: PersonaEnvelope = try await send("PUT", "v1/me/persona", body: PersonaEnvelope(persona: persona))
+        SharedStore.shared.persona = result.persona
+    }
+
+    static func autoTune() async throws -> AutoTuneResult {
+        try await send("POST", "v1/me/persona/autotune", timeout: 90)
+    }
+
+    private struct PreviewPayload: Encodable {
+        let mode: RizzMode
+        let tone: String
+        let text: String?
+        let image: ImagePayload?
+        let preview: Bool
+        let persona: Persona
+    }
+
+    private struct PreviewResult: Decodable { let context: String; let replies: [Reply] }
+
+    /// Test drive: replies with unsaved settings. Not saved to History and not learned from.
+    static func preview(persona: Persona, text: String?, jpeg: Data?, mode: RizzMode = .prompt) async throws -> (context: String, replies: [Reply]) {
+        let payload = PreviewPayload(
+            mode: mode, tone: Tone.me.rawValue, text: text,
+            image: jpeg.map { ImagePayload(data: $0.base64EncodedString(), mediaType: "image/jpeg") },
+            preview: true, persona: persona
+        )
+        let result: PreviewResult = try await send("POST", "v1/replies", body: payload, timeout: 60)
+        return (result.context, result.replies)
+    }
+
     // MARK: Learning
 
     private struct FeedbackPayload: Encodable {

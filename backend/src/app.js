@@ -2,7 +2,8 @@ import express from "express";
 import { timingSafeEqual } from "node:crypto";
 import { AIError } from "./ai.js";
 import { SIGNAL_KINDS } from "./db.js";
-import { renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
+import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, renderPersona, sanitizePersona } from "./persona.js";
+import { renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
 const MODES = ["prompt", "chat", "draft"];
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -77,14 +78,17 @@ export function createApp({ store, ai, appToken, log = console }) {
       const image = parseImage(b.image);
       const text = str(b.text, 8000);
       const draft = str(b.draft, 2000);
-      const tone = str(b.tone, 40) || "witty";
+      const tone = str(b.tone, 40) || "me";
       if (!image && !text?.trim() && !draft?.trim()) return res.status(400).json({ error: "Send an image, text, or draft." });
 
       const user = store.getUser(req.userId);
-      const memory = renderMemory(user, store.bestExamples(req.userId, 25));
+      // A preview (the app's Test drive) can try unsaved slider settings and isn't saved or learned from.
+      const preview = b.preview === true;
+      const persona = preview && b.persona ? sanitizePersona(b.persona) : sanitizePersona(store.getPersona(req.userId));
+      const memory = renderMemory(user, store.bestExamples(req.userId, 25)) + "\n\n" + renderPersona(persona);
       const requestText = renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image });
       const result = await ai.generateReplies({ memory, requestText, image });
-      const generationId = store.saveGeneration(req.userId, { mode: b.mode, tone, ...result });
+      const generationId = preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, ...result });
       res.json({ generationId, ...result });
     } catch (err) {
       next(err);
@@ -152,6 +156,38 @@ export function createApp({ store, ai, appToken, log = console }) {
   app.delete("/v1/me/examples/:id", (req, res) => {
     store.deleteExample(req.userId, Number(req.params.id));
     res.json({ ok: true });
+  });
+
+  /** The persona sliders, plus the slider definitions so the app and server agree. */
+  app.get("/v1/me/persona", (req, res) => {
+    res.json({
+      persona: sanitizePersona(store.getPersona(req.userId)),
+      defaults: DEFAULT_PERSONA,
+      sliders: SLIDERS,
+      toggles: TOGGLES.map((t) => t.key),
+      goals: Object.keys(GOALS),
+    });
+  });
+
+  app.put("/v1/me/persona", (req, res) => {
+    const persona = sanitizePersona(req.body?.persona ?? req.body);
+    store.setPersona(req.userId, persona);
+    res.json({ persona });
+  });
+
+  /** Suggests slider values from how the user actually texts. Doesn't save; the app shows them first. */
+  app.post("/v1/me/persona/autotune", async (req, res, next) => {
+    try {
+      const user = store.getUser(req.userId);
+      const examples = store.bestExamples(req.userId, 60);
+      if (!user.voice_profile?.trim() && examples.length === 0) {
+        return res.status(409).json({ error: "Upload some of your chats first so Rizzio knows how you text." });
+      }
+      const evidence = renderAutoTuneEvidence(user, examples, SLIDERS);
+      res.json(await ai.autoTune({ evidence }));
+    } catch (err) {
+      next(err);
+    }
   });
 
   /** Re-learn now and return the new profile. */

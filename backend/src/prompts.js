@@ -44,6 +44,12 @@ About them: (facts useful for replies: job, city, hobbies, from their notes or m
 
 Be concrete and quote short phrases they actually use. Keep facts from the current profile unless new evidence contradicts them. Don't invent anything the evidence doesn't support.`;
 
+export const AUTOTUNE_SYSTEM = `You set the sliders for Rizzio, an assistant that writes texts as its user, so that its default style matches how the user actually texts.
+You'll get the user's voice profile and real messages they sent, plus the list of sliders (each 0-100, with what 0 and 100 mean).
+Set only the sliders the evidence clearly supports, based on how the user really writes, not on what would be "better". Leave a slider out if the evidence doesn't say.
+For each slider you set, give a short reason quoting or describing their real messages (under 15 words).
+Also say whether they write in all lowercase.`;
+
 export const EXTRACT_SYSTEM = `You read screenshots of the user's own chats or dating-app conversations so Rizzio can learn how they text.
 Messages on the right side (usually blue or colored bubbles) were sent by the user. Messages on the left were sent by the other person.
 Return the user's messages exactly as written, character for character, including their capitalization, typos and emoji. Merge nothing and fix nothing.
@@ -69,11 +75,25 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage }) {
   if (mode === "prompt") parts.push("Task: write 5 comments the user can send on this dating profile to get a match.");
   if (mode === "chat") parts.push("Task: write 5 options for the user's next message in this conversation.");
   if (mode === "draft") parts.push("Task: the user wrote a draft. Rewrite it 5 ways that keep their meaning and their voice but land better.");
-  parts.push(`Tone: ${tone}`);
+  parts.push(
+    !tone || tone === "me"
+      ? "Tone: follow the persona settings."
+      : `Tone for this request: ${tone} (lean this way on top of the persona settings).`,
+  );
   if (text?.trim()) parts.push(`Copied text from the screen or conversation:\n"""\n${text.trim()}\n"""`);
   if (draft?.trim()) parts.push(`The user's draft:\n"""\n${draft.trim()}\n"""`);
   if (hasImage) parts.push("The screenshot is attached.");
   return parts.join("\n\n");
+}
+
+/** Evidence for auto-tuning the sliders from how the user really texts. */
+export function renderAutoTuneEvidence(user, examples, sliders) {
+  const own = examples.filter((e) => ["seed", "imported", "edited", "won"].includes(e.source));
+  return [
+    `## Voice profile\n${user.voice_profile?.trim() || "(not learned yet)"}`,
+    `## Messages the user really sent\n${own.map((e) => `- ${e.text}`).join("\n") || "(none)"}`,
+    `## Sliders\n${sliders.map((s) => `- ${s.key}: 0 = ${s.left}, 100 = ${s.right}`).join("\n")}`,
+  ].join("\n\n");
 }
 
 export function renderProfileEvidence(user, examples, signals) {

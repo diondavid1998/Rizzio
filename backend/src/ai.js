@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { EXTRACT_SYSTEM, PROFILE_SYSTEM, REPLY_SYSTEM } from "./prompts.js";
+import { SLIDERS } from "./persona.js";
+import { AUTOTUNE_SYSTEM, EXTRACT_SYSTEM, PROFILE_SYSTEM, REPLY_SYSTEM } from "./prompts.js";
 
 const REPLY_SCHEMA = {
   type: "object",
@@ -34,6 +35,28 @@ const EXTRACT_SCHEMA = {
   type: "object",
   properties: { messages: { type: "array", items: { type: "string" } } },
   required: ["messages"],
+  additionalProperties: false,
+};
+
+const AUTOTUNE_SCHEMA = {
+  type: "object",
+  properties: {
+    settings: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          key: { type: "string", enum: SLIDERS.map((s) => s.key) },
+          value: { type: "integer" },
+          reason: { type: "string" },
+        },
+        required: ["key", "value", "reason"],
+        additionalProperties: false,
+      },
+    },
+    lowercase: { type: "boolean" },
+  },
+  required: ["settings", "lowercase"],
   additionalProperties: false,
 };
 
@@ -109,6 +132,22 @@ export class ClaudeAI {
       effort: "medium",
     });
     return out.profile.trim();
+  }
+
+  /** Reads how the user really texts and proposes slider values. */
+  async autoTune({ evidence }) {
+    const out = await this.#call({
+      system: [{ type: "text", text: AUTOTUNE_SYSTEM }],
+      content: [{ type: "text", text: evidence }],
+      schema: AUTOTUNE_SCHEMA,
+      effort: "medium",
+    });
+    return {
+      settings: out.settings
+        .filter((s) => SLIDERS.some((d) => d.key === s.key))
+        .map((s) => ({ key: s.key, value: Math.max(0, Math.min(100, Math.round(s.value))), reason: s.reason })),
+      lowercase: out.lowercase,
+    };
   }
 
   async extractUserMessages({ image }) {

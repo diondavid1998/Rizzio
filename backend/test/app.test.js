@@ -22,6 +22,10 @@ class FakeAI {
     this.calls.profile.push(args);
     return `Voice: profile v${this.calls.profile.length}`;
   }
+  async autoTune(args) {
+    this.calls.autotune = [...(this.calls.autotune ?? []), args];
+    return { settings: [{ key: "emoji", value: 5, reason: "never uses emoji" }], lowercase: true };
+  }
   async extractUserMessages(args) {
     this.calls.extract.push(args);
     return ["lmaooo no way", "ok but tacos tho"];
@@ -90,7 +94,8 @@ describe("replies", () => {
     assert.match(sent.memory, /nurse in nyc/);
     assert.match(sent.memory, /who hurt the geese/);
     assert.match(sent.memory, /Voice: profile v1/); // profile learned from the PUT
-    assert.match(sent.requestText, /Tone: flirty/);
+    assert.match(sent.requestText, /Tone for this request: flirty/);
+    assert.match(sent.memory, /Persona settings/);
   });
 });
 
@@ -171,5 +176,55 @@ describe("learning loop", () => {
     assert.deepEqual(me.styleExamples, ["seed one"]);
     assert.equal(me.learnedExamples.length, 0);
     assert.equal(me.voiceProfile, "");
+  });
+});
+
+describe("persona", () => {
+  test("starts with defaults, saves, and cleans bad values", async () => {
+    const first = (await call("GET", "/v1/me/persona")).body;
+    assert.equal(first.persona.sliders.flirt, 55);
+    assert.equal(first.sliders.length, 12);
+
+    const saved = await call("PUT", "/v1/me/persona", {
+      persona: { sliders: { flirt: 140, humor: 10, bogus: 50 }, toggles: { lowercase: true }, goal: "date", avoid: "my ex" },
+    });
+    assert.equal(saved.body.persona.sliders.flirt, 100); // clamped
+    assert.equal(saved.body.persona.sliders.humor, 10);
+    assert.equal(saved.body.persona.sliders.bogus, undefined);
+    assert.equal(saved.body.persona.goal, "date");
+
+    const again = (await call("GET", "/v1/me/persona")).body.persona;
+    assert.equal(again.toggles.lowercase, true);
+    assert.equal(again.avoid, "my ex");
+  });
+
+  test("saved persona shapes every reply", async () => {
+    await call("PUT", "/v1/me/persona", { persona: { sliders: { emoji: 0 }, toggles: { lowercase: true }, avoid: "politics" } });
+    await call("POST", "/v1/replies", { mode: "prompt", text: "I love hiking" });
+    const memory = ai.calls.replies.at(-1).memory;
+    assert.match(memory, /emoji: 0\/100/);
+    assert.match(memory, /Write in all lowercase/);
+    assert.match(memory, /Never bring up: politics/);
+    assert.match(ai.calls.replies.at(-1).requestText, /follow the persona settings/);
+  });
+
+  test("test drive uses unsaved settings and isn't saved or learned from", async () => {
+    const r = await call("POST", "/v1/replies", {
+      mode: "prompt", text: "I love hiking", preview: true, persona: { sliders: { flirt: 3 } },
+    });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.generationId, null);
+    assert.match(ai.calls.replies.at(-1).memory, /flirt: 3\/100/);
+    assert.equal((await call("GET", "/v1/history")).body.items.length, 0);
+    assert.equal((await call("GET", "/v1/me/persona")).body.persona.sliders.flirt, 55); // not saved
+  });
+
+  test("auto-tune needs training data first, then suggests values", async () => {
+    assert.equal((await call("POST", "/v1/me/persona/autotune")).status, 409);
+    await call("PUT", "/v1/me", { styleExamples: ["lol ok bet"] });
+    const r = await call("POST", "/v1/me/persona/autotune");
+    assert.equal(r.status, 200);
+    assert.deepEqual(r.body.settings[0], { key: "emoji", value: 5, reason: "never uses emoji" });
+    assert.match(ai.calls.autotune[0].evidence, /lol ok bet/);
   });
 });

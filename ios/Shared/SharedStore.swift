@@ -40,7 +40,7 @@ final class SharedStore {
     }
 
     var tone: Tone {
-        get { Tone(rawValue: defaults.string(forKey: "tone") ?? "") ?? .witty }
+        get { Tone(rawValue: defaults.string(forKey: "tone") ?? "") ?? .me }
         set { defaults.set(newValue.rawValue, forKey: "tone") }
     }
 
@@ -51,6 +51,12 @@ final class SharedStore {
     var latestBatch: SuggestionBatch? {
         get { decode(SuggestionBatch.self, key: "latestBatch") }
         set { encode(newValue, key: "latestBatch") }
+    }
+
+    /// Local copy of your persona, so the app opens instantly. The server's copy is what replies use.
+    var persona: Persona {
+        get { decode(Persona.self, key: "persona") ?? .default }
+        set { encode(newValue, key: "persona") }
     }
 
     var pendingInsert: PendingInsert? {

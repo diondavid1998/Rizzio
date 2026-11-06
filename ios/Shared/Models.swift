@@ -7,9 +7,11 @@ enum RizzMode: String, Codable {
 }
 
 enum Tone: String, CaseIterable, Codable, Identifiable {
+    /// Follow your Persona settings as they are.
+    case me
     case witty, flirty, chill, bold, sweet, corny
     var id: String { rawValue }
-    var label: String { rawValue.capitalized }
+    var label: String { self == .me ? "Me" : rawValue.capitalized }
 }
 
 struct Reply: Codable, Hashable {

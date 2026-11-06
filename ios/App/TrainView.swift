@@ -1,0 +1,259 @@
+import PhotosUI
+import SwiftUI
+
+/// "Train": upload your chats and messages so Rizzio learns how you talk.
+struct TrainView: View {
+    @State private var me: MeResponse?
+    @State private var aboutMe = ""
+    @State private var examplesText = ""
+    @State private var uploadItems: [PhotosPickerItem] = []
+    @State private var uploads: [UploadResult] = []
+    @State private var progress: String?
+    @State private var errorMessage: String?
+    @State private var isBusy = false
+    @State private var confirmReset = false
+
+    struct UploadResult: Identifiable {
+        let id = UUID()
+        let thumbnail: UIImage?
+        let learned: [String]
+    }
+
+    /// Rough "how well does Rizzio know you" meter: real messages count most, wins count extra.
+    private var voiceMatch: Double {
+        guard let stats = me?.stats else { return 0 }
+        let score = Double(stats.examples) * 3 + Double(stats.wins) * 8 + Double(stats.picks)
+        return min(score, 100)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if let errorMessage {
+                    Section { Text(errorMessage).foregroundStyle(.red) }
+                }
+
+                Section {
+                    VoiceMatchCard(score: voiceMatch, stats: me?.stats)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                }
+
+                // MARK: Upload
+                Section {
+                    PhotosPicker(selection: $uploadItems, maxSelectionCount: 20, matching: .screenshots) {
+                        HStack(spacing: 14) {
+                            Image(systemName: "square.and.arrow.up.on.square.fill")
+                                .font(.title2)
+                                .foregroundStyle(.pink)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Upload chat screenshots").font(.headline)
+                                Text("Up to 20 at a time: Hinge, iMessage, Instagram, anything")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                    }
+                    .disabled(isBusy)
+                    if let progress {
+                        HStack { ProgressView(); Text(progress).font(.callout) }
+                    }
+                } header: {
+                    Text("Upload data")
+                } footer: {
+                    Text("Pick conversations where you were at your best. Rizzio only learns from your messages (the ones on the right), not theirs. Screenshots aren't stored.")
+                }
+
+                if !uploads.isEmpty {
+                    Section("Just learned") {
+                        ForEach(uploads) { upload in
+                            HStack(alignment: .top, spacing: 12) {
+                                if let thumb = upload.thumbnail {
+                                    Image(uiImage: thumb).resizable().scaledToFill()
+                                        .frame(width: 44, height: 80).clipShape(RoundedRectangle(cornerRadius: 6))
+                                }
+                                VStack(alignment: .leading, spacing: 4) {
+                                    if upload.learned.isEmpty {
+                                        Text("No messages from you found here").font(.caption).foregroundStyle(.secondary)
+                                    } else {
+                                        ForEach(upload.learned.prefix(4), id: \.self) { Text("“\($0)”").font(.caption) }
+                                        if upload.learned.count > 4 {
+                                            Text("+\(upload.learned.count - 4) more").font(.caption2).foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // MARK: Messages
+                Section {
+                    TextField("One message per line", text: $examplesText, axis: .vertical)
+                        .lineLimit(4...12)
+                    Button("Save messages") { Task { await saveText() } }.disabled(isBusy)
+                } header: {
+                    Text("Messages that worked")
+                } footer: {
+                    Text("Paste comments or texts you've sent that got matches or great replies. These count the most.")
+                }
+
+                Section {
+                    TextField("e.g. 27, NYC, nurse, into climbing and cooking, dry humor", text: $aboutMe, axis: .vertical)
+                        .lineLimit(2...5)
+                    Button("Save") { Task { await saveText() } }.disabled(isBusy)
+                } header: {
+                    Text("About you")
+                } footer: {
+                    Text("Facts Rizzio can use in replies: job, city, hobbies, your kind of humor.")
+                }
+
+                // MARK: What it knows
+                Section {
+                    if let profile = me?.voiceProfile, !profile.isEmpty {
+                        Text(profile).font(.callout)
+                    } else {
+                        Text("Nothing yet. Upload a few chats above.").foregroundStyle(.secondary)
+                    }
+                    Button("Re-learn now") { Task { await busy("Re-learning your voice…") { _ = try await RizzAPI.rebuildProfile() } } }
+                        .disabled(isBusy)
+                } header: {
+                    Text("How Rizzio thinks you talk")
+                } footer: {
+                    Text("Rizzio writes this itself and updates it as you use the keyboard. Next: open Persona → Auto-tune to set the sliders from it.")
+                }
+
+                if let learned = me?.learnedExamples, !learned.isEmpty {
+                    Section {
+                        ForEach(learned) { item in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.text)
+                                Text(label(for: item.source)).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        .onDelete { offsets in
+                            let ids = offsets.map { learned[$0].id }
+                            Task { await busy("Removing…") { for id in ids { try await RizzAPI.deleteExample(id: id) } } }
+                        }
+                    } header: {
+                        Text("Your messages Rizzio learned from (\(learned.count))")
+                    } footer: {
+                        Text("Swipe left to remove anything that isn't you.")
+                    }
+                }
+
+                Section {
+                    Button("Forget everything learned", role: .destructive) { confirmReset = true }
+                } footer: {
+                    Text("Keeps About you, your pasted messages, and your Persona sliders.")
+                }
+            }
+            .navigationTitle("Train")
+            .task { await load() }
+            .refreshable { await load() }
+            .onChange(of: uploadItems) { items in
+                guard !items.isEmpty else { return }
+                Task { await upload(items) }
+            }
+            .confirmationDialog("Forget everything Rizzio learned?", isPresented: $confirmReset, titleVisibility: .visible) {
+                Button("Forget", role: .destructive) { Task { await busy("Forgetting…") { try await RizzAPI.resetMemory() } } }
+            }
+        }
+    }
+
+    private func label(for source: String) -> String {
+        switch source {
+        case "won": return "🏆 Got a match or reply"
+        case "edited": return "✏️ Your rewrite"
+        case "imported": return "📸 From your chats"
+        case "picked": return "👆 You picked this"
+        default: return source
+        }
+    }
+
+    @MainActor private func load() async {
+        do {
+            let me = try await RizzAPI.me()
+            self.me = me
+            aboutMe = me.aboutMe
+            examplesText = me.styleExamples.joined(separator: "\n")
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor private func saveText() async {
+        await busy("Saving and re-learning…") {
+            let examples = examplesText.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+            try await RizzAPI.updateMe(aboutMe: aboutMe, styleExamples: examples)
+            _ = try await RizzAPI.rebuildProfile()
+        }
+    }
+
+    @MainActor private func upload(_ items: [PhotosPickerItem]) async {
+        await busy("Reading your chats…") {
+            for (i, item) in items.enumerated() {
+                progress = "Reading screenshot \(i + 1) of \(items.count)…"
+                guard let data = try await item.loadTransferable(type: Data.self),
+                      let jpeg = ImageTools.compressedJPEG(from: data) else { continue }
+                let learned = try await RizzAPI.learn(fromScreenshot: jpeg)
+                let thumb = ImageTools.compressedJPEG(from: data, maxDimension: 160).flatMap(UIImage.init(data:))
+                uploads.insert(UploadResult(thumbnail: thumb, learned: learned), at: 0)
+            }
+            progress = "Updating how you talk…"
+            _ = try await RizzAPI.rebuildProfile()
+        }
+        uploadItems = []
+    }
+
+    @MainActor private func busy(_ message: String, _ work: () async throws -> Void) async {
+        isBusy = true
+        progress = message
+        errorMessage = nil
+        do { try await work() } catch { errorMessage = error.localizedDescription }
+        isBusy = false
+        progress = nil
+        await load()
+    }
+}
+
+struct VoiceMatchCard: View {
+    let score: Double
+    let stats: MeResponse.Stats?
+
+    private var caption: String {
+        switch score {
+        case ..<15: return "Rizzio barely knows you yet. Upload some chats."
+        case ..<50: return "Getting there. A few more chats will sharpen it."
+        case ..<85: return "Rizzio has a good read on how you talk."
+        default: return "Rizzio texts like you. Keep marking wins in History."
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle().stroke(Color.pink.opacity(0.15), lineWidth: 10)
+                Circle()
+                    .trim(from: 0, to: score / 100)
+                    .stroke(Color.pink, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                Text("\(Int(score))%").font(.headline.monospacedDigit())
+            }
+            .frame(width: 72, height: 72)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Voice match").font(.headline)
+                Text(caption).font(.caption).foregroundStyle(.secondary)
+                if let stats {
+                    Text("\(stats.examples) messages · \(stats.picks) picks · \(stats.wins) wins")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}

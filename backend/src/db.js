@@ -53,6 +53,9 @@ export function openDb(path = ":memory:") {
       UNIQUE(user_id, text)
     );
   `);
+  // Added after the first release: add the column to databases created before it.
+  const cols = db.prepare("PRAGMA table_info(users)").all().map((c) => c.name);
+  if (!cols.includes("persona_json")) db.exec("ALTER TABLE users ADD COLUMN persona_json TEXT");
   return new Store(db);
 }
 
@@ -77,6 +80,15 @@ export class Store {
 
   updateAboutMe(id, aboutMe) {
     this.db.prepare("UPDATE users SET about_me = ? WHERE id = ?").run(aboutMe, id);
+  }
+
+  getPersona(id) {
+    const row = this.db.prepare("SELECT persona_json FROM users WHERE id = ?").get(id);
+    return row?.persona_json ? JSON.parse(row.persona_json) : null;
+  }
+
+  setPersona(id, persona) {
+    this.db.prepare("UPDATE users SET persona_json = ? WHERE id = ?").run(JSON.stringify(persona), id);
   }
 
   setVoiceProfile(id, profile) {
