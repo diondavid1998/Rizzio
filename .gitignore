@@ -2,3 +2,5 @@
 *.xcodeproj/
 xcuserdata/
 DerivedData/
+build/
+*.p8
