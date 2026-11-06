@@ -66,6 +66,24 @@ def bundle_resource_id(identifier):
     )
 
 
+APP_GROUP = "group.com.diondavid.rizzio"
+
+
+def profile_app_groups(raw: bytes):
+    """Reads the application-groups entitlement out of a .mobileprovision (a signed plist)."""
+    import plistlib
+    start, end = raw.find(b"<?xml"), raw.find(b"</plist>")
+    if start < 0 or end < 0:
+        return None
+    plist = plistlib.loads(raw[start : end + len(b"</plist>")])
+    return plist.get("Entitlements", {}).get("com.apple.security.application-groups")
+
+
+def describe_capabilities(resource_id):
+    caps = api("GET", f"/bundleIds/{resource_id}/bundleIdCapabilities?limit=50")["data"]
+    return sorted(c["attributes"].get("capabilityType", "?") for c in caps)
+
+
 def setup(out):
     out.mkdir(parents=True, exist_ok=True)
     key = out / "dist.key"
@@ -108,7 +126,23 @@ def setup(out):
         })["data"]
         attrs = profile["attributes"]
         path = out / f"{role}.mobileprovision"
-        path.write_bytes(base64.b64decode(attrs["profileContent"]))
+        raw = base64.b64decode(attrs["profileContent"])
+        path.write_bytes(raw)
+        groups = profile_app_groups(raw)
+        resource_id = profile["relationships"]["bundleId"]["data"]["id"] if "relationships" in profile else None
+        if not groups or APP_GROUP not in groups:
+            caps = describe_capabilities(bundle_resource_id(identifier))
+            print(f"  ✗ {identifier}: Apple's profile has App Groups = {groups!r}.")
+            print(f"    Capabilities enabled on this ID: {', '.join(caps) or 'none'}")
+            if "APP_GROUPS" not in caps:
+                print("    → App Groups isn't ticked on this ID. Tick it at developer.apple.com → Identifiers → this ID → Save.")
+            else:
+                print(f"    → App Groups is on, but {APP_GROUP} isn't assigned to this ID.")
+                print("      developer.apple.com → Identifiers → this ID → App Groups → Configure/Edit → tick the group → Continue → Save.")
+            state["profiles"][role] = {"id": profile["id"]}
+            (out / "state.json").write_text(json.dumps(state))
+            raise SystemExit(1)
+        print(f"  ✓ {identifier} profile includes {APP_GROUP}.")
         state["profiles"][role] = {
             "id": profile["id"], "name": attrs["name"], "uuid": attrs["uuid"],
             "bundleId": identifier, "path": str(path),
