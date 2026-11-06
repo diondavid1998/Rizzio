@@ -22,6 +22,9 @@ concurrency:
   group: ios-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
+permissions:
+  contents: write  # lets the TestFlight run save the encrypted signing certificate once
+
 jobs:
   build:
     runs-on: macos-26
@@ -66,8 +69,25 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: |
           mkdir -p "$RUNNER_TEMP/asc"
           printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/asc/AuthKey_$ASC_KEY_ID.p8"
           export ASC_KEY_PATH="$RUNNER_TEMP/asc/AuthKey_$ASC_KEY_ID.p8"
           ./scripts/testflight.sh
+
+      # The first run with SIGNING_PASSWORD set creates one permanent certificate and saves it
+      # (encrypted with that password) so every later build reuses it. Runs even if the upload failed,
+      # so a certificate is never created twice.
+      - name: Save signing certificate
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.testflight
+        working-directory: .
+        run: |
+          if [ -n "$(git status --porcelain ios/signing)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add ios/signing
+            git commit -m "Save encrypted distribution certificate"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi

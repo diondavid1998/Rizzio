@@ -84,32 +84,86 @@ def describe_capabilities(resource_id):
     return sorted(c["attributes"].get("capabilityType", "?") for c in caps)
 
 
-def setup(out):
-    out.mkdir(parents=True, exist_ok=True)
+# Permanent certificate, stored encrypted in the repo (like fastlane match). Only used when the
+# SIGNING_PASSWORD secret is set; without it, a temporary certificate is made and revoked each run.
+STORE_DIR = Path(__file__).resolve().parent.parent / "signing"
+STORED_P12 = STORE_DIR / "distribution.p12.enc"
+STORED_INFO = STORE_DIR / "distribution.json"
+
+
+def certificate_is_valid(cert_id):
+    token = make_token(os.environ["ASC_KEY_ID"], os.environ["ASC_ISSUER_ID"], os.environ["ASC_KEY_PATH"])
+    req = urllib.request.Request(f"{API}/certificates/{cert_id}", headers={"Authorization": f"Bearer {token}"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            attrs = json.load(resp)["data"]["attributes"]
+    except urllib.error.HTTPError:
+        return False
+    expires = attrs.get("expirationDate", "")
+    return not expires or expires > time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(time.time() + 7 * 86400))
+
+
+def load_stored_certificate(out, password):
+    """Decrypts the saved certificate. Returns its Apple ID, or None if there isn't a usable one."""
+    if not (STORED_P12.exists() and STORED_INFO.exists()):
+        return None
+    cert_id = json.loads(STORED_INFO.read_text())["certificateId"]
+    if not certificate_is_valid(cert_id):
+        print("  The saved certificate was revoked or is about to expire; making a new one.", flush=True)
+        return None
+    run("openssl", "enc", "-d", "-aes-256-cbc", "-pbkdf2", "-in", str(STORED_P12),
+        "-out", str(out / "cert.p12"), "-pass", "env:SIGNING_PASSWORD")
+    return cert_id
+
+
+def create_certificate(out, p12_password):
     key = out / "dist.key"
     csr = out / "dist.csr"
     run("openssl", "genrsa", "-out", str(key), "2048")
     run("openssl", "req", "-new", "-key", str(key), "-out", str(csr), "-subj", "/CN=Rizzio CI/O=Rizzio")
-
-    print("  Creating a temporary Apple Distribution certificate…", flush=True)
     cert = api("POST", "/certificates", {
         "data": {"type": "certificates", "attributes": {"certificateType": "DISTRIBUTION", "csrContent": csr.read_text()}}
     })["data"]
-    state = {"certificateId": cert["id"], "profiles": {}}
-    (out / "state.json").write_text(json.dumps(state))
-
     cer = out / "dist.cer"
     cer.write_bytes(base64.b64decode(cert["attributes"]["certificateContent"]))
     run("openssl", "x509", "-inform", "DER", "-in", str(cer), "-out", str(out / "dist.pem"))
-    password = base64.b64encode(os.urandom(18)).decode()
     p12_cmd = ["openssl", "pkcs12", "-export", "-inkey", str(key), "-in", str(out / "dist.pem"),
-               "-out", str(out / "cert.p12"), "-passout", f"pass:{password}"]
+               "-out", str(out / "cert.p12"), "-passout", f"pass:{p12_password}"]
     # macOS's keychain can't read OpenSSL 3's default p12 encryption; ask for the legacy format when available.
     try:
         run(*(p12_cmd + ["-legacy"]))
     except subprocess.CalledProcessError:
         run(*p12_cmd)
-    state["p12Password"] = password
+    key.unlink()
+    return cert["id"]
+
+
+def setup(out):
+    out.mkdir(parents=True, exist_ok=True)
+    permanent_password = os.environ.get("SIGNING_PASSWORD", "")
+    state = {"profiles": {}}
+
+    if permanent_password:
+        state["p12Password"] = permanent_password
+        cert_id = load_stored_certificate(out, permanent_password)
+        if cert_id:
+            print("  Using the saved distribution certificate.", flush=True)
+        else:
+            print("  Creating the permanent distribution certificate (one time)…", flush=True)
+            cert_id = create_certificate(out, permanent_password)
+            STORE_DIR.mkdir(exist_ok=True)
+            run("openssl", "enc", "-aes-256-cbc", "-pbkdf2", "-salt", "-in", str(out / "cert.p12"),
+                "-out", str(STORED_P12), "-pass", "env:SIGNING_PASSWORD")
+            STORED_INFO.write_text(json.dumps({"certificateId": cert_id}, indent=2) + "\n")
+            print("  ✓ Saved it, encrypted, to ios/signing/ (CI commits it so later builds reuse it).", flush=True)
+        state["certificateId"] = cert_id
+        state["permanent"] = True
+    else:
+        print("  Creating a temporary Apple Distribution certificate…", flush=True)
+        state["p12Password"] = base64.b64encode(os.urandom(18)).decode()
+        state["certificateId"] = create_certificate(out, state["p12Password"])
+    (out / "state.json").write_text(json.dumps(state))
+    cert = {"id": state["certificateId"]}
 
     stamp = time.strftime("%Y%m%d%H%M%S")
     for role, identifier in BUNDLE_IDS.items():
@@ -160,7 +214,7 @@ def cleanup(out):
             api("DELETE", f"/profiles/{profile['id']}")
         except SystemExit as err:
             print(f"  (couldn't delete profile: {err})")
-    if state.get("certificateId"):
+    if state.get("certificateId") and not state.get("permanent"):
         try:
             api("DELETE", f"/certificates/{state['certificateId']}")
             print("  ✓ Temporary certificate revoked.")

@@ -105,3 +105,7 @@ Each suggestion is one Claude API call with a compressed screenshot. To make it 
 ## Privacy
 
 Screenshots go only to your own backend and the Claude API. They aren't stored on the server; only the text replies, your feedback, and messages it learned from are kept, in your own Railway database. The latest screenshot is kept on your phone (App Group) so you can regenerate in a different tone.
+
+## Signing (TestFlight uploads)
+
+GitHub's Macs sign builds through the App Store Connect API (`ios/scripts/asc_signing.py`). With the `SIGNING_PASSWORD` repo secret set, the first upload creates one Apple Distribution certificate and stores it in `ios/signing/`, encrypted with that password; later uploads reuse it. Keep the password safe: without it the stored certificate can't be used, and a new one is made automatically.
