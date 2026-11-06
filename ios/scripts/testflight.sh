@@ -35,14 +35,14 @@ AUTH=(-allowProvisioningUpdates
       -authenticationKeyID "$ASC_KEY_ID"
       -authenticationKeyIssuerID "$ASC_ISSUER_ID")
 
-echo "Archiving build $BUILD_NUMBER…"
+echo "Archiving build ${BUILD_NUMBER}…"
 xcodebuild archive \
   -project Rizzio.xcodeproj \
   -scheme Rizzio \
   -configuration Release \
   -destination "generic/platform=iOS" \
   -archivePath "$ARCHIVE" \
-  CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+  CURRENT_PROJECT_VERSION="${BUILD_NUMBER}" \
   "${AUTH[@]}"
 
 cat > build/ExportOptions.plist <<'PLIST'
@@ -65,4 +65,4 @@ xcodebuild -exportArchive \
   -exportPath build/export \
   "${AUTH[@]}"
 
-echo "Done. Build $BUILD_NUMBER is processing; it shows up in TestFlight in about 5–15 minutes."
+echo "Done. Build ${BUILD_NUMBER} is processing; it shows up in TestFlight in about 5–15 minutes."
