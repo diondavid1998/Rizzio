@@ -17,6 +17,21 @@ cd "$(dirname "$0")/.."
 : "${ASC_KEY_PATH:?Set ASC_KEY_PATH (path to the AuthKey_XXXX.p8 file)}"
 ASC_KEY_PATH="${ASC_KEY_PATH/#\~/$HOME}"
 
+# Check the API key before spending 10 minutes on a build. Prints only pass/fail, never the key.
+echo "Checking App Store Connect API key…"
+ok=1
+[[ "$ASC_KEY_ID" =~ ^[A-Z0-9]{10}$ ]] || { echo "  ✗ ASC_KEY_ID should be 10 capital letters/digits (e.g. 2X9R4HM3KD). Got ${#ASC_KEY_ID} characters."; ok=0; }
+[[ "$ASC_ISSUER_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || { echo "  ✗ ASC_ISSUER_ID should look like 69a6de7e-1234-47e3-e053-5b8c7c11a4d1. Got ${#ASC_ISSUER_ID} characters."; ok=0; }
+if [ ! -s "$ASC_KEY_PATH" ]; then
+  echo "  ✗ The .p8 key is empty or missing."; ok=0
+elif ! grep -q "BEGIN PRIVATE KEY" "$ASC_KEY_PATH"; then
+  echo "  ✗ The .p8 key doesn't start with -----BEGIN PRIVATE KEY-----. Copy the whole file contents."; ok=0
+elif ! openssl pkey -in "$ASC_KEY_PATH" -noout 2>/dev/null; then
+  echo "  ✗ The .p8 key is damaged (line breaks lost or text cut off). Re-copy it with: pbcopy < AuthKey_XXXX.p8"; ok=0
+fi
+[ "$ok" = 1 ] || exit 1
+echo "  ✓ Key ID, Issuer ID and .p8 look valid."
+
 if grep -q "CHANGE_ME" project.yml; then
   echo "Edit project.yml first: replace com.CHANGE_ME with your bundle prefix and set DEVELOPMENT_TEAM." >&2
   exit 1
