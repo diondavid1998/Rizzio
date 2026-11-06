@@ -66,7 +66,7 @@ def bundle_resource_id(identifier):
     )
 
 
-APP_GROUP = "group.com.diondavid.rizzio"
+APP_GROUP = "group.com.diondavid.Rizzio"  # matches the group registered on developer.apple.com (case-sensitive)
 
 
 def profile_app_groups(raw: bytes):
