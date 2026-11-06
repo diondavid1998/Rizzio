@@ -56,7 +56,8 @@ jobs:
 
       - name: Show compiler errors
         if: failure()
-        run: grep -E "error:|warning: .*deprecated" build.log | sort -u | head -100 || true
+        run: |
+          grep -E "error:" build.log | sort -u | head -100 || true
 
       - name: Upload to TestFlight
         if: github.event_name == 'workflow_dispatch' && inputs.testflight
