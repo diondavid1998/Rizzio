@@ -31,6 +31,7 @@ elif ! openssl pkey -in "$ASC_KEY_PATH" -noout 2>/dev/null; then
 fi
 [ "$ok" = 1 ] || exit 1
 echo "  ✓ Key ID, Issuer ID and .p8 look valid."
+python3 scripts/asc_auth_check.py "$ASC_KEY_ID" "$ASC_ISSUER_ID" "$ASC_KEY_PATH"
 
 if grep -q "CHANGE_ME" project.yml; then
   echo "Edit project.yml first: replace com.CHANGE_ME with your bundle prefix and set DEVELOPMENT_TEAM." >&2
