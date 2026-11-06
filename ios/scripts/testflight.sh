@@ -6,7 +6,7 @@
 #   ./scripts/testflight.sh
 #
 # The three ASC_* values come from App Store Connect → Users and Access → Integrations → App Store Connect API
-# (create a key with the "App Manager" role, download the .p8 once, keep it out of git).
+# (the key needs the Admin role, or App Manager with "Access to Cloud Managed Distribution Certificate", so it can sign; the key StreamScout uses works if it has that). Download the .p8 once and keep it out of git.
 # Each run uses a new build number (the current date and time), so you can upload as often as you like.
 set -euo pipefail
 

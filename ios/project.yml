@@ -1,21 +1,21 @@
 # Generate the Xcode project on your Mac with:  brew install xcodegen && xcodegen
-# Before generating, change BUNDLE_PREFIX below to something unique to you (e.g. com.dion).
+# Signing uses the same Apple team as StreamScout (4DKL5S4CND).
 name: Rizzio
 options:
-  bundleIdPrefix: com.CHANGE_ME
+  bundleIdPrefix: com.diondavid
   deploymentTarget:
     iOS: "16.0"
   createIntermediateGroups: true
 settings:
   base:
-    BUNDLE_PREFIX: com.CHANGE_ME
+    BUNDLE_PREFIX: com.diondavid
     RIZZIO_APP_GROUP: group.$(BUNDLE_PREFIX).rizzio
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
     TARGETED_DEVICE_FAMILY: "1"
     CODE_SIGN_STYLE: Automatic
-    # DEVELOPMENT_TEAM: ABCDE12345   # optional: your Apple team ID, or pick it in Xcode
+    DEVELOPMENT_TEAM: 4DKL5S4CND
 targets:
   Rizzio:
     type: application
