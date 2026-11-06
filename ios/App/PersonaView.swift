@@ -235,11 +235,11 @@ struct VibeCard: View {
     }
 
     private var topTraits: [String] {
-        SliderSpec.all
-            .map { ($0, persona.value($0.key)) }
-            .sorted { abs($0.1 - 50) > abs($1.1 - 50) }
-            .prefix(3)
-            .map { spec, value in value >= 50 ? spec.right : spec.left }
+        let distance: (SliderSpec) -> Double = { spec in abs(persona.value(spec.key) - 50) }
+        let strongest: [SliderSpec] = Array(SliderSpec.all.sorted { distance($0) > distance($1) }.prefix(3))
+        return strongest.map { spec -> String in
+            persona.value(spec.key) >= 50 ? spec.right : spec.left
+        }
     }
 }
 
