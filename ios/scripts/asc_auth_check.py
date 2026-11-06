@@ -67,6 +67,19 @@ def main() -> int:
         elif err.code == 403:
             print("    The key works but lacks permission. Give it the Admin role.")
         return 1
+    # Xcode also needs the developer-portal side (certificates, profiles) to sign the app.
+    portal_req = urllib.request.Request(
+        "https://api.appstoreconnect.apple.com/v1/certificates?limit=1",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    try:
+        with urllib.request.urlopen(portal_req, timeout=30):
+            print("  ✓ The key can manage certificates and profiles.")
+    except urllib.error.HTTPError as err:
+        print(f"  ✗ The key can see your apps but can't manage certificates (HTTP {err.code}).")
+        print("    Xcode needs that to sign the app. In App Store Connect → Users and Access → Integrations,")
+        print("    make a new Team key with Access set to Admin, then update ASC_KEY_ID and ASC_KEY_P8 in GitHub.")
+        return 1
     bundle_ids = [a["attributes"]["bundleId"] for a in apps]
     print(f"  ✓ Apple accepted the API key ({len(bundle_ids)} apps visible).")
     if "com.diondavid.rizzio" not in bundle_ids:
