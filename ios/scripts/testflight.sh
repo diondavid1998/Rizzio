@@ -39,17 +39,63 @@ if grep -q "CHANGE_ME" project.yml; then
 fi
 
 command -v xcodegen >/dev/null || { echo "Installing XcodeGen…"; brew install xcodegen; }
-xcodegen
 
 BUILD_NUMBER="$(date +%Y%m%d%H%M)"
 ARCHIVE="build/Rizzio.xcarchive"
+SIGNING="build/signing"
+KEYCHAIN="$PWD/build/rizzio-ci.keychain-db"
 rm -rf build
 mkdir -p build
 
-AUTH=(-allowProvisioningUpdates
-      -authenticationKeyPath "$ASC_KEY_PATH"
-      -authenticationKeyID "$ASC_KEY_ID"
-      -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+# 1. Make a temporary distribution certificate + App Store profiles through Apple's API.
+#    Always clean them up afterwards, even if something fails.
+cleanup() {
+  echo "Cleaning up signing…"
+  python3 scripts/asc_signing.py cleanup "$SIGNING" || true
+  security delete-keychain "$KEYCHAIN" 2>/dev/null || true
+  [ -f build/project.yml.orig ] && cp build/project.yml.orig project.yml || true
+}
+trap cleanup EXIT
+
+echo "Preparing signing…"
+python3 scripts/asc_signing.py setup "$SIGNING"
+read_state() { python3 -c "import json,sys; s=json.load(open('$SIGNING/state.json')); print(eval(sys.argv[1]))" "$1"; }
+P12_PASSWORD="$(read_state 's["p12Password"]')"
+APP_PROFILE="$(read_state 's["profiles"]["app"]["name"]')"
+KB_PROFILE="$(read_state 's["profiles"]["keyboard"]["name"]')"
+
+# 2. Put the certificate in a throwaway keychain and install the profiles where Xcode looks.
+security create-keychain -p "" "$KEYCHAIN"
+security set-keychain-settings -lut 21600 "$KEYCHAIN"
+security unlock-keychain -p "" "$KEYCHAIN"
+security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+security import "$SIGNING/cert.p12" -k "$KEYCHAIN" -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" "$KEYCHAIN" >/dev/null
+for dir in "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
+  mkdir -p "$dir"
+  for role in app keyboard; do
+    uuid="$(read_state "s['profiles']['$role']['uuid']")"
+    cp "$SIGNING/$role.mobileprovision" "$dir/$uuid.mobileprovision"
+  done
+done
+
+# 3. Sign manually with those profiles (CI only; project.yml is restored afterwards).
+cp project.yml build/project.yml.orig
+python3 - "$APP_PROFILE" "$KB_PROFILE" <<'PY'
+import sys
+app_profile, kb_profile = sys.argv[1], sys.argv[2]
+text = open("project.yml").read()
+def manual(profile):
+    return ("        CODE_SIGN_STYLE: Manual\n"
+            "        CODE_SIGN_IDENTITY: Apple Distribution\n"
+            f"        PROVISIONING_PROFILE_SPECIFIER: \"{profile}\"\n")
+for bundle_line, profile in [("        PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_PREFIX).rizzio\n", app_profile),
+                             ("        PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_PREFIX).rizzio.keyboard\n", kb_profile)]:
+    assert bundle_line in text, bundle_line
+    text = text.replace(bundle_line, bundle_line + manual(profile), 1)
+open("project.yml", "w").write(text)
+PY
+xcodegen
 
 echo "Archiving build ${BUILD_NUMBER}…"
 xcodebuild archive \
@@ -59,16 +105,23 @@ xcodebuild archive \
   -destination "generic/platform=iOS" \
   -archivePath "$ARCHIVE" \
   CURRENT_PROJECT_VERSION="${BUILD_NUMBER}" \
-  "${AUTH[@]}"
+  OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN"
 
-cat > build/ExportOptions.plist <<'PLIST'
+cat > build/ExportOptions.plist <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
   <key>method</key><string>app-store-connect</string>
   <key>destination</key><string>upload</string>
-  <key>signingStyle</key><string>automatic</string>
+  <key>signingStyle</key><string>manual</string>
+  <key>signingCertificate</key><string>Apple Distribution</string>
+  <key>teamID</key><string>4DKL5S4CND</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>com.diondavid.rizzio</key><string>${APP_PROFILE}</string>
+    <key>com.diondavid.rizzio.keyboard</key><string>${KB_PROFILE}</string>
+  </dict>
   <key>manageAppVersionAndBuildNumber</key><false/>
 </dict>
 </plist>
@@ -79,6 +132,8 @@ xcodebuild -exportArchive \
   -archivePath "$ARCHIVE" \
   -exportOptionsPlist build/ExportOptions.plist \
   -exportPath build/export \
-  "${AUTH[@]}"
+  -authenticationKeyPath "$ASC_KEY_PATH" \
+  -authenticationKeyID "$ASC_KEY_ID" \
+  -authenticationKeyIssuerID "$ASC_ISSUER_ID"
 
 echo "Done. Build ${BUILD_NUMBER} is processing; it shows up in TestFlight in about 5–15 minutes."
