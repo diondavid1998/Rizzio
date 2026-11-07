@@ -55,3 +55,11 @@ test("reports Claude's actual reason when every shape is rejected", async () => 
     console.error = origError;
   }
 });
+
+test("explains an empty Claude balance in plain English", async () => {
+  const ai = new ClaudeAI({ apiKey: "x" });
+  const c = fakeClient({ text: "" });
+  c.beta.messages.create = async () => { throw badRequest("Your credit balance is too low to access the Anthropic API."); };
+  ai.client = c;
+  await assert.rejects(ai.rebuildProfile({ evidence: "x" }), /out of credits/);
+});

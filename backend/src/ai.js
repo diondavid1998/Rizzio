@@ -116,6 +116,9 @@ export class ClaudeAI {
         }
         break;
       } catch (err) {
+        if (err instanceof Anthropic.BadRequestError && /credit balance/i.test(String(err.message))) {
+          throw new AIError("Rizzio's Claude account is out of credits. Add credits at console.anthropic.com → Plans & Billing.", 402);
+        }
         if (err instanceof Anthropic.BadRequestError) {
           lastBadRequest = err;
           console.error(`Claude rejected the "${variant}" request (400): ${err.message}`);
