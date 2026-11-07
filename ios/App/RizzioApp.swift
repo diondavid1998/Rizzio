@@ -2,6 +2,9 @@ import SwiftUI
 
 @main
 struct RizzioApp: App {
+    /// "system", "light" or "dark", chosen in Setup.
+    @AppStorage("appearance") private var appearance = "system"
+
     init() {
         Theme.applyAppearance()
         // Automated UI tests point the app at a local test server with a fixed user.
@@ -12,6 +15,7 @@ struct RizzioApp: App {
             store.appToken = token
             store.persona = .default
             store.latestBatch = nil
+            UserDefaults.standard.set(env["RIZZIO_UITEST_APPEARANCE"] ?? "light", forKey: "appearance")
         }
     }
 
@@ -19,6 +23,7 @@ struct RizzioApp: App {
         WindowGroup {
             ContentView()
                 .tint(Theme.accent)
+                .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
         }
     }
 }

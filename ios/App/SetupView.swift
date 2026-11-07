@@ -5,6 +5,7 @@ struct SetupView: View {
     @State private var appToken = SharedStore.shared.appToken
     @State private var tone = SharedStore.shared.tone
     @State private var saved = false
+    @AppStorage("appearance") private var appearance = "system"
 
     var body: some View {
         NavigationStack {
@@ -23,6 +24,17 @@ struct SetupView: View {
                     Button(saved ? "Saved ✓" : "Save") { save() }
                 } header: {
                     Text("Server")
+                }
+                Section {
+                    Picker("Appearance", selection: $appearance) {
+                        Text("Match iPhone").tag("system")
+                        Text("Light").tag("light")
+                        Text("Dark").tag("dark")
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("appearance")
+                } header: {
+                    Text("Appearance")
                 }
                 if !SharedStore.shared.isGroupAvailable {
                     Section {

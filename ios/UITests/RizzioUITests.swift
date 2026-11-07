@@ -281,4 +281,39 @@ final class RizzioUITests: XCTestCase {
             assertNoConnectionErrors()
         }
     }
+
+    /// Screenshots of every main screen in light and dark mode, for design review.
+    func test8_LightAndDarkScreens() throws {
+        try seedGeneration()
+        for mode in ["light", "dark"] {
+            app.terminate()
+            app.launchEnvironment["RIZZIO_UITEST_APPEARANCE"] = mode
+            app.launch()
+
+            tab("Persona")
+            waitFor(text(containing: "YOUR STYLE"))
+            snap("\(mode)-1-persona")
+            reveal(app.sliders.firstMatch)
+            snap("\(mode)-2-persona-sliders")
+
+            reveal(app.buttons["Test drive these settings"]).tap()
+            app.buttons.matching(identifier: "Write replies").firstMatch.tap()
+            waitFor(text(containing: "Fake reply 1"))
+            snap("\(mode)-3-test-drive")
+            app.navigationBars.buttons.firstMatch.tap()
+
+            tab("Train")
+            waitFor(text(containing: "Style match"))
+            snap("\(mode)-4-train")
+
+            tab("History")
+            waitFor(text(containing: "Prompt: Typical Sunday"))
+            snap("\(mode)-5-history")
+
+            tab("Setup")
+            waitFor(element("serverURL"))
+            snap("\(mode)-6-setup")
+            assertNoConnectionErrors()
+        }
+    }
 }
