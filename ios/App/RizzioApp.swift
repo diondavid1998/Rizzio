@@ -15,6 +15,7 @@ struct RizzioApp: App {
             store.appToken = token
             store.persona = .default
             store.latestBatch = nil
+            store.engine = .premium
             UserDefaults.standard.set(env["RIZZIO_UITEST_APPEARANCE"] ?? "light", forKey: "appearance")
         }
     }

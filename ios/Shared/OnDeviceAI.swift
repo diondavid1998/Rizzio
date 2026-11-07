@@ -1,0 +1,252 @@
+import Foundation
+import UIKit
+import Vision
+#if canImport(FoundationModels)
+import FoundationModels
+#endif
+
+/// The "Free" engine: Apple Intelligence on the iPhone. Nothing is sent to Claude, so it costs nothing.
+/// - Screenshots are read with Apple's on-device text recognition (Vision).
+/// - Replies, the texting-style summary and slider suggestions come from Apple's on-device model.
+enum OnDeviceAI {
+    // MARK: Availability
+
+    /// Why Free mode can't run right now, or nil if it can.
+    static var unavailableReason: String? {
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            switch SystemLanguageModel.default.availability {
+            case .available:
+                return nil
+            case .unavailable(.deviceNotEligible):
+                return "This iPhone doesn't support Apple Intelligence. Switch to Premium in Setup."
+            case .unavailable(.appleIntelligenceNotEnabled):
+                return "Turn on Apple Intelligence (Settings → Apple Intelligence & Siri), or switch to Premium in Setup."
+            case .unavailable(.modelNotReady):
+                return "Apple Intelligence is still downloading. Try again in a few minutes, or switch to Premium."
+            case .unavailable:
+                return "Apple Intelligence isn't available right now. Switch to Premium in Setup."
+            }
+        }
+        #endif
+        return "Free mode needs iOS 26 or later with Apple Intelligence. Switch to Premium in Setup."
+    }
+
+    // MARK: Reading screenshots (works on any iOS version)
+
+    struct ChatLine {
+        enum Side { case me, them, unknown }
+        let text: String
+        let side: Side
+    }
+
+    /// Reads a screenshot. In chats, text on the right is yours and text on the left is theirs.
+    static func read(_ imageData: Data) throws -> [ChatLine] {
+        guard let cgImage = UIImage(data: imageData)?.cgImage else { throw RizzError.server("Couldn't read that screenshot.") }
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = true
+        try VNImageRequestHandler(cgImage: cgImage).perform([request])
+        let observations = (request.results ?? [])
+            .filter { $0.boundingBox.maxY < 0.94 } // skip the status bar
+            .sorted { $0.boundingBox.maxY > $1.boundingBox.maxY } // top to bottom (Vision's origin is bottom-left)
+
+        var lines: [ChatLine] = []
+        var lastBottom: CGFloat = 1
+        for obs in observations {
+            guard let text = obs.topCandidates(1).first?.string.trimmingCharacters(in: .whitespaces), !text.isEmpty else { continue }
+            let box = obs.boundingBox
+            let side: ChatLine.Side = box.minX > 0.3 && box.maxX > 0.75 ? .me : (box.minX < 0.2 && box.maxX < 0.85 ? .them : .unknown)
+            // Lines of the same bubble sit close together: merge them into one message.
+            if let previous = lines.last, previous.side == side, side != .unknown, lastBottom - box.maxY < 0.02 {
+                lines[lines.count - 1] = ChatLine(text: previous.text + " " + text, side: side)
+            } else {
+                lines.append(ChatLine(text: text, side: side))
+            }
+            lastBottom = box.minY
+        }
+        return lines
+    }
+
+    /// The text of a screenshot as a transcript the model can follow.
+    static func transcript(_ lines: [ChatLine]) -> String {
+        let looksLikeChat = lines.contains { $0.side == .me } && lines.contains { $0.side == .them }
+        let text = lines.map { line -> String in
+            guard looksLikeChat else { return line.text }
+            switch line.side {
+            case .me: return "Me: \(line.text)"
+            case .them: return "Them: \(line.text)"
+            case .unknown: return line.text
+            }
+        }.joined(separator: "\n")
+        return String(text.prefix(2500))
+    }
+
+    /// Your own messages in a chat screenshot (the right-hand bubbles), for Train.
+    static func myMessages(fromScreenshot imageData: Data) throws -> [String] {
+        try read(imageData).filter { $0.side == .me }.map(\.text).filter { $0.count > 1 }
+    }
+
+    // MARK: Prompt pieces
+
+    static let instructions = """
+    You write messages the user will send on dating apps and in chats, in the user's own texting style.
+    Write exactly 5 different messages. Each one is short (6 to 25 words), specific to a detail in what they said or wrote, \
+    and easy to answer: end with a playful question, a light challenge, or a this-or-that.
+    Be confident and warm. Never crude, no sexual content, no comments on bodies, no cheesy pickup lines, no em dashes.
+    Follow the persona settings. Copy the user's own example messages for length, capitalization, slang and emoji.
+    Make the 5 messages different approaches, best one first.
+    """
+
+    static func personaText(_ persona: Persona) -> String {
+        var parts = SliderSpec.all.map { spec in
+            "- \(spec.title): \(Int(persona.value(spec.key)))/100 (0 = \(spec.left), 100 = \(spec.right))"
+        }
+        if persona.isOn("lowercase") { parts.append("- Write everything in lowercase.") }
+        if persona.isOn("noPickupLines") { parts.append("- No canned pickup lines.") }
+        if persona.isOn("noDoubleText") { parts.append("- Never needy or chasing.") }
+        if let goal = GoalSpec.all.first(where: { $0.key == persona.goal }) { parts.append("- Goal: \(goal.title).") }
+        if !persona.avoid.trimmingCharacters(in: .whitespaces).isEmpty { parts.append("- Never mention: \(persona.avoid).") }
+        if !persona.notes.trimmingCharacters(in: .whitespaces).isEmpty { parts.append("- Also: \(persona.notes)") }
+        return "Persona settings:\n" + parts.joined(separator: "\n")
+    }
+
+    static func styleText(_ me: MeResponse?) -> String {
+        guard let me else { return "" }
+        var parts: [String] = []
+        if !me.voiceProfile.isEmpty { parts.append("How the user texts:\n\(me.voiceProfile.prefix(600))") }
+        if !me.aboutMe.isEmpty { parts.append("About the user: \(me.aboutMe.prefix(300))") }
+        let own = me.styleExamples + me.learnedExamples.filter { $0.source != "picked" }.map(\.text)
+        if !own.isEmpty { parts.append("Messages the user really sent:\n" + own.prefix(12).map { "- \($0)" }.joined(separator: "\n")) }
+        return parts.joined(separator: "\n\n")
+    }
+
+    static func task(mode: RizzMode, tone: Tone) -> String {
+        let job: String
+        switch mode {
+        case .prompt: job = "Write 5 comments to send on this dating profile to get a match."
+        case .chat: job = "Write 5 options for the user's next message (\"Me\") in this conversation, answering the last thing they said."
+        case .draft: job = "Rewrite the user's draft 5 ways that keep the meaning but land better."
+        case .auto: job = "If this is a dating profile, write 5 comments to get a match. If it's a conversation, write 5 options for the user's next message (\"Me\")."
+        }
+        return tone == .me ? job : job + " Lean \(tone.rawValue)."
+    }
+
+    // MARK: Generation
+
+    struct Result {
+        let context: String
+        let replies: [Reply]
+    }
+
+    static func replies(mode: RizzMode, tone: Tone, jpeg: Data?, text: String?, draft: String?,
+                        persona: Persona, me: MeResponse?) async throws -> Result {
+        if let reason = unavailableReason { throw RizzError.server(reason) }
+        var content: [String] = []
+        if let jpeg { content.append("On screen:\n" + transcript(try read(jpeg))) }
+        if let text, !text.isEmpty { content.append("Their message or prompt:\n\(text.prefix(2500))") }
+        if let draft, !draft.isEmpty { content.append("The user's draft:\n\(draft.prefix(600))") }
+        let prompt = [task(mode: mode, tone: tone), personaText(persona), styleText(me), content.joined(separator: "\n\n")]
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            let session = LanguageModelSession(instructions: instructions)
+            let response = try await session.respond(to: prompt, generating: GeneratedReplies.self)
+            var replies = response.content.replies.map { Reply(text: $0.text, angle: $0.angle) }
+            if persona.isOn("lowercase") { replies = replies.map { Reply(text: $0.text.lowercased(), angle: $0.angle) } }
+            guard !replies.isEmpty else { throw RizzError.server("Apple Intelligence didn't write anything. Try again.") }
+            return Result(context: response.content.context, replies: Array(replies.prefix(5)))
+        }
+        #endif
+        throw RizzError.server(unavailableReason ?? "Free mode isn't available.")
+    }
+
+    /// Writes a short summary of how the user texts, from their own messages.
+    static func styleProfile(me: MeResponse) async throws -> String {
+        if let reason = unavailableReason { throw RizzError.server(reason) }
+        let own = me.styleExamples + me.learnedExamples.filter { $0.source != "picked" }.map(\.text)
+        guard !own.isEmpty else { throw RizzError.server("Upload some of your chats first so Rizzio knows how you text.") }
+        let prompt = """
+        Here are messages one person sent. Describe how they text in under 120 words, under these headings: \
+        Voice (length, capitalization, punctuation, emoji, slang), Humor & energy, What to avoid. Quote short phrases they use.
+        About them: \(me.aboutMe.prefix(300))
+        Messages:
+        \(own.prefix(30).map { "- \($0)" }.joined(separator: "\n"))
+        """
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            let session = LanguageModelSession()
+            return try await session.respond(to: prompt).content.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        #endif
+        throw RizzError.server(unavailableReason ?? "Free mode isn't available.")
+    }
+
+    /// Suggests slider values from the user's own messages.
+    static func autoTune(me: MeResponse) async throws -> AutoTuneResult {
+        if let reason = unavailableReason { throw RizzError.server(reason) }
+        let own = me.styleExamples + me.learnedExamples.filter { $0.source != "picked" }.map(\.text)
+        guard !own.isEmpty else { throw RizzError.server("Upload some of your chats first so Rizzio knows how you text.") }
+        let sliders = SliderSpec.all.map { "- \($0.key): 0 = \($0.left), 100 = \($0.right)" }.joined(separator: "\n")
+        let prompt = """
+        Set sliders (0-100) to match how this person really texts. Only set sliders the messages clearly show.
+        Sliders:
+        \(sliders)
+        Their messages:
+        \(own.prefix(30).map { "- \($0)" }.joined(separator: "\n"))
+        """
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            let session = LanguageModelSession()
+            let result = try await session.respond(to: prompt, generating: GeneratedTune.self).content
+            let valid = Set(SliderSpec.all.map(\.key))
+            let settings = result.settings
+                .filter { valid.contains($0.key) }
+                .map { AutoTuneResult.Setting(key: $0.key, value: Double(max(0, min(100, $0.value))), reason: $0.reason) }
+            return AutoTuneResult(settings: settings, lowercase: result.lowercase)
+        }
+        #endif
+        throw RizzError.server(unavailableReason ?? "Free mode isn't available.")
+    }
+}
+
+#if canImport(FoundationModels)
+@available(iOS 26.0, *)
+@Generable
+struct GeneratedReplies {
+    @Guide(description: "One short line naming what you replied to")
+    var context: String
+    @Guide(description: "Exactly five different messages, best first")
+    var replies: [GeneratedReply]
+}
+
+@available(iOS 26.0, *)
+@Generable
+struct GeneratedReply {
+    @Guide(description: "The message exactly as the user would send it")
+    var text: String
+    @Guide(description: "Two or three words naming the approach, like playful tease")
+    var angle: String
+}
+
+@available(iOS 26.0, *)
+@Generable
+struct GeneratedTune {
+    @Guide(description: "Sliders the messages clearly show")
+    var settings: [GeneratedSetting]
+    @Guide(description: "True if they write in all lowercase")
+    var lowercase: Bool
+}
+
+@available(iOS 26.0, *)
+@Generable
+struct GeneratedSetting {
+    @Guide(description: "The slider key exactly as listed")
+    var key: String
+    @Guide(description: "A value from 0 to 100")
+    var value: Int
+    @Guide(description: "Under 12 words, based on their real messages")
+    var reason: String
+}
+#endif

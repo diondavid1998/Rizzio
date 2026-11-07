@@ -6,6 +6,7 @@ struct SetupView: View {
     @State private var tone = SharedStore.shared.tone
     @State private var saved = false
     @AppStorage("appearance") private var appearance = "system"
+    @State private var engine = SharedStore.shared.engine
 
     var body: some View {
         NavigationStack {
@@ -25,6 +26,25 @@ struct SetupView: View {
                 } header: {
                     Text("Server")
                 }
+                Section {
+                    Picker("AI", selection: $engine) {
+                        Text("Free").tag(Engine.free)
+                        Text("Premium").tag(Engine.premium)
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("engine")
+                    .onChange(of: engine) { SharedStore.shared.engine = $0 }
+                    if engine == .free, let reason = OnDeviceAI.unavailableReason {
+                        Text(reason).font(.footnote).foregroundStyle(.orange)
+                    }
+                } header: {
+                    Text("AI")
+                } footer: {
+                    Text(engine == .free
+                         ? "Free: Apple Intelligence writes replies on your iPhone. Costs nothing, works offline, nothing leaves your phone. Replies are simpler."
+                         : "Premium: Claude Haiku writes replies on your Rizzio server. Wittier and more like you. Uses your Claude API credits (roughly a cent per 10 screenshots).")
+                }
+
                 Section {
                     Picker("Appearance", selection: $appearance) {
                         Text("Match iPhone").tag("system")

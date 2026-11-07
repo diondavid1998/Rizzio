@@ -209,6 +209,33 @@ describe("review fixes", () => {
   });
 });
 
+describe("free mode (Apple Intelligence on the phone)", () => {
+  test("stores phone-written replies, examples and profile without calling Claude", async () => {
+    const g = await call("POST", "/v1/generations", {
+      mode: "prompt", tone: "me", context: "Prompt: geese",
+      replies: [{ text: "who hurt you, the geese?", angle: "tease" }, { text: "bad", extra: 1 }, { nope: true }],
+    });
+    assert.equal(g.status, 200);
+    assert.ok(g.body.generationId);
+    assert.equal((await call("POST", "/v1/feedback", { generationId: g.body.generationId, replyIndex: 0, kind: "picked" })).status, 200);
+    assert.equal((await call("GET", "/v1/history")).body.items[0].replies.length, 2);
+
+    const ex = await call("POST", "/v1/me/examples", { texts: ["lowkey yes", "", 5, "say less"] });
+    assert.equal(ex.body.added, 2);
+    assert.equal((await call("PUT", "/v1/me/profile", { voiceProfile: "short, lowercase" })).status, 200);
+
+    const me = (await call("GET", "/v1/me")).body;
+    assert.equal(me.voiceProfile, "short, lowercase");
+    assert.ok(me.learnedExamples.some((e) => e.text === "say less" && e.source === "imported"));
+    assert.equal(ai.calls.replies.length + ai.calls.profile.length + ai.calls.extract.length, 0);
+  });
+
+  test("validates free-mode input", async () => {
+    assert.equal((await call("POST", "/v1/generations", { mode: "prompt", replies: [] })).status, 400);
+    assert.equal((await call("PUT", "/v1/me/profile", { voiceProfile: " " })).status, 400);
+  });
+});
+
 describe("persona", () => {
   test("starts with defaults, saves, and cleans bad values", async () => {
     const first = (await call("GET", "/v1/me/persona")).body;

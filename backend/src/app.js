@@ -110,6 +110,47 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
     }
   });
 
+  // ---- Free mode (Apple Intelligence on the phone): store results, no AI calls here ----
+
+  const cleanReplies = (raw) =>
+    Array.isArray(raw)
+      ? raw
+          .filter((r) => r && typeof r.text === "string")
+          .slice(0, 5)
+          .map((r) => ({ text: r.text.slice(0, 500), angle: typeof r.angle === "string" ? r.angle.slice(0, 60) : "" }))
+      : [];
+
+  /** Saves replies written on the phone so History and learning work the same as Premium. */
+  app.post("/v1/generations", (req, res) => {
+    const b = req.body ?? {};
+    const replies = cleanReplies(b.replies);
+    if (!MODES.includes(b.mode) || replies.length === 0) return res.status(400).json({ error: "Send mode and replies." });
+    const generationId = store.saveGeneration(req.userId, {
+      mode: b.mode,
+      tone: str(b.tone, 40) || "me",
+      context: str(b.context, 300) || "",
+      replies,
+    });
+    res.json({ generationId });
+  });
+
+  /** Adds messages the phone read from your chat screenshots. */
+  app.post("/v1/me/examples", (req, res) => {
+    const texts = Array.isArray(req.body?.texts)
+      ? req.body.texts.filter((t) => typeof t === "string" && t.trim()).map((t) => t.slice(0, 500)).slice(0, 60)
+      : [];
+    for (const t of texts) store.addExample(req.userId, t, "imported");
+    res.json({ added: texts.length });
+  });
+
+  /** Saves a texting-style summary the phone wrote itself. */
+  app.put("/v1/me/profile", (req, res) => {
+    const profile = str(req.body?.voiceProfile, 4000);
+    if (!profile?.trim()) return res.status(400).json({ error: "Send voiceProfile." });
+    store.setVoiceProfile(req.userId, profile.trim());
+    res.json({ voiceProfile: profile.trim() });
+  });
+
   /** Tell the agent what happened: picked, edited, rejected, match, replied, ignored. */
   app.post("/v1/feedback", (req, res) => {
     const b = req.body ?? {};

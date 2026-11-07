@@ -14,6 +14,13 @@ The keyboard can also:
 - **Polish**: type a rough draft and get 5 better versions.
 - **Tones**: Witty, Flirty, Chill, Bold, Sweet, Corny. Tap ↻ to redo the last screenshot in a new tone.
 
+## Free or Premium
+
+Setup → **AI** switches the engine for everything (Action Button, keyboard, Train, Persona):
+
+- **Free:** Apple Intelligence on the iPhone (iOS 26+, Apple Intelligence on). Screenshots are read on the phone and replies are written by Apple's on-device model. Costs nothing, works offline; the server only stores history and learned messages. Replies are simpler.
+- **Premium:** Claude Haiku on your Rizzio server (`RIZZIO_MODEL` overrides the model). Wittier, closer to your style. Uses Claude API credits.
+
 ## The app is the control room
 
 The everyday flow is the Action Button and the keyboard. The app is where you shape how Rizzio sounds:

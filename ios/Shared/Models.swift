@@ -31,6 +31,14 @@ struct SuggestionBatch: Codable {
     let hasScreenshot: Bool
 }
 
+/// Which AI writes the replies.
+enum Engine: String, Codable, CaseIterable, Identifiable {
+    case free      // Apple Intelligence on the iPhone, $0
+    case premium   // Claude Haiku on the Rizzio server
+    var id: String { rawValue }
+    var label: String { self == .free ? "Free" : "Premium" }
+}
+
 /// What the agent learns from. Mirrors the backend's signal kinds.
 enum FeedbackKind: String, Codable {
     case picked    // chose this reply

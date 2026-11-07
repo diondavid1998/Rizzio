@@ -57,11 +57,21 @@ enum RizzAPI {
         draft: String? = nil,
         keepScreenshot: Bool = false
     ) async throws -> SuggestionBatch {
-        let result = try await generate(mode: mode, tone: tone, jpeg: jpeg, text: text, draft: draft)
         let store = SharedStore.shared
+        let result: RizzResult
+        if store.engine == .free {
+            // Apple Intelligence writes the replies on the phone; the server only stores them (if reachable).
+            let me = try? await RizzAPI.me()
+            let local = try await OnDeviceAI.replies(mode: mode, tone: tone ?? store.tone, jpeg: jpeg, text: text,
+                                                     draft: draft, persona: store.persona, me: me)
+            let saved = try? await saveGeneration(mode: mode, tone: tone ?? store.tone, context: local.context, replies: local.replies)
+            result = RizzResult(generationId: saved ?? "", context: local.context, replies: local.replies)
+        } else {
+            result = try await generate(mode: mode, tone: tone, jpeg: jpeg, text: text, draft: draft)
+        }
         if jpeg != nil, keepScreenshot { store.saveScreenshot(jpeg) }
         let batch = SuggestionBatch(
-            generationId: result.generationId,
+            generationId: result.generationId.isEmpty ? nil : result.generationId,
             context: result.context,
             replies: result.replies,
             mode: mode,
@@ -88,8 +98,23 @@ enum RizzAPI {
     }
 
     static func autoTune() async throws -> AutoTuneResult {
-        try await send("POST", "v1/me/persona/autotune", timeout: 90)
+        if SharedStore.shared.engine == .free { return try await OnDeviceAI.autoTune(me: try await me()) }
+        return try await send("POST", "v1/me/persona/autotune", timeout: 90)
     }
+
+    // MARK: Free mode storage (no AI on the server)
+
+    private struct GenerationPayload: Encodable { let mode: RizzMode; let tone: String; let context: String; let replies: [Reply] }
+    private struct GenerationSaved: Decodable { let generationId: String }
+
+    static func saveGeneration(mode: RizzMode, tone: Tone, context: String, replies: [Reply]) async throws -> String {
+        let saved: GenerationSaved = try await send("POST", "v1/generations",
+                                                    body: GenerationPayload(mode: mode, tone: tone.rawValue, context: context, replies: replies))
+        return saved.generationId
+    }
+
+    private struct ExamplesPayload: Encodable { let texts: [String] }
+    private struct ProfilePayload: Codable { let voiceProfile: String }
 
     private struct PreviewPayload: Encodable {
         let mode: RizzMode
@@ -104,6 +129,11 @@ enum RizzAPI {
 
     /// Test drive: replies with unsaved settings. Not saved to History and not learned from.
     static func preview(persona: Persona, text: String?, jpeg: Data?, mode: RizzMode = .prompt) async throws -> (context: String, replies: [Reply]) {
+        if SharedStore.shared.engine == .free {
+            let local = try await OnDeviceAI.replies(mode: jpeg != nil ? .auto : mode, tone: .me, jpeg: jpeg, text: text,
+                                                     draft: nil, persona: persona, me: try? await me())
+            return (local.context, local.replies)
+        }
         let payload = PreviewPayload(
             mode: mode, tone: Tone.me.rawValue, text: text,
             image: jpeg.map { ImagePayload(data: $0.base64EncodedString(), mediaType: "image/jpeg") },
@@ -146,6 +176,14 @@ enum RizzAPI {
 
     /// Teach Rizzio from a screenshot of one of your own chats. Returns the messages it learned.
     static func learn(fromScreenshot jpeg: Data) async throws -> [String] {
+        if SharedStore.shared.engine == .free {
+            // Read the chat on the phone; only the text of your own messages goes to the server.
+            let mine = try OnDeviceAI.myMessages(fromScreenshot: jpeg)
+            if !mine.isEmpty {
+                let _: Empty = try await send("POST", "v1/me/examples", body: ExamplesPayload(texts: mine))
+            }
+            return mine
+        }
         let result: LearnResult = try await send(
             "POST", "v1/learn/screenshot",
             body: LearnPayload(image: ImagePayload(data: jpeg.base64EncodedString(), mediaType: "image/jpeg")),
@@ -157,6 +195,11 @@ enum RizzAPI {
     private struct RebuildResult: Decodable { let voiceProfile: String }
 
     static func rebuildProfile() async throws -> String {
+        if SharedStore.shared.engine == .free {
+            let profile = try await OnDeviceAI.styleProfile(me: try await me())
+            let saved: ProfilePayload = try await send("PUT", "v1/me/profile", body: ProfilePayload(voiceProfile: profile))
+            return saved.voiceProfile
+        }
         let result: RebuildResult = try await send("POST", "v1/me/rebuild", timeout: 90)
         return result.voiceProfile
     }

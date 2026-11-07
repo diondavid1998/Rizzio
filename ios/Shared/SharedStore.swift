@@ -47,6 +47,12 @@ final class SharedStore {
 
     var isConfigured: Bool { !serverURL.isEmpty && !appToken.isEmpty }
 
+    /// Free (Apple Intelligence on the phone) or Premium (Claude). Shared with the keyboard and Shortcut.
+    var engine: Engine {
+        get { Engine(rawValue: defaults.string(forKey: "engine") ?? "") ?? .premium }
+        set { defaults.set(newValue.rawValue, forKey: "engine") }
+    }
+
     // MARK: Latest suggestions
 
     var latestBatch: SuggestionBatch? {
