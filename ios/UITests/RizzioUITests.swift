@@ -198,7 +198,7 @@ final class RizzioUITests: XCTestCase {
 
         // Tap a reply to copy it.
         reveal(text(containing: "Fake reply 2")).tap()
-        waitFor(text(containing: "Copied"), 3)
+        waitFor(anyText(containing: "Copied"), 3)
 
         // Custom prompt.
         let custom = reveal(element("customPrompt"))

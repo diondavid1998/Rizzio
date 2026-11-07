@@ -33,7 +33,7 @@ struct ReplyRow: View {
             UIPasteboard.general.string = reply.text
             onCopy()
             copied = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { copied = false }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copied = false }
         } label: {
             VStack(alignment: .leading, spacing: 4) {
                 Text(reply.text).foregroundStyle(Theme.ink)
