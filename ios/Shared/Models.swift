@@ -31,6 +31,28 @@ struct SuggestionBatch: Codable {
     let hasScreenshot: Bool
 }
 
+/// What the server found in an exported chat file, before you say which sender is you.
+struct ImportPreview: Decodable, Identifiable {
+    struct Sender: Decodable, Identifiable, Hashable {
+        let name: String
+        let count: Int
+        let samples: [String]
+        var id: String { name }
+    }
+    let importId: String
+    let format: String
+    let total: Int
+    let guess: String?
+    let senders: [Sender]
+    var id: String { importId }
+}
+
+/// One page of the messages Rizzio learned from.
+struct ExamplesPage: Decodable {
+    let items: [MeResponse.Learned]
+    let total: Int
+}
+
 /// Which AI writes the replies.
 enum Engine: String, Codable, CaseIterable, Identifiable {
     case free      // Apple Intelligence on the iPhone, $0

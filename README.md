@@ -26,7 +26,7 @@ Setup → **AI** switches the engine for everything (Action Button, keyboard, Tr
 The everyday flow is the Action Button and the keyboard. The app is where you shape how Rizzio sounds:
 
 - **Persona**: 12 sliders (Flirty, Humor, Boldness, Warmth, Spice, Humor style, Teasing, Length, Emoji, Polish, Questions, Pace), presets (Smooth, Golden retriever, Dry wit, Hopeless romantic, Chaos, Chill), rules like "all lowercase" and "no pickup lines", a goal (match, keep it going, number, date, friends), a "never mention" list, and a **Test drive** to see sample replies before saving. **Match how I actually text** sets the sliders from how you really text.
-- **Train**: upload chat screenshots (up to 20 at a time) and see exactly which of your messages Rizzio learned from each, paste messages that worked, add facts about you, and watch the **Style match** meter fill up.
+- **Train**: upload chat screenshots from Photos, or import chat exports from Files: WhatsApp (.txt/.zip), Instagram/Messenger JSON, Telegram result.json, Hinge/Tinder "Download my data", CSV/JSON/TXT, or zips of those. If a chat has several people, Rizzio asks "Which one is you?" and learns only your messages. Files are parsed without AI (free); only your messages are kept. The learned-message list is paged and searchable instead of shown all at once.
 - **History**: mark which replies got a match, so Rizzio learns what works.
 
 ## It learns you

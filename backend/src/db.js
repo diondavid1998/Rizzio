@@ -115,6 +115,31 @@ export class Store {
     }
   }
 
+  /** Adds many messages at once (one transaction, so big imports stay fast). Returns how many were new. */
+  addExamplesBulk(userId, texts, source) {
+    const before = this.db.prepare("SELECT COUNT(*) AS n FROM examples WHERE user_id = ?").get(userId).n;
+    this.db.exec("BEGIN");
+    try {
+      for (const t of texts) this.addExample(userId, t, source);
+      this.db.exec("COMMIT");
+    } catch (err) {
+      this.db.exec("ROLLBACK");
+      throw err;
+    }
+    return this.db.prepare("SELECT COUNT(*) AS n FROM examples WHERE user_id = ?").get(userId).n - before;
+  }
+
+  /** One page of what Rizzio learned, newest first, optionally filtered by text. */
+  examplesPage(userId, { limit = 50, offset = 0, q = "" } = {}) {
+    const like = `%${q.replace(/[%_]/g, "")}%`;
+    const where = "user_id = ? AND source != 'seed' AND text LIKE ?";
+    const items = this.db
+      .prepare(`SELECT id, text, source FROM examples WHERE ${where} ORDER BY id DESC LIMIT ? OFFSET ?`)
+      .all(userId, like, limit, offset);
+    const total = this.db.prepare(`SELECT COUNT(*) AS n FROM examples WHERE ${where}`).get(userId, like).n;
+    return { items, total };
+  }
+
   listExamples(userId, source = null) {
     if (source) {
       return this.db.prepare("SELECT * FROM examples WHERE user_id = ? AND source = ? ORDER BY id").all(userId, source);

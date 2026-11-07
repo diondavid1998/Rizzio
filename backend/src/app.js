@@ -2,6 +2,8 @@ import express from "express";
 import { timingSafeEqual } from "node:crypto";
 import { AIError } from "./ai.js";
 import { SIGNAL_KINDS } from "./db.js";
+import { randomUUID } from "node:crypto";
+import { parseExport, summarizeSenders } from "./importers.js";
 import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, renderPersona, sanitizePersona } from "./persona.js";
 import { renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
@@ -177,7 +179,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       learnedExamples: store
         .listExamples(req.userId)
         .filter((e) => e.source !== "seed")
-        .slice(0, 50)
+        .slice(0, 30) // a sample; the full list is paged via /v1/me/examples
         .map((e) => ({ id: e.id, text: e.text, source: e.source })),
       stats: store.stats(req.userId),
     });
@@ -193,6 +195,61 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
     }
     rebuildInBackground(req.userId);
     res.json({ ok: true });
+  });
+
+  // ---- Import exported chats (WhatsApp, Instagram, Telegram, Hinge, Tinder, CSV/JSON/TXT, zips) ----
+  // Step 1 parses the file and asks "which one is you?"; step 2 saves only that person's messages.
+  const pendingImports = new Map(); // importId -> { userId, senders, expires }
+  const MAX_IMPORT_BYTES = 40 * 1024 * 1024;
+  const MAX_IMPORT_MESSAGES = 1500;
+
+  app.post(
+    "/v1/learn/file/preview",
+    express.raw({ type: () => true, limit: MAX_IMPORT_BYTES }),
+    (req, res) => {
+      const name = str(req.query.name, 200) || "upload.txt";
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0) return res.status(400).json({ error: "Send the file contents." });
+      let parsed;
+      try {
+        parsed = parseExport(name, new Uint8Array(req.body));
+      } catch (err) {
+        return res.status(400).json({ error: err.message });
+      }
+      const { senders, guess } = summarizeSenders(parsed.messages);
+      if (senders.length === 0) {
+        return res.status(422).json({ error: "Couldn't find any messages in that file. Try a WhatsApp .txt, Instagram/Telegram JSON, or a .csv." });
+      }
+      for (const [id, p] of pendingImports) if (p.expires < Date.now()) pendingImports.delete(id);
+      const importId = randomUUID();
+      pendingImports.set(importId, { userId: req.userId, senders, expires: Date.now() + 30 * 60_000 });
+      res.json({
+        importId,
+        format: parsed.format,
+        total: senders.reduce((n, s) => n + s.count, 0),
+        guess,
+        senders: senders.slice(0, 20).map((s) => ({ name: s.name, count: s.count, samples: s.texts.slice(-3) })),
+      });
+    },
+  );
+
+  app.post("/v1/learn/file/commit", (req, res) => {
+    const pending = pendingImports.get(str(req.body?.importId, 64) ?? "");
+    if (!pending || pending.userId !== req.userId || pending.expires < Date.now()) {
+      return res.status(404).json({ error: "That import expired. Pick the file again." });
+    }
+    const sender = pending.senders.find((s) => s.name === req.body?.sender);
+    if (!sender) return res.status(400).json({ error: "Pick which person is you." });
+    const texts = sender.texts.slice(-MAX_IMPORT_MESSAGES); // most recent messages are the best picture of how you text now
+    const added = store.addExamplesBulk(req.userId, texts, "imported");
+    pendingImports.delete(req.body.importId);
+    res.json({ added, considered: texts.length });
+  });
+
+  /** Everything Rizzio learned from you, a page at a time (the app doesn't load it all at once). */
+  app.get("/v1/me/examples", (req, res) => {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+    const offset = Math.max(Number(req.query.offset) || 0, 0);
+    res.json(store.examplesPage(req.userId, { limit, offset, q: str(req.query.q, 100) ?? "" }));
   });
 
   /** Teach Rizzio from a screenshot of one of your own chats. */

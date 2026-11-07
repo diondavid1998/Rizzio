@@ -219,7 +219,53 @@ enum RizzAPI {
         return result.items
     }
 
+    // MARK: Importing exported chats
+
+    /// Sends a file (WhatsApp .txt, Instagram/Telegram JSON, CSV, zip...) for the server to read. No AI involved.
+    static func previewImport(filename: String, data: Data) async throws -> ImportPreview {
+        let name = filename.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "upload"
+        return try await sendRaw("v1/learn/file/preview?name=\(name)", data: data)
+    }
+
+    private struct CommitPayload: Encodable { let importId: String; let sender: String }
+    private struct CommitResult: Decodable { let added: Int; let considered: Int }
+
+    /// Saves only the chosen sender's messages. Returns how many new ones were learned.
+    static func commitImport(importId: String, sender: String) async throws -> Int {
+        let result: CommitResult = try await send("POST", "v1/learn/file/commit", body: CommitPayload(importId: importId, sender: sender))
+        return result.added
+    }
+
+    static func examples(offset: Int, limit: Int = 50, query: String = "") async throws -> ExamplesPage {
+        let q = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        return try await send("GET", "v1/me/examples?offset=\(offset)&limit=\(limit)&q=\(q)")
+    }
+
     // MARK: Transport
+
+    private static func sendRaw<R: Decodable>(_ path: String, data: Data) async throws -> R {
+        let store = SharedStore.shared
+        let base = store.serverURL.hasSuffix("/") ? store.serverURL : store.serverURL + "/"
+        guard store.isConfigured, let url = URL(string: base + path) else { throw RizzError.notConfigured }
+        var request = URLRequest(url: url, timeoutInterval: 120)
+        request.httpMethod = "POST"
+        request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(store.appToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(store.userId, forHTTPHeaderField: "X-Rizzio-User")
+        let (body, response): (Data, URLResponse)
+        do {
+            (body, response) = try await URLSession.shared.upload(for: request, from: data)
+        } catch {
+            throw RizzError.network(error.localizedDescription)
+        }
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard (200..<300).contains(status) else {
+            let msg = (try? JSONDecoder().decode(ErrorBody.self, from: body))?.error
+                ?? (status == 413 ? "That file is too big (40 MB max). Unzip it and pick just the messages files." : "Server error (\(status)).")
+            throw RizzError.server(msg)
+        }
+        do { return try JSONDecoder().decode(R.self, from: body) } catch { throw RizzError.server("Unexpected response from the server.") }
+    }
 
     private struct NoBody: Encodable {}
 

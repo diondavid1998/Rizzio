@@ -1,5 +1,6 @@
 import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// "Train": upload your chats and messages so Rizzio learns how you talk.
 struct TrainView: View {
@@ -14,11 +15,25 @@ struct TrainView: View {
     @State private var isBusy = false
     @State private var confirmReset = false
 
+    /// One line per upload in "Just learned": a summary, not every message (exports can be huge).
     struct UploadResult: Identifiable {
         let id = UUID()
-        let thumbnail: UIImage?
-        let learned: [String]
+        let title: String
+        let icon: String
+        let count: Int
     }
+
+    /// An exported chat waiting for you to say which sender is you.
+    struct PendingImport: Identifiable {
+        let filename: String
+        let preview: ImportPreview
+        var id: String { preview.importId }
+    }
+
+    @State private var showFileImporter = false
+    @State private var choosing: PendingImport?
+    @State private var importQueue: [PendingImport] = []
+    @State private var importedThisRound = 0
 
     /// Rough "how well does Rizzio know you" meter: real messages count most, wins count extra.
     private var voiceMatch: Double {
@@ -56,33 +71,37 @@ struct TrainView: View {
                         .padding(.vertical, 6)
                     }
                     .disabled(isBusy)
+                    Button { showFileImporter = true } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: "doc.text")
+                                .font(.title2)
+                                .foregroundStyle(Theme.accent)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Import from Files").font(.headline).foregroundStyle(Theme.ink)
+                                Text("Chat exports: WhatsApp, Instagram, Messenger, Telegram, Hinge, Tinder, CSV, JSON, TXT, zip, or images")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                    }
+                    .disabled(isBusy)
                     if let progress {
                         HStack { ProgressView(); Text(progress).font(.callout) }
                     }
                 } header: {
                     Text("Upload data")
                 } footer: {
-                    Text("Pick conversations where you were at your best. Rizzio only learns from your messages (the ones on the right), not theirs. Screenshots aren't stored.")
+                    Text("Rizzio only learns from your messages, not theirs: the right-hand bubbles in screenshots, or the sender you pick in an export. Files and screenshots aren't stored, only your messages.")
                 }
 
                 if !uploads.isEmpty {
                     Section("Just learned") {
-                        ForEach(uploads) { upload in
-                            HStack(alignment: .top, spacing: 12) {
-                                if let thumb = upload.thumbnail {
-                                    Image(uiImage: thumb).resizable().scaledToFill()
-                                        .frame(width: 44, height: 80).clipShape(RoundedRectangle(cornerRadius: 6))
-                                }
-                                VStack(alignment: .leading, spacing: 4) {
-                                    if upload.learned.isEmpty {
-                                        Text("No messages from you found here").font(.caption).foregroundStyle(.secondary)
-                                    } else {
-                                        ForEach(upload.learned.prefix(4), id: \.self) { Text("“\($0)”").font(.caption) }
-                                        if upload.learned.count > 4 {
-                                            Text("+\(upload.learned.count - 4) more").font(.caption2).foregroundStyle(.secondary)
-                                        }
-                                    }
-                                }
+                        ForEach(uploads.prefix(10)) { upload in
+                            HStack {
+                                Label(upload.title, systemImage: upload.icon).lineLimit(1)
+                                Spacer()
+                                Text(upload.count == 0 ? "none found" : "\(upload.count) messages")
+                                    .font(.caption).foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -126,22 +145,19 @@ struct TrainView: View {
                     Text("Rizzio writes this itself and updates it as you use the keyboard. Next: open Persona → \"Match how I actually text\" to set the sliders from it.")
                 }
 
-                if let learned = me?.learnedExamples, !learned.isEmpty {
+                if let stats = me?.stats, stats.examples > 0 {
                     Section {
-                        ForEach(learned) { item in
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(item.text)
-                                Text(label(for: item.source)).font(.caption).foregroundStyle(.secondary)
+                        NavigationLink {
+                            LearnedMessagesView()
+                        } label: {
+                            HStack {
+                                Text("Messages Rizzio learned from")
+                                Spacer()
+                                Text("\(stats.examples)").foregroundStyle(.secondary)
                             }
                         }
-                        .onDelete { offsets in
-                            let ids = offsets.map { learned[$0].id }
-                            Task { await busy("Removing…") { for id in ids { try await RizzAPI.deleteExample(id: id) } } }
-                        }
-                    } header: {
-                        Text("Your messages Rizzio learned from (\(learned.count))")
                     } footer: {
-                        Text("Swipe left to remove anything that isn't you.")
+                        Text("Search them, or swipe to remove anything that isn't you.")
                     }
                 }
 
@@ -158,6 +174,14 @@ struct TrainView: View {
                 StatusBanner(progress: progress, error: errorMessage, success: successMessage)
             }
             .task { await load() }
+            .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
+                if case let .success(urls) = result { Task { await importFiles(urls) } }
+            }
+            .sheet(item: $choosing) { pending in
+                WhichOneIsYouSheet(filename: pending.filename, preview: pending.preview) { sender in
+                    Task { await finishChoice(pending, sender: sender) }
+                }
+            }
             .refreshable { await load() }
             .onChange(of: uploadItems) { items in
                 guard !items.isEmpty else { return }
@@ -207,8 +231,8 @@ struct TrainView: View {
     @MainActor private func upload(_ items: [PhotosPickerItem]) async {
         var result = (screens: 0, learned: 0)
         await busy("Reading your chats…") {
-            result = try await Learner.upload(items, progress: { progress = $0 }) { thumb, learned in
-                uploads.insert(UploadResult(thumbnail: thumb, learned: learned), at: 0)
+            result = try await Learner.upload(items, progress: { progress = $0 }) { _, learned in
+                uploads.insert(UploadResult(title: "Screenshot", icon: "photo", count: learned.count), at: 0)
             }
         }
         uploadItems = []
@@ -218,6 +242,69 @@ struct TrainView: View {
             } else {
                 successMessage = "Learned \(result.learned) of your messages from \(result.screens) screenshot\(result.screens == 1 ? "" : "s")."
             }
+        }
+    }
+
+    // MARK: Importing files
+
+    @MainActor private func importFiles(_ urls: [URL]) async {
+        importQueue = []
+        importedThisRound = 0
+        await busy("Reading your files…") {
+            for (i, url) in urls.enumerated() {
+                progress = "Reading \(url.lastPathComponent) (\(i + 1) of \(urls.count))…"
+                let access = url.startAccessingSecurityScopedResource()
+                defer { if access { url.stopAccessingSecurityScopedResource() } }
+                let data = try Data(contentsOf: url)
+                guard data.count <= 40 * 1024 * 1024 else {
+                    throw RizzError.server("\(url.lastPathComponent) is over 40 MB. Unzip it and pick just the messages files.")
+                }
+                if UTType(filenameExtension: url.pathExtension)?.conforms(to: .image) == true {
+                    guard let jpeg = ImageTools.compressedJPEG(from: data) else { continue }
+                    let learned = try await RizzAPI.learn(fromScreenshot: jpeg)
+                    importedThisRound += learned.count
+                    uploads.insert(UploadResult(title: url.lastPathComponent, icon: "photo", count: learned.count), at: 0)
+                    continue
+                }
+                let preview = try await RizzAPI.previewImport(filename: url.lastPathComponent, data: data)
+                let pending = PendingImport(filename: url.lastPathComponent, preview: preview)
+                if preview.senders.count == 1 {
+                    try await commit(pending, sender: preview.senders[0].name)
+                } else {
+                    importQueue.append(pending) // ask "which one is you?" after reading everything
+                }
+            }
+        }
+        if errorMessage == nil { await nextChoiceOrFinish() }
+    }
+
+    @MainActor private func commit(_ pending: PendingImport, sender: String) async throws {
+        let added = try await RizzAPI.commitImport(importId: pending.preview.importId, sender: sender)
+        importedThisRound += added
+        uploads.insert(UploadResult(title: pending.filename, icon: "doc.text", count: added), at: 0)
+    }
+
+    @MainActor private func finishChoice(_ pending: PendingImport, sender: String?) async {
+        choosing = nil
+        if let sender {
+            await busy("Saving your messages…") { try await commit(pending, sender: sender) }
+        }
+        if errorMessage == nil { await nextChoiceOrFinish() }
+    }
+
+    @MainActor private func nextChoiceOrFinish() async {
+        if !importQueue.isEmpty {
+            choosing = importQueue.removeFirst()
+            return
+        }
+        guard importedThisRound > 0 else {
+            if errorMessage == nil, !uploads.isEmpty { errorMessage = "No new messages from you were found." }
+            return
+        }
+        let count = importedThisRound
+        importedThisRound = 0
+        await busy("Updating your texting style…", done: "Learned \(count) of your messages.") {
+            _ = try await RizzAPI.rebuildProfile()
         }
     }
 
