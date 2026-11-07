@@ -186,11 +186,11 @@ final class RizzioUITests: XCTestCase {
         reveal(app.buttons["Test drive these settings"]).tap()
         app.buttons.matching(identifier: "Write replies").firstMatch.tap()
         waitFor(text(containing: "fake reply 1 lol"))
-        XCTAssertTrue(text(containing: "fake reply 5 lol").exists)
         snap("03-test-drive")
+        reveal(text(containing: "fake reply 5 lol")) // all 5 replies are there (5th is below the fold)
 
         // Tap a reply to copy it.
-        text(containing: "fake reply 2 lol").tap()
+        reveal(text(containing: "fake reply 2 lol")).tap()
         waitFor(text(containing: "Copied"), 3)
 
         // Custom prompt.
