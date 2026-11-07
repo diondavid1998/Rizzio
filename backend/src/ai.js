@@ -74,24 +74,63 @@ export class ClaudeAI {
     this.model = model || "claude-opus-5-5";
   }
 
-  async #call({ system, content, schema, effort }) {
-    let response;
-    try {
-      response = await this.client.beta.messages.create({
-        model: this.model,
-        max_tokens: 8000,
+  /**
+   * Request shapes to try, newest features first. If Claude's API rejects one with a 400
+   * (e.g. a beta this account or model doesn't have), the next, simpler shape is used,
+   * and the one that works is remembered so later calls go straight to it.
+   */
+  static VARIANTS = ["full", "no-fallback", "plain-json"];
+
+  #request(variant, { system, content, schema, effort }) {
+    const base = { model: this.model, max_tokens: 8000, system, messages: [{ role: "user", content }] };
+    if (variant === "full") {
+      return this.client.beta.messages.create({
+        ...base,
         // If the model declines, the API retries on a fallback model automatically.
         betas: ["server-side-fallback-2026-07-01"],
         fallbacks: "default",
         output_config: { effort, format: { type: "json_schema", schema } },
-        system,
-        messages: [{ role: "user", content }],
       });
-    } catch (err) {
-      if (err instanceof Anthropic.RateLimitError) throw new AIError("Busy right now, try again in a few seconds.", 429);
-      if (err instanceof Anthropic.AuthenticationError) throw new AIError("The server's Claude API key is invalid.", 500);
-      if (err instanceof Anthropic.APIError) throw new AIError(`AI error (${err.status}).`, 502);
-      throw new AIError("Couldn't reach the AI.", 502);
+    }
+    if (variant === "no-fallback") {
+      return this.client.messages.create({ ...base, output_config: { effort, format: { type: "json_schema", schema } } });
+    }
+    // Most compatible: ask for JSON in the prompt and parse it from the text.
+    const instruction = `Reply with only a JSON object (no other text) matching this JSON schema:\n${JSON.stringify(schema)}`;
+    return this.client.messages.create({
+      ...base,
+      messages: [{ role: "user", content: [...content, { type: "text", text: instruction }] }],
+    });
+  }
+
+  async #call(args) {
+    const start = ClaudeAI.VARIANTS.indexOf(this.workingVariant ?? "full");
+    let response;
+    let lastBadRequest = null;
+    for (const variant of ClaudeAI.VARIANTS.slice(start)) {
+      try {
+        response = await this.#request(variant, args);
+        if (this.workingVariant !== variant) {
+          if (lastBadRequest) console.warn(`Claude request works with variant "${variant}"; using it from now on.`);
+          this.workingVariant = variant;
+        }
+        break;
+      } catch (err) {
+        if (err instanceof Anthropic.BadRequestError) {
+          lastBadRequest = err;
+          console.error(`Claude rejected the "${variant}" request (400): ${err.message}`);
+          continue;
+        }
+        if (err instanceof Anthropic.RateLimitError) throw new AIError("Busy right now, try again in a few seconds.", 429);
+        if (err instanceof Anthropic.AuthenticationError) throw new AIError("The server's Claude API key is invalid.", 500);
+        if (err instanceof Anthropic.PermissionDeniedError) throw new AIError("The server's Claude API key isn't allowed to use this model.", 500);
+        if (err instanceof Anthropic.NotFoundError) throw new AIError(`Claude model "${this.model}" wasn't found. Check RIZZIO_MODEL.`, 500);
+        if (err instanceof Anthropic.APIError) throw new AIError(`AI error (${err.status}): ${String(err.message).slice(0, 300)}`, 502);
+        throw new AIError("Couldn't reach the AI.", 502);
+      }
+    }
+    if (!response) {
+      throw new AIError(`AI error (400): ${String(lastBadRequest?.message ?? "request rejected").slice(0, 300)}`, 502);
     }
     if (response.stop_reason === "refusal") throw new AIError("The AI declined this one. Try a different screenshot or tone.", 422);
     const block = response.content.find((b) => b.type === "text");
@@ -99,6 +138,12 @@ export class ClaudeAI {
     try {
       return JSON.parse(block.text);
     } catch {
+      // Plain-JSON mode can wrap the object in prose or code fences: take the outermost {...}.
+      const i = block.text.indexOf("{");
+      const j = block.text.lastIndexOf("}");
+      try {
+        if (i >= 0 && j > i) return JSON.parse(block.text.slice(i, j + 1));
+      } catch { /* fall through */ }
       throw new AIError("Couldn't read the AI's answer. Try again.", 502);
     }
   }
