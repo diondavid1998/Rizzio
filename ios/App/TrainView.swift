@@ -10,6 +10,7 @@ struct TrainView: View {
     @State private var uploads: [UploadResult] = []
     @State private var progress: String?
     @State private var errorMessage: String?
+    @State private var successMessage: String?
     @State private var isBusy = false
     @State private var confirmReset = false
 
@@ -115,7 +116,7 @@ struct TrainView: View {
                     } else {
                         Text("Nothing yet. Upload a few chats above.").foregroundStyle(.secondary)
                     }
-                    Button("Re-learn now") { Task { await busy("Re-learning your texting style…") { _ = try await RizzAPI.rebuildProfile() } } }
+                    Button("Re-learn now") { Task { await busy("Re-learning your texting style…", done: "Updated how Rizzio thinks you text.") { _ = try await RizzAPI.rebuildProfile() } } }
                         .disabled(isBusy)
                 } header: {
                     Text("How Rizzio thinks you talk")
@@ -149,6 +150,9 @@ struct TrainView: View {
                 }
             }
             .navigationTitle("Train")
+            .safeAreaInset(edge: .bottom) {
+                StatusBanner(progress: progress, error: errorMessage, success: successMessage)
+            }
             .task { await load() }
             .refreshable { await load() }
             .onChange(of: uploadItems) { items in
@@ -156,7 +160,7 @@ struct TrainView: View {
                 Task { await upload(items) }
             }
             .confirmationDialog("Forget everything Rizzio learned?", isPresented: $confirmReset, titleVisibility: .visible) {
-                Button("Forget", role: .destructive) { Task { await busy("Forgetting…") { try await RizzAPI.resetMemory() } } }
+                Button("Forget", role: .destructive) { Task { await busy("Forgetting…", done: "Rizzio forgot what it learned.") { try await RizzAPI.resetMemory() } } }
             }
         }
     }
@@ -171,50 +175,62 @@ struct TrainView: View {
         }
     }
 
-    @MainActor private func load() async {
+    /// Reloads what Rizzio knows. Doesn't clear an error from the action that just ran,
+    /// so a failed save or upload stays visible instead of vanishing on reload.
+    @MainActor private func load(keepMessages: Bool = false) async {
         do {
             let me = try await RizzAPI.me()
             self.me = me
             aboutMe = me.aboutMe
             examplesText = me.styleExamples.joined(separator: "\n")
-            errorMessage = nil
+            if !keepMessages { errorMessage = nil }
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
     @MainActor private func saveText() async {
-        await busy("Saving and re-learning…") {
-            let examples = examplesText.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        let examples = examplesText.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        await busy("Saving…", done: "Saved \(examples.count) message\(examples.count == 1 ? "" : "s"). Rizzio updated your texting style.") {
             try await RizzAPI.updateMe(aboutMe: aboutMe, styleExamples: examples)
+            progress = "Updating your texting style…"
             _ = try await RizzAPI.rebuildProfile()
         }
     }
 
     @MainActor private func upload(_ items: [PhotosPickerItem]) async {
+        var result = (screens: 0, learned: 0)
         await busy("Reading your chats…") {
-            for (i, item) in items.enumerated() {
-                progress = "Reading screenshot \(i + 1) of \(items.count)…"
-                guard let data = try await item.loadTransferable(type: Data.self),
-                      let jpeg = ImageTools.compressedJPEG(from: data) else { continue }
-                let learned = try await RizzAPI.learn(fromScreenshot: jpeg)
-                let thumb = ImageTools.compressedJPEG(from: data, maxDimension: 160).flatMap(UIImage.init(data:))
+            result = try await Learner.upload(items, progress: { progress = $0 }) { thumb, learned in
                 uploads.insert(UploadResult(thumbnail: thumb, learned: learned), at: 0)
             }
-            progress = "Updating how you talk…"
-            _ = try await RizzAPI.rebuildProfile()
         }
         uploadItems = []
+        if errorMessage == nil {
+            if result.learned == 0 {
+                errorMessage = "Couldn't find any of your messages in those screenshots. Use chats where your messages are on the right."
+            } else {
+                successMessage = "Learned \(result.learned) of your messages from \(result.screens) screenshot\(result.screens == 1 ? "" : "s")."
+            }
+        }
     }
 
-    @MainActor private func busy(_ message: String, _ work: () async throws -> Void) async {
+    @MainActor private func busy(_ message: String, done: String? = nil, _ work: () async throws -> Void) async {
         isBusy = true
         progress = message
         errorMessage = nil
-        do { try await work() } catch { errorMessage = error.localizedDescription }
+        successMessage = nil
+        do {
+            try await work()
+            successMessage = done
+        } catch {
+            errorMessage = error.localizedDescription
+        }
         isBusy = false
         progress = nil
-        await load()
+        await load(keepMessages: true)
     }
 }
 

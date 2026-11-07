@@ -250,14 +250,42 @@ struct AutoTuneSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var result: AutoTuneResult?
     @State private var errorMessage: String?
+    @State private var isRunning = false
+    // Teach right here, so Auto-tune always has something to read.
+    @State private var uploadItems: [PhotosPickerItem] = []
+    @State private var pasted = ""
+    @State private var progress: String?
+    @State private var learnedNote: String?
 
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    PhotosPicker(selection: $uploadItems, maxSelectionCount: 20, matching: .screenshots) {
+                        Label("Upload chat screenshots", systemImage: "square.and.arrow.up.on.square.fill")
+                    }
+                    .disabled(progress != nil)
+                    TextField("Or paste messages you've sent, one per line", text: $pasted, axis: .vertical)
+                        .lineLimit(2...6)
+                    Button("Add these messages") { Task { await addPasted() } }
+                        .disabled(progress != nil || pasted.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    if let progress { HStack { ProgressView(); Text(progress).font(.callout) } }
+                    if let learnedNote { Label(learnedNote, systemImage: "checkmark.circle.fill").foregroundStyle(.green) }
+                } header: {
+                    Text("Your texts")
+                } footer: {
+                    Text("Auto-tune reads how you really text. Add chats or messages here (or in Train), then it re-reads them.")
+                }
+
                 if let errorMessage {
-                    Text(errorMessage).foregroundStyle(.red)
+                    Section { Text(errorMessage).foregroundStyle(.red) }
+                } else if isRunning {
+                    Section { HStack { ProgressView(); Text("Reading how you text…") } }
                 } else if let result {
                     Section {
+                        if result.settings.isEmpty {
+                            Text("Not enough to go on yet. Add a few more of your messages above.").foregroundStyle(.secondary)
+                        }
                         ForEach(result.settings) { setting in
                             if let spec = SliderSpec.byKey[setting.key] {
                                 VStack(alignment: .leading, spacing: 4) {
@@ -276,27 +304,74 @@ struct AutoTuneSheet: View {
                             Label(result.lowercase ? "Turn on all lowercase" : "Turn off all lowercase", systemImage: "textformat.abc")
                         }
                     } header: {
-                        Text("Based on your real messages")
+                        Text("Suggested sliders")
                     }
-                    Section {
-                        Button("Apply these") {
-                            for setting in result.settings { persona.sliders[setting.key] = setting.value }
-                            persona.toggles["lowercase"] = result.lowercase
-                            dismiss()
+                    if !result.settings.isEmpty {
+                        Section {
+                            Button("Apply these") {
+                                for setting in result.settings { persona.sliders[setting.key] = setting.value }
+                                persona.toggles["lowercase"] = result.lowercase
+                                dismiss()
+                            }
+                        } footer: {
+                            Text("Then tap Save. You can still move anything by hand.")
                         }
-                    } footer: {
-                        Text("Then tap Save. You can still move anything by hand.")
                     }
-                } else {
-                    HStack { ProgressView(); Text("Reading how you text…") }
                 }
             }
             .navigationTitle("Auto-tune")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
-            .task {
-                do { result = try await RizzAPI.autoTune() } catch { errorMessage = error.localizedDescription }
+            .task { await runAutoTune() }
+            .onChange(of: uploadItems) { items in
+                guard !items.isEmpty else { return }
+                Task { await upload(items) }
             }
+        }
+    }
+
+    @MainActor private func runAutoTune() async {
+        isRunning = true
+        errorMessage = nil
+        defer { isRunning = false }
+        do {
+            result = try await RizzAPI.autoTune()
+        } catch {
+            result = nil
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor private func upload(_ items: [PhotosPickerItem]) async {
+        learnedNote = nil
+        do {
+            let r = try await Learner.upload(items, progress: { progress = $0 })
+            progress = nil
+            uploadItems = []
+            guard r.learned > 0 else {
+                errorMessage = "Couldn't find any of your messages in those screenshots. Use chats where your messages are on the right."
+                return
+            }
+            learnedNote = "Learned \(r.learned) of your messages."
+            await runAutoTune()
+        } catch {
+            progress = nil
+            uploadItems = []
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor private func addPasted() async {
+        learnedNote = nil
+        do {
+            let added = try await Learner.addMessages(pasted, progress: { progress = $0 })
+            progress = nil
+            pasted = ""
+            learnedNote = added == 0 ? "Those were already saved." : "Added \(added) message\(added == 1 ? "" : "s")."
+            await runAutoTune()
+        } catch {
+            progress = nil
+            errorMessage = error.localizedDescription
         }
     }
 }
