@@ -42,18 +42,16 @@ final class RizzioUITests: XCTestCase {
         (up ? bottom : top).press(forDuration: 0.05, thenDragTo: up ? top : bottom)
     }
 
-    /// Scrolls the current list until the element can be tapped.
+    /// Scrolls the current list until the element can be tapped:
+    /// jump to the top first, then move down in small steps so nothing gets skipped.
     @discardableResult
     func reveal(_ el: XCUIElement, file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
         dismissKeyboard()
+        if el.exists && el.isHittable { return el }
+        for _ in 0..<6 { app.swipeDown(velocity: .fast) }
         var tries = 0
-        while !(el.exists && el.isHittable) && tries < 25 {
+        while !(el.exists && el.isHittable) && tries < 45 {
             nudge(up: true)
-            tries += 1
-        }
-        tries = 0
-        while !(el.exists && el.isHittable) && tries < 40 {
-            nudge(up: false)
             tries += 1
         }
         XCTAssertTrue(el.exists && el.isHittable, "Couldn't find \(el)", file: file, line: line)

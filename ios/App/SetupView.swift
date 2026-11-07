@@ -56,6 +56,9 @@ struct SetupView: View {
             }
             .themedList()
             .navigationTitle("Setup")
+            .onChange(of: serverURL) { _ in saved = false }
+            .onChange(of: appToken) { _ in saved = false }
+            .onChange(of: tone) { _ in saved = false }
             .keyboardDoneButton()
         }
     }
@@ -65,8 +68,7 @@ struct SetupView: View {
         store.serverURL = serverURL
         store.appToken = appToken
         store.tone = tone
-        saved = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { saved = false }
+        saved = true // stays until you change something, so it's clear it worked
     }
 }
 
