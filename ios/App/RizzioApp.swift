@@ -6,7 +6,7 @@ struct RizzioApp: App {
     @AppStorage("appearance") private var appearance = "system"
 
     init() {
-        Theme.applyAppearance()
+        // Standard iOS navigation titles: custom bar styling hid the large titles.
         // Automated UI tests point the app at a local test server with a fixed user.
         let env = ProcessInfo.processInfo.environment
         if let server = env["RIZZIO_UITEST_SERVER"], let token = env["RIZZIO_UITEST_TOKEN"] {

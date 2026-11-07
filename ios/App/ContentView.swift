@@ -36,7 +36,7 @@ struct ReplyRow: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { copied = false }
         } label: {
             VStack(alignment: .leading, spacing: 4) {
-                Text(reply.text).foregroundStyle(.primary)
+                Text(reply.text).foregroundStyle(Theme.ink)
                 Text(copied ? "Copied" : reply.angle)
                     .font(.caption)
                     .foregroundStyle(copied ? Color.green : Color.secondary)
