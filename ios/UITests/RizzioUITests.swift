@@ -172,15 +172,24 @@ final class RizzioUITests: XCTestCase {
         XCTAssertTrue(save.isEnabled)
     }
 
+    /// Saves a persona with "all lowercase" on, straight to the server (the switch itself is tested in test2).
+    func saveLowercasePersona() {
+        var req = URLRequest(url: URL(string: Self.server + "/v1/me/persona")!)
+        req.httpMethod = "PUT"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(Self.token)", forHTTPHeaderField: "Authorization")
+        req.setValue(userId, forHTTPHeaderField: "X-Rizzio-User")
+        req.httpBody = #"{"persona":{"toggles":{"lowercase":true}}}"#.data(using: .utf8)
+        let done = expectation(description: "persona")
+        URLSession.shared.dataTask(with: req) { _, _, _ in done.fulfill() }.resume()
+        wait(for: [done], timeout: 15)
+    }
+
     func test3_TestDriveSampleAndCustom() {
+        saveLowercasePersona()
         tab("Persona")
         waitFor(text(containing: "YOUR STYLE"))
-        // Turn on lowercase (unsaved) so we can see Test drive uses current settings.
-        let lowercase = lowercaseSwitch()
-        reveal(lowercase)
-        if (lowercase.value as? String) == "0" { flip(lowercase) }
-        XCTAssertEqual(lowercase.value as? String, "1")
-
+        sleep(2) // let the screen load the saved persona
         reveal(app.buttons["Test drive these settings"]).tap()
         app.buttons.matching(identifier: "Write replies").firstMatch.tap()
         waitFor(text(containing: "fake reply 1 lol"))
