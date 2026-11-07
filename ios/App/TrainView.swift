@@ -123,7 +123,7 @@ struct TrainView: View {
                 } header: {
                     Text("How Rizzio thinks you talk")
                 } footer: {
-                    Text("Rizzio writes this itself and updates it as you use the keyboard. Next: open Persona → "Match how I actually text" to set the sliders from it.")
+                    Text("Rizzio writes this itself and updates it as you use the keyboard. Next: open Persona → \"Match how I actually text\" to set the sliders from it.")
                 }
 
                 if let learned = me?.learnedExamples, !learned.isEmpty {

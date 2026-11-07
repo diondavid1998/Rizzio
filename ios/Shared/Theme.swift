@@ -17,7 +17,7 @@ enum Theme {
         let base = UIFont.preferredFont(forTextStyle: style)
         let descriptor = base.fontDescriptor.withDesign(.serif)?
             .addingAttributes([.traits: [UIFontDescriptor.TraitKey.weight: weight]]) ?? base.fontDescriptor
-        return Font(UIFont(descriptor: descriptor, size: 0))
+        return Font(UIFont(descriptor: descriptor, size: 0) as CTFont)
     }
 
     /// Serif navigation titles and the warm background everywhere, set once at launch.
