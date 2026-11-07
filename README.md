@@ -19,7 +19,7 @@ The keyboard can also:
 The everyday flow is the Action Button and the keyboard. The app is where you shape how Rizzio sounds:
 
 - **Persona**: 12 sliders (Flirty, Humor, Boldness, Warmth, Spice, Humor style, Teasing, Length, Emoji, Polish, Questions, Pace), presets (Smooth, Golden retriever, Dry wit, Hopeless romantic, Chaos, Chill), rules like "all lowercase" and "no pickup lines", a goal (match, keep it going, number, date, friends), a "never mention" list, and a **Test drive** to see sample replies before saving. **Auto-tune** sets the sliders from how you really text.
-- **Train**: upload chat screenshots (up to 20 at a time) and see exactly which of your messages Rizzio learned from each, paste messages that worked, add facts about you, and watch the **Voice match** meter fill up.
+- **Train**: upload chat screenshots (up to 20 at a time) and see exactly which of your messages Rizzio learned from each, paste messages that worked, add facts about you, and watch the **Style match** meter fill up.
 - **History**: mark which replies got a match, so Rizzio learns what works.
 
 ## It learns you
@@ -28,13 +28,13 @@ Rizzio is meant to act like you, not like a generic pickup-line bot. It keeps a 
 
 | What you do | What Rizzio learns |
 |---|---|
-| Add messages that worked, or teach it with chat screenshots | Your real voice: length, capitalization, emoji, humor |
+| Add messages that worked, or teach it with chat screenshots | Your texting style: length, capitalization, emoji, humor |
 | Tap a reply in the keyboard | Which style you prefer |
-| Change a reply before sending | Your exact wording (strongest signal of your voice) |
+| Change a reply before sending | Your exact wording (strongest signal of your style) |
 | 👎 a reply | What to avoid |
 | Mark 💘 Match / 💬 Replied in History | What actually works for you (weighted highest) |
 
-Every few signals it rewrites a short **voice profile** of you, which you can read (and correct) in the **You** tab. Every reply is written with that profile plus your best real messages. You can delete anything it learned, or reset it.
+Every few signals it rewrites a short **style profile** of you, which you can read (and correct) in the **Train** tab. Every reply is written with that profile plus your best real messages. You can delete anything it learned, or reset it.
 
 > Why a screenshot? iOS doesn't let keyboards see the screen. Action Button / Back Tap + Shortcuts is the most seamless way Apple allows.
 
@@ -59,7 +59,7 @@ The backend is a small Node server (`backend/`) that holds your Claude API key, 
    - `ANTHROPIC_API_KEY` = `${{StreamScout.ANTHROPIC_API_KEY}}` (reuses StreamScout's key; replace `StreamScout` with that service's exact name in Railway, or just paste the key)
    - `APP_TOKEN` = a long random password (e.g. from `openssl rand -hex 24`)
    - `DB_PATH` = `/data/rizzio.sqlite`
-4. Right-click the service → **Attach Volume** → mount path `/data`. This is where your learned voice lives, so it survives redeploys.
+4. Right-click the service → **Attach Volume** → mount path `/data`. This is where your learned texting style lives, so it survives redeploys.
 5. **Settings → Networking → Generate Domain**. You get a URL like `https://rizzio-backend-production.up.railway.app`.
 
 Check it works:

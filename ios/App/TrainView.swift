@@ -115,7 +115,7 @@ struct TrainView: View {
                     } else {
                         Text("Nothing yet. Upload a few chats above.").foregroundStyle(.secondary)
                     }
-                    Button("Re-learn now") { Task { await busy("Re-learning your voice…") { _ = try await RizzAPI.rebuildProfile() } } }
+                    Button("Re-learn now") { Task { await busy("Re-learning your texting style…") { _ = try await RizzAPI.rebuildProfile() } } }
                         .disabled(isBusy)
                 } header: {
                     Text("How Rizzio thinks you talk")
@@ -243,7 +243,7 @@ struct VoiceMatchCard: View {
             }
             .frame(width: 72, height: 72)
             VStack(alignment: .leading, spacing: 4) {
-                Text("Voice match").font(.headline)
+                Text("Style match").font(.headline)
                 Text(caption).font(.caption).foregroundStyle(.secondary)
                 if let stats {
                     Text("\(stats.examples) messages · \(stats.picks) picks · \(stats.wins) wins")

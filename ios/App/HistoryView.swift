@@ -100,7 +100,7 @@ struct HistoryDetailView: View {
                 } header: {
                     Text("Did you change it?")
                 } footer: {
-                    Text("Your edits teach Rizzio your real voice.")
+                    Text("Your edits teach Rizzio how you really text.")
                 }
 
                 Section("How did it go?") {
