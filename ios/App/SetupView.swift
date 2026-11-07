@@ -11,10 +11,12 @@ struct SetupView: View {
             Form {
                 Section {
                     TextField("https://rizzio-backend.up.railway.app", text: $serverURL)
+                        .accessibilityIdentifier("serverURL")
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     SecureField("App token", text: $appToken)
+                        .accessibilityIdentifier("appToken")
                     Picker("Default tone", selection: $tone) {
                         ForEach(Tone.allCases) { Text($0.label).tag($0) }
                     }

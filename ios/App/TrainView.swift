@@ -91,6 +91,7 @@ struct TrainView: View {
                 // MARK: Messages
                 Section {
                     TextField("One message per line", text: $examplesText, axis: .vertical)
+                        .accessibilityIdentifier("examples")
                         .lineLimit(4...12)
                     Button("Save messages") { Task { await saveText() } }.disabled(isBusy)
                 } header: {
@@ -101,6 +102,7 @@ struct TrainView: View {
 
                 Section {
                     TextField("e.g. 27, NYC, nurse, into climbing and cooking, dry humor", text: $aboutMe, axis: .vertical)
+                        .accessibilityIdentifier("aboutMe")
                         .lineLimit(2...5)
                     Button("Save") { Task { await saveText() } }.disabled(isBusy)
                 } header: {

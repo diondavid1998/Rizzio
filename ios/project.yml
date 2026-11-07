@@ -40,6 +40,8 @@ targets:
         UIRequiresFullScreen: true
         RizzioAppGroup: $(RIZZIO_APP_GROUP)
         NSPhotoLibraryUsageDescription: Rizzio reads the screenshot you pick to suggest replies.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true  # lets the UI tests talk to a test server on this Mac
     entitlements:
       path: App/Rizzio.entitlements
       properties:
@@ -48,6 +50,9 @@ targets:
     dependencies:
       - target: RizzioKeyboard
         embed: true
+    scheme:
+      testTargets:
+        - RizzioUITests
   RizzioKeyboard:
     type: app-extension
     platform: iOS
@@ -77,3 +82,15 @@ targets:
       properties:
         com.apple.security.application-groups:
           - $(RIZZIO_APP_GROUP)
+  RizzioUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - UITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_PREFIX).rizzio.uitests
+        TEST_TARGET_NAME: Rizzio
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: Rizzio

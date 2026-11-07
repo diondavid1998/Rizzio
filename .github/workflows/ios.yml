@@ -7,9 +7,9 @@ name: iOS
 on:
   push:
     branches: [main, 'claude/**']
-    paths: ['ios/**', '.github/workflows/ios.yml']
+    paths: ['ios/**', 'backend/**', '.github/workflows/ios.yml']
   pull_request:
-    paths: ['ios/**', '.github/workflows/ios.yml']
+    paths: ['ios/**', 'backend/**', '.github/workflows/ios.yml']
   workflow_dispatch:
     inputs:
       testflight:
@@ -91,3 +91,82 @@ jobs:
             git pull --rebase origin "${GITHUB_REF_NAME}"
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
+
+  # Taps through every screen in an iPhone simulator, against the real backend running
+  # in demo mode (RIZZIO_FAKE_AI=1: canned replies, no Claude key needed).
+  ui-tests:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Start test server
+        working-directory: backend
+        run: |
+          npm ci
+          RIZZIO_FAKE_AI=1 APP_TOKEN=uitest-token PORT=4000 DB_PATH="$RUNNER_TEMP/uitest.sqlite" \
+            nohup npm start > "$RUNNER_TEMP/server.log" 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4000/health && break; sleep 1; done
+          curl -sf http://127.0.0.1:4000/health
+
+      - name: Select newest Xcode
+        run: |
+          NEWEST=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          sudo xcode-select -s "$NEWEST/Contents/Developer"
+          xcodebuild -version
+
+      - name: Generate project
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen
+
+      - name: Pick an iPhone simulator
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          devices = json.load(sys.stdin)['devices']
+          phones = [(rt, d) for rt, ds in devices.items() if 'iOS' in rt for d in ds if d['name'].startswith('iPhone')]
+          phones.sort(key=lambda p: p[0])
+          print(phones[-1][1]['udid'] if phones else '')
+          ")
+          if [ -z "$UDID" ]; then
+            RUNTIME=$(xcrun simctl list runtimes -j | python3 -c "import json,sys; r=[x['identifier'] for x in json.load(sys.stdin)['runtimes'] if 'iOS' in x['identifier'] and x.get('isAvailable')]; print(r[-1] if r else '')")
+            UDID=$(xcrun simctl create rizzio-ui "com.apple.CoreSimulator.SimDeviceType.iPhone-16" "$RUNTIME")
+          fi
+          echo "Using simulator $UDID"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      - name: Run UI tests
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Rizzio.xcodeproj \
+            -scheme Rizzio \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -resultBundlePath "$RUNNER_TEMP/UITests.xcresult" \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
+            | tee "$RUNNER_TEMP/uitest.log" | grep -E "Test Case|error:|\*\* TEST" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" "$RUNNER_TEMP/uitest.log"
+
+      - name: Test summary
+        if: always()
+        run: |
+          echo "## Rizzio UI tests" >> "$GITHUB_STEP_SUMMARY"
+          grep -E "Test Case .*(passed|failed)" "$RUNNER_TEMP/uitest.log" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY" || true
+          grep -E "error:" "$RUNNER_TEMP/uitest.log" | head -40 || true
+          echo "--- server log ---"; tail -50 "$RUNNER_TEMP/server.log" || true
+
+      - name: Upload screenshots and results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results
+          path: ${{ runner.temp }}/UITests.xcresult

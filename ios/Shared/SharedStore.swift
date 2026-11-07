@@ -21,6 +21,7 @@ final class SharedStore {
 
     /// Random id made on first launch. The server keeps your learned voice under it.
     var userId: String {
+        if let testUser = ProcessInfo.processInfo.environment["RIZZIO_UITEST_USER"] { return testUser }
         if let id = defaults.string(forKey: "userId") { return id }
         let id = UUID().uuidString
         defaults.set(id, forKey: "userId")

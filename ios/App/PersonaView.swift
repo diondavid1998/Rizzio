@@ -79,6 +79,7 @@ struct PersonaView: View {
 
                 Section {
                     TextField("e.g. politics, my ex, my job", text: $persona.avoid)
+                        .accessibilityIdentifier("avoid")
                 } header: {
                     Text("Never mention")
                 }
@@ -266,6 +267,7 @@ struct AutoTuneSheet: View {
                     }
                     .disabled(progress != nil)
                     TextField("Or paste messages you've sent, one per line", text: $pasted, axis: .vertical)
+                        .accessibilityIdentifier("autotunePaste")
                         .lineLimit(2...6)
                     Button("Add these messages") { Task { await addPasted() } }
                         .disabled(progress != nil || pasted.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -414,6 +416,7 @@ struct TestDriveView: View {
 
             Section("Or your own") {
                 TextField("Paste a prompt or message", text: $customText, axis: .vertical).lineLimit(1...4)
+                    .accessibilityIdentifier("customPrompt")
                 Button("Write replies") { Task { await run(text: customText, jpeg: nil) } }
                     .disabled(isLoading || customText.trimmingCharacters(in: .whitespaces).isEmpty)
                 PhotosPicker(selection: $photoItem, matching: .screenshots) {

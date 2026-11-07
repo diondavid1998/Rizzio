@@ -96,6 +96,7 @@ struct HistoryDetailView: View {
             if let selected {
                 Section {
                     TextField("What you actually sent", text: $sentText, axis: .vertical)
+                        .accessibilityIdentifier("sentText")
                         .lineLimit(1...5)
                 } header: {
                     Text("Did you change it?")
