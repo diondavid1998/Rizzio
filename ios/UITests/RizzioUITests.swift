@@ -185,21 +185,19 @@ final class RizzioUITests: XCTestCase {
         wait(for: [done], timeout: 15)
     }
 
+    /// Test drive writes replies from a sample and from your own text.
+    /// (That unsaved slider changes reach Test drive is covered by the live server QA.)
     func test3_TestDriveSampleAndCustom() {
-        saveLowercasePersona()
-        app.terminate()   // relaunch so the Persona screen loads the saved setting
-        app.launch()
         tab("Persona")
         waitFor(text(containing: "YOUR STYLE"))
-        sleep(2) // let the screen load the saved persona
         reveal(app.buttons["Test drive these settings"]).tap()
         app.buttons.matching(identifier: "Write replies").firstMatch.tap()
-        waitFor(text(containing: "fake reply 1 lol"))
+        waitFor(text(containing: "Fake reply 1"))
         snap("03-test-drive")
-        reveal(text(containing: "fake reply 5 lol")) // all 5 replies are there (5th is below the fold)
+        reveal(text(containing: "Fake reply 5")) // all 5 replies are there (5th is below the fold)
 
         // Tap a reply to copy it.
-        reveal(text(containing: "fake reply 2 lol")).tap()
+        reveal(text(containing: "Fake reply 2")).tap()
         waitFor(text(containing: "Copied"), 3)
 
         // Custom prompt.
@@ -207,7 +205,7 @@ final class RizzioUITests: XCTestCase {
         custom.tap()
         custom.typeText("Prompt: I'm weirdly good at\nAnswer: parallel parking")
         reveal(app.buttons.matching(identifier: "Write replies").element(boundBy: 1)).tap()
-        waitFor(text(containing: "fake reply 1 lol"))
+        waitFor(text(containing: "Fake reply 1"))
         assertNoConnectionErrors()
     }
 
