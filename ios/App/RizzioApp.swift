@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct RizzioApp: App {
     init() {
+        Theme.applyAppearance()
         // Automated UI tests point the app at a local test server with a fixed user.
         let env = ProcessInfo.processInfo.environment
         if let server = env["RIZZIO_UITEST_SERVER"], let token = env["RIZZIO_UITEST_TOKEN"] {
@@ -17,7 +18,7 @@ struct RizzioApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .tint(.pink)
+                .tint(Theme.accent)
         }
     }
 }

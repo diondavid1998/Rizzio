@@ -219,7 +219,7 @@ struct KeyboardRootView: View {
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(model.tone == tone ? Color.pink : Color(.secondarySystemBackground))
+                            .background(model.tone == tone ? Theme.accent : Theme.card)
                             .foregroundColor(model.tone == tone ? .white : .primary)
                             .clipShape(Capsule())
                     }
@@ -256,20 +256,22 @@ struct KeyboardRootView: View {
                     ForEach(Array(batch.replies.enumerated()), id: \.offset) { index, reply in
                         HStack(alignment: .top, spacing: 4) {
                         Button { model.use(reply, at: index) } label: {
-                            VStack(alignment: .leading, spacing: 2) {
+                            // Looks like a message you'd send, right-aligned like your own bubbles.
+                            VStack(alignment: .trailing, spacing: 3) {
                                 Text(reply.text)
                                     .font(.callout)
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(Theme.bubbleMineText)
                                     .multilineTextAlignment(.leading)
                                     .fixedSize(horizontal: false, vertical: true)
+                                    .padding(.horizontal, 12).padding(.vertical, 8)
+                                    .background(Theme.bubbleMine)
+                                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 Text(reply.angle)
                                     .font(.caption2)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(Theme.muted)
+                                    .padding(.trailing, 6)
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(8)
-                            .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .frame(maxWidth: .infinity, alignment: .trailing)
                         }
                         Button { model.reject(at: index) } label: {
                             Image(systemName: model.rejected.contains(index) ? "hand.thumbsdown.fill" : "hand.thumbsdown")

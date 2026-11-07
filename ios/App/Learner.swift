@@ -59,7 +59,7 @@ struct StatusBanner: View {
             } else if let error {
                 row(Label(error, systemImage: "exclamationmark.triangle.fill"), tint: .red)
             } else if let success {
-                row(Label(success, systemImage: "checkmark.circle.fill"), tint: .green)
+                row(Label(success, systemImage: "checkmark.circle.fill"), tint: Theme.ink)
             }
         }
         .animation(.easeInOut, value: progress)
@@ -73,7 +73,8 @@ struct StatusBanner: View {
             .foregroundStyle(tint)
             .padding(.horizontal, 16).padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.regularMaterial)
+            .background(Theme.card)
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.hairline, lineWidth: 1))
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .padding(.horizontal, 12).padding(.bottom, 6)
             .transition(.move(edge: .bottom).combined(with: .opacity))

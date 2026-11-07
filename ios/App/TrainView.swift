@@ -44,9 +44,9 @@ struct TrainView: View {
                 Section {
                     PhotosPicker(selection: $uploadItems, maxSelectionCount: 20, matching: .screenshots) {
                         HStack(spacing: 14) {
-                            Image(systemName: "square.and.arrow.up.on.square.fill")
+                            Image(systemName: "photo.on.rectangle")
                                 .font(.title2)
-                                .foregroundStyle(.pink)
+                                .foregroundStyle(Theme.accent)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Upload chat screenshots").font(.headline)
                                 Text("Up to 20 at a time: Hinge, iMessage, Instagram, anything")
@@ -123,7 +123,7 @@ struct TrainView: View {
                 } header: {
                     Text("How Rizzio thinks you talk")
                 } footer: {
-                    Text("Rizzio writes this itself and updates it as you use the keyboard. Next: open Persona → Auto-tune to set the sliders from it.")
+                    Text("Rizzio writes this itself and updates it as you use the keyboard. Next: open Persona → "Match how I actually text" to set the sliders from it.")
                 }
 
                 if let learned = me?.learnedExamples, !learned.isEmpty {
@@ -151,6 +151,7 @@ struct TrainView: View {
                     Text("Keeps About you, your pasted messages, and your Persona sliders.")
                 }
             }
+            .themedList()
             .navigationTitle("Train")
             .keyboardDoneButton()
             .safeAreaInset(edge: .bottom) {
@@ -170,10 +171,10 @@ struct TrainView: View {
 
     private func label(for source: String) -> String {
         switch source {
-        case "won": return "🏆 Got a match or reply"
-        case "edited": return "✏️ Your rewrite"
-        case "imported": return "📸 From your chats"
-        case "picked": return "👆 You picked this"
+        case "won": return "Got a match or reply"
+        case "edited": return "Your rewrite"
+        case "imported": return "From your chats"
+        case "picked": return "You picked this"
         default: return source
         }
     }
@@ -253,16 +254,16 @@ struct VoiceMatchCard: View {
     var body: some View {
         HStack(spacing: 16) {
             ZStack {
-                Circle().stroke(Color.pink.opacity(0.15), lineWidth: 10)
+                Circle().stroke(Theme.hairline, lineWidth: 8)
                 Circle()
                     .trim(from: 0, to: score / 100)
-                    .stroke(Color.pink, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                Text("\(Int(score))%").font(.headline.monospacedDigit())
+                Text("\(Int(score))%").font(Theme.serif(.headline, weight: .bold))
             }
             .frame(width: 72, height: 72)
             VStack(alignment: .leading, spacing: 4) {
-                Text("Style match").font(.headline)
+                Text("Style match").font(Theme.serif(.title3, weight: .bold))
                 Text(caption).font(.caption).foregroundStyle(.secondary)
                 if let stats {
                     Text("\(stats.examples) messages · \(stats.picks) picks · \(stats.wins) wins")
@@ -272,7 +273,8 @@ struct VoiceMatchCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .background(Theme.card)
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Theme.hairline, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }

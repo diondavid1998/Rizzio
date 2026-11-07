@@ -34,6 +34,7 @@ struct HistoryView: View {
                     }
                 }
             }
+            .themedList()
             .navigationTitle("History")
             .keyboardDoneButton()
             .task { await load() }
@@ -86,7 +87,7 @@ struct HistoryDetailView: View {
                                 Text(reply.angle).font(.caption).foregroundStyle(.secondary)
                             }
                             Spacer()
-                            if selected == index { Image(systemName: "checkmark.circle.fill").foregroundStyle(.pink) }
+                            if selected == index { Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.accent) }
                         }
                     }
                 }
@@ -124,7 +125,8 @@ struct HistoryDetailView: View {
                 Section { Text(errorMessage).foregroundStyle(.red) }
             }
         }
-        .navigationTitle("Suggestion")
+        .themedList()
+            .navigationTitle("Suggestion")
             .keyboardDoneButton()
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {

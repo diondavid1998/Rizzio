@@ -29,12 +29,11 @@ struct PersonaView: View {
                         HStack(spacing: 8) {
                             ForEach(PersonaPreset.all) { preset in
                                 Button { apply(preset) } label: {
-                                    Text("\(preset.emoji) \(preset.name)")
-                                        .font(.subheadline.weight(.semibold))
-                                        .padding(.horizontal, 12).padding(.vertical, 8)
-                                        .background(Color.pink.opacity(0.12))
-                                        .foregroundStyle(.pink)
-                                        .clipShape(Capsule())
+                                    Text(preset.name)
+                                        .font(.subheadline.weight(.medium))
+                                        .padding(.horizontal, 14).padding(.vertical, 8)
+                                        .foregroundStyle(Theme.ink)
+                                        .overlay(Capsule().stroke(Theme.hairline, lineWidth: 1))
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -42,12 +41,12 @@ struct PersonaView: View {
                         .padding(.vertical, 4)
                     }
                     Button { showAutoTune = true } label: {
-                        Label("Auto-tune from my texts", systemImage: "wand.and.stars")
+                        Label("Match how I actually text", systemImage: "text.quote")
                     }
                 } header: {
                     Text("Start from")
                 } footer: {
-                    Text("Presets move the sliders; you can fine-tune after. Auto-tune reads the chats you uploaded in Train and sets the sliders to how you really text.")
+                    Text("Presets are a starting point. \"Match how I actually text\" reads your real messages and sets the sliders for you.")
                 }
 
                 ForEach(SliderSpec.Group.allCases, id: \.self) { group in
@@ -73,7 +72,7 @@ struct PersonaView: View {
                                 Text(spec.subtitle).font(.caption).foregroundStyle(.secondary)
                             }
                         }
-                        .tint(.pink)
+                        .tint(Theme.accent)
                         .accessibilityIdentifier("toggle.\(spec.key)")
                     }
                 }
@@ -96,7 +95,7 @@ struct PersonaView: View {
                     NavigationLink {
                         TestDriveView(persona: persona)
                     } label: {
-                        Label("Test drive these settings", systemImage: "steeringwheel")
+                        Label("Test drive these settings", systemImage: "bubble.left.and.bubble.right")
                     }
                 } footer: {
                     Text("See sample replies with your current settings before you save.")
@@ -106,6 +105,7 @@ struct PersonaView: View {
                     Button("Reset to defaults", role: .destructive) { persona = .default }
                 }
             }
+            .themedList()
             .navigationTitle("Persona")
             .keyboardDoneButton()
             .toolbar {
@@ -173,24 +173,26 @@ struct PersonaSlider: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Label(spec.title, systemImage: spec.icon)
+                Text(spec.title)
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
                 Spacer()
                 Text("\(Int(value))")
                     .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.muted)
             }
             Slider(value: $value, in: 0...100, step: 1)
-                .tint(.pink)
+                .tint(Theme.accent)
+                .accessibilityLabel(spec.title)
             HStack {
                 Text(spec.left)
                 Spacer()
                 Text(spec.right)
             }
             .font(.caption2)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Theme.muted)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
     }
 }
 
@@ -199,27 +201,45 @@ struct VibeCard: View {
     let persona: Persona
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Your vibe").font(.caption.weight(.semibold)).foregroundStyle(.white.opacity(0.8))
-            Text(summary).font(.title3.weight(.bold)).foregroundStyle(.white)
-            HStack(spacing: 6) {
-                ForEach(topTraits, id: \.self) { trait in
-                    Text(trait)
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(.white.opacity(0.2))
-                        .foregroundStyle(.white)
-                        .clipShape(Capsule())
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            Eyebrow("Your style")
+            Text(summary)
+                .font(Theme.serif(.title2, weight: .bold))
+                .foregroundStyle(Theme.ink)
+            Text(topTraits.joined(separator: " · "))
+                .font(.subheadline)
+                .foregroundStyle(Theme.muted)
+            // A sample message in the current style, so the sliders feel concrete.
+            HStack {
+                Spacer(minLength: 40)
+                Text(sampleLine)
+                    .font(.callout)
+                    .foregroundStyle(Theme.bubbleMineText)
+                    .padding(.horizontal, 14).padding(.vertical, 9)
+                    .background(Theme.bubbleMine)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
+            .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(
-            LinearGradient(colors: [Color(red: 1, green: 0.31, blue: 0.55), Color(red: 1, green: 0.54, blue: 0.3)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(18)
+        .background(Theme.card)
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Theme.hairline, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    /// A rough preview of how you'll sound with these settings (local, no AI call).
+    private var sampleLine: String {
+        let flirt = persona.value("flirt"), humor = persona.value("humor"), length = persona.value("length")
+        var line: String
+        if humor > 65 && flirt > 60 { line = "ok the geese thing is iconic. are you this dramatic about all birds or just me" }
+        else if humor > 65 { line = "respectfully, the geese do know what they did" }
+        else if flirt > 65 { line = "you had me at farmers market. what are you getting first?" }
+        else { line = "farmers market then a long run is a solid sunday. what's the best stall?" }
+        if length < 25 { line = line.components(separatedBy: ". ").first ?? line }
+        if persona.value("emoji") > 55 { line += " 😂" }
+        if persona.isOn("lowercase") { line = line.lowercased() }
+        return line
     }
 
     private var summary: String {
@@ -265,7 +285,7 @@ struct AutoTuneSheet: View {
             List {
                 Section {
                     PhotosPicker(selection: $uploadItems, maxSelectionCount: 20, matching: .screenshots) {
-                        Label("Upload chat screenshots", systemImage: "square.and.arrow.up.on.square.fill")
+                        Label("Upload chat screenshots", systemImage: "photo.on.rectangle")
                     }
                     .disabled(progress != nil)
                     TextField("Or paste messages you've sent, one per line", text: $pasted, axis: .vertical)
@@ -274,11 +294,11 @@ struct AutoTuneSheet: View {
                     Button("Add these messages") { Task { await addPasted() } }
                         .disabled(progress != nil || pasted.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     if let progress { HStack { ProgressView(); Text(progress).font(.callout) } }
-                    if let learnedNote { Label(learnedNote, systemImage: "checkmark.circle.fill").foregroundStyle(.green) }
+                    if let learnedNote { Label(learnedNote, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.ink) }
                 } header: {
                     Text("Your texts")
                 } footer: {
-                    Text("Auto-tune reads how you really text. Add chats or messages here (or in Train), then it re-reads them.")
+                    Text("Rizzio reads how you really text. Add chats or messages here (or in Train) and it re-reads them.")
                 }
 
                 if let errorMessage {
@@ -298,7 +318,7 @@ struct AutoTuneSheet: View {
                                         Spacer()
                                         Text("\(Int(persona.value(spec.key))) → \(Int(setting.value))")
                                             .font(.subheadline.monospacedDigit())
-                                            .foregroundStyle(.pink)
+                                            .foregroundStyle(Theme.accent)
                                     }
                                     Text(setting.reason).font(.caption).foregroundStyle(.secondary)
                                 }
@@ -323,7 +343,8 @@ struct AutoTuneSheet: View {
                     }
                 }
             }
-            .navigationTitle("Auto-tune")
+            .themedList()
+            .navigationTitle("Match my texts")
             .keyboardDoneButton()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
@@ -445,6 +466,7 @@ struct TestDriveView: View {
                 }
             }
         }
+        .themedList()
         .navigationTitle("Test drive")
             .keyboardDoneButton()
         .onChange(of: photoItem) { item in

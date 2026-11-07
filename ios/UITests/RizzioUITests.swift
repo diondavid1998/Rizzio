@@ -132,14 +132,14 @@ final class RizzioUITests: XCTestCase {
 
     func test2_PersonaPresetsTogglesAndSave() {
         tab("Persona")
-        waitFor(text(containing: "Your vibe"))
+        waitFor(text(containing: "YOUR STYLE"))
         assertNoConnectionErrors()
         snap("02-persona")
         let save = app.navigationBars.buttons["Save"]
         XCTAssertFalse(save.isEnabled, "Save should be off before any change")
 
         // Every preset applies.
-        for preset in ["😎 Smooth", "🐶 Golden retriever", "🍸 Dry wit", "🌹 Hopeless romantic", "🌀 Chaos", "🧊 Chill"] {
+        for preset in ["Smooth", "Golden retriever", "Dry wit", "Hopeless romantic", "Chaos", "Chill"] {
             let button = app.buttons[preset]
             if !button.isHittable { app.scrollViews.firstMatch.swipeLeft() }
             waitFor(button, 5)
@@ -176,7 +176,7 @@ final class RizzioUITests: XCTestCase {
 
     func test3_TestDriveSampleAndCustom() {
         tab("Persona")
-        waitFor(text(containing: "Your vibe"))
+        waitFor(text(containing: "YOUR STYLE"))
         // Turn on lowercase (unsaved) so we can see Test drive uses current settings.
         let lowercase = lowercaseSwitch()
         reveal(lowercase)
@@ -204,8 +204,8 @@ final class RizzioUITests: XCTestCase {
 
     func test4_AutoTuneLearnsFromPastedTextsAndApplies() {
         tab("Persona")
-        waitFor(text(containing: "Your vibe"))
-        reveal(app.buttons["Auto-tune from my texts"]).tap()
+        waitFor(text(containing: "YOUR STYLE"))
+        reveal(app.buttons["Match how I actually text"]).tap()
 
         // Nothing learned yet: explains instead of failing silently.
         waitFor(text(containing: "Upload some of your chats"))

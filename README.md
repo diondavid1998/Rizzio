@@ -18,7 +18,7 @@ The keyboard can also:
 
 The everyday flow is the Action Button and the keyboard. The app is where you shape how Rizzio sounds:
 
-- **Persona**: 12 sliders (Flirty, Humor, Boldness, Warmth, Spice, Humor style, Teasing, Length, Emoji, Polish, Questions, Pace), presets (Smooth, Golden retriever, Dry wit, Hopeless romantic, Chaos, Chill), rules like "all lowercase" and "no pickup lines", a goal (match, keep it going, number, date, friends), a "never mention" list, and a **Test drive** to see sample replies before saving. **Auto-tune** sets the sliders from how you really text.
+- **Persona**: 12 sliders (Flirty, Humor, Boldness, Warmth, Spice, Humor style, Teasing, Length, Emoji, Polish, Questions, Pace), presets (Smooth, Golden retriever, Dry wit, Hopeless romantic, Chaos, Chill), rules like "all lowercase" and "no pickup lines", a goal (match, keep it going, number, date, friends), a "never mention" list, and a **Test drive** to see sample replies before saving. **Match how I actually text** sets the sliders from how you really text.
 - **Train**: upload chat screenshots (up to 20 at a time) and see exactly which of your messages Rizzio learned from each, paste messages that worked, add facts about you, and watch the **Style match** meter fill up.
 - **History**: mark which replies got a match, so Rizzio learns what works.
 

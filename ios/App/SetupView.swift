@@ -54,6 +54,7 @@ struct SetupView: View {
                     Step("Mark wins in History. The more you use it, the more it sounds like you.")
                 }
             }
+            .themedList()
             .navigationTitle("Setup")
             .keyboardDoneButton()
         }
