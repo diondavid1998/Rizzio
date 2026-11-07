@@ -187,6 +187,8 @@ final class RizzioUITests: XCTestCase {
 
     func test3_TestDriveSampleAndCustom() {
         saveLowercasePersona()
+        app.terminate()   // relaunch so the Persona screen loads the saved setting
+        app.launch()
         tab("Persona")
         waitFor(text(containing: "YOUR STYLE"))
         sleep(2) // let the screen load the saved persona
