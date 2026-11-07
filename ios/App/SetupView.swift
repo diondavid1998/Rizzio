@@ -55,6 +55,7 @@ struct SetupView: View {
                 }
             }
             .navigationTitle("Setup")
+            .keyboardDoneButton()
         }
     }
 

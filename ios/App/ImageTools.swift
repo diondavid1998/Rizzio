@@ -1,3 +1,4 @@
+import SwiftUI
 import UIKit
 
 enum ImageTools {
@@ -13,5 +14,25 @@ enum ImageTools {
             image.draw(in: CGRect(origin: .zero, size: target))
         }
         return resized.jpegData(compressionQuality: quality)
+    }
+}
+
+// MARK: - Keyboard
+
+extension View {
+    /// Every form gets a "Done" button above the keyboard and can be scrolled to dismiss it,
+    /// so the keyboard never hides the Save buttons below a text box.
+    func keyboardDoneButton() -> some View {
+        self
+            .scrollDismissesKeyboard(.interactively)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }
+                    .accessibilityIdentifier("keyboardDone")
+                }
+            }
     }
 }

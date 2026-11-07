@@ -152,6 +152,7 @@ struct TrainView: View {
                 }
             }
             .navigationTitle("Train")
+            .keyboardDoneButton()
             .safeAreaInset(edge: .bottom) {
                 StatusBanner(progress: progress, error: errorMessage, success: successMessage)
             }

@@ -74,6 +74,7 @@ struct PersonaView: View {
                             }
                         }
                         .tint(.pink)
+                        .accessibilityIdentifier("toggle.\(spec.key)")
                     }
                 }
 
@@ -106,6 +107,7 @@ struct PersonaView: View {
                 }
             }
             .navigationTitle("Persona")
+            .keyboardDoneButton()
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     if isSaving {
@@ -322,6 +324,7 @@ struct AutoTuneSheet: View {
                 }
             }
             .navigationTitle("Auto-tune")
+            .keyboardDoneButton()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .task { await runAutoTune() }
@@ -443,6 +446,7 @@ struct TestDriveView: View {
             }
         }
         .navigationTitle("Test drive")
+            .keyboardDoneButton()
         .onChange(of: photoItem) { item in
             guard let item else { return }
             Task {

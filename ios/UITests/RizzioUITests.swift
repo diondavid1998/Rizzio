@@ -35,23 +35,53 @@ final class RizzioUITests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", s)).firstMatch
     }
 
+    /// Short, slow drags so the list can't fly past the element.
+    func nudge(up: Bool) {
+        let top = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+        let bottom = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.65))
+        (up ? bottom : top).press(forDuration: 0.05, thenDragTo: up ? top : bottom)
+    }
+
     /// Scrolls the current list until the element can be tapped.
     @discardableResult
     func reveal(_ el: XCUIElement, file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
+        dismissKeyboard()
         var tries = 0
-        while !(el.exists && el.isHittable) && tries < 12 {
-            app.swipeUp()
+        while !(el.exists && el.isHittable) && tries < 25 {
+            nudge(up: true)
             tries += 1
         }
-        if !el.isHittable {
-            tries = 0
-            while !(el.exists && el.isHittable) && tries < 12 {
-                app.swipeDown()
-                tries += 1
-            }
+        tries = 0
+        while !(el.exists && el.isHittable) && tries < 40 {
+            nudge(up: false)
+            tries += 1
         }
         XCTAssertTrue(el.exists && el.isHittable, "Couldn't find \(el)", file: file, line: line)
         return el
+    }
+
+    func dismissKeyboard() {
+        let done = app.buttons["keyboardDone"]
+        if app.keyboards.count > 0, done.exists { done.tap() }
+    }
+
+    /// Flips a switch by tapping the switch itself (tapping its label does nothing on iOS).
+    func flip(_ toggle: XCUIElement) {
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+    }
+
+    func lowercaseSwitch() -> XCUIElement { element("toggle.lowercase") }
+
+    /// Saves a screenshot for the QA report (and attaches it to the test result).
+    func snap(_ name: String) {
+        let shot = XCUIScreen.main.screenshot()
+        let attachment = XCTAttachment(screenshot: shot)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        if let dir = ProcessInfo.processInfo.environment["RIZZIO_SNAP_DIR"] {
+            try? shot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png"))
+        }
     }
 
     func tab(_ name: String) {
@@ -93,6 +123,7 @@ final class RizzioUITests: XCTestCase {
         XCTAssertEqual(element("serverURL").value as? String, Self.server)
         reveal(app.buttons["Save"]).tap()
         waitFor(app.buttons["Saved ✓"], 5)
+        snap("01-setup")
         // Setup guide sections are all there.
         reveal(text(containing: "Turn on the keyboard"))
         reveal(text(containing: "Make the Shortcut"))
@@ -103,6 +134,7 @@ final class RizzioUITests: XCTestCase {
         tab("Persona")
         waitFor(text(containing: "Your vibe"))
         assertNoConnectionErrors()
+        snap("02-persona")
         let save = app.navigationBars.buttons["Save"]
         XCTAssertFalse(save.isEnabled, "Save should be off before any change")
 
@@ -120,10 +152,10 @@ final class RizzioUITests: XCTestCase {
         reveal(flirty).adjust(toNormalizedSliderPosition: 0.9)
 
         // Toggles flip.
-        let lowercase = app.switches.matching(NSPredicate(format: "label BEGINSWITH 'all lowercase'")).firstMatch
+        let lowercase = lowercaseSwitch()
         reveal(lowercase)
         let before = lowercase.value as? String
-        lowercase.tap()
+        flip(lowercase)
         XCTAssertNotEqual(lowercase.value as? String, before)
 
         // Never-mention text.
@@ -146,14 +178,16 @@ final class RizzioUITests: XCTestCase {
         tab("Persona")
         waitFor(text(containing: "Your vibe"))
         // Turn on lowercase (unsaved) so we can see Test drive uses current settings.
-        let lowercase = app.switches.matching(NSPredicate(format: "label BEGINSWITH 'all lowercase'")).firstMatch
+        let lowercase = lowercaseSwitch()
         reveal(lowercase)
-        if (lowercase.value as? String) == "0" { lowercase.tap() }
+        if (lowercase.value as? String) == "0" { flip(lowercase) }
+        XCTAssertEqual(lowercase.value as? String, "1")
 
         reveal(app.buttons["Test drive these settings"]).tap()
         app.buttons.matching(identifier: "Write replies").firstMatch.tap()
         waitFor(text(containing: "fake reply 1 lol"))
         XCTAssertTrue(text(containing: "fake reply 5 lol").exists)
+        snap("03-test-drive")
 
         // Tap a reply to copy it.
         text(containing: "fake reply 2 lol").tap()
@@ -183,6 +217,7 @@ final class RizzioUITests: XCTestCase {
         app.buttons["Add these messages"].tap()
         waitFor(text(containing: "Added 2 messages"))
         waitFor(text(containing: "never uses emoji"))
+        snap("04-auto-tune")
 
         app.buttons["Apply these"].tap()
         let save = app.navigationBars.buttons["Save"]
@@ -203,6 +238,7 @@ final class RizzioUITests: XCTestCase {
         examples.typeText("bet\nnah ur wild for that")
         reveal(app.buttons["Save messages"]).tap()
         waitFor(anyText(containing: "Saved 2 messages"))
+        snap("05-train-saved")
 
         let about = reveal(element("aboutMe"))
         about.tap()
@@ -213,6 +249,7 @@ final class RizzioUITests: XCTestCase {
         reveal(app.buttons["Re-learn now"]).tap()
         waitFor(anyText(containing: "Updated how Rizzio thinks you text"))
         reveal(text(containing: "test profile built from"))
+        snap("06-train-profile")
 
         reveal(app.buttons["Forget everything learned"]).tap()
         app.buttons["Forget"].firstMatch.tap()
@@ -231,10 +268,12 @@ final class RizzioUITests: XCTestCase {
         reveal(app.buttons["💘 Match"]).tap()
         reveal(app.buttons["Save"]).tap()
         waitFor(app.buttons["Saved ✓"], 10)
+        snap("07-history-detail")
 
         // Back in the list, it shows the match.
         app.navigationBars.buttons.firstMatch.tap()
         waitFor(anyText(containing: "💘"))
+        snap("08-history")
     }
 
     func test7_AllTabsLoadWithoutErrors() {

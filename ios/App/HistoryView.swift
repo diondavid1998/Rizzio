@@ -35,6 +35,7 @@ struct HistoryView: View {
                 }
             }
             .navigationTitle("History")
+            .keyboardDoneButton()
             .task { await load() }
             .refreshable { await load() }
         }
@@ -124,6 +125,7 @@ struct HistoryDetailView: View {
             }
         }
         .navigationTitle("Suggestion")
+            .keyboardDoneButton()
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             selected = item.pickedIndex
