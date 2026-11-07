@@ -83,8 +83,8 @@ struct HistoryDetailView: View {
                     } label: {
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(reply.text).foregroundStyle(.primary)
-                                Text(reply.angle).font(.caption).foregroundStyle(.secondary)
+                                Text(reply.text).foregroundStyle(Theme.ink)
+                                Text(reply.angle).font(.caption).foregroundStyle(Theme.muted)
                             }
                             Spacer()
                             if selected == index { Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.accent) }
