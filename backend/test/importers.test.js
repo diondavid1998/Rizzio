@@ -3,13 +3,13 @@ import { afterEach, beforeEach, describe, test } from "node:test";
 import { strToU8, zipSync } from "fflate";
 import { createApp } from "../src/app.js";
 import { openDb } from "../src/db.js";
-import { YOU, isUsefulMessage, parseExport, summarizeSenders } from "../src/importers.js";
+import { YOU, isUsefulMessage, parseExport, sniff, summarizeSenders } from "../src/importers.js";
 
 const u8 = (s) => strToU8(s);
 const senders = (r) => summarizeSenders(r.messages);
 
 describe("export formats", () => {
-  test("WhatsApp .txt (Android and iPhone styles, multi-line, system lines skipped)", () => {
+  test("WhatsApp .txt (Android and iPhone styles, multi-line, system lines skipped)", async () => {
     const android = [
       "12/31/23, 9:41 PM - Messages and calls are end-to-end encrypted. No one outside of this chat can read them.",
       "12/31/23, 9:41 PM - Maya: so what do you do for fun",
@@ -18,17 +18,17 @@ describe("export formats", () => {
       "12/31/23, 9:43 PM - Dion: <Media omitted>",
       "12/31/23, 9:44 PM - Maya: that is elite",
     ].join("\n");
-    const r = parseExport("WhatsApp Chat with Maya.txt", u8(android));
+    const r = await parseExport("WhatsApp Chat with Maya.txt", u8(android));
     assert.equal(r.format, "whatsapp");
     const s = senders(r);
     assert.deepEqual(s.senders.find((x) => x.name === "Dion").texts, ["lowkey just climbing lol\nand making pasta"]);
 
     const iphone = "[1/2/24, 10:05:11 AM] Dion: say less\n[1/2/24, 10:06:00 AM] Maya: ok\n[1/2/24, 10:07:00 AM] Dion: i got u";
-    const r2 = parseExport("_chat.txt", u8(iphone));
+    const r2 = await parseExport("_chat.txt", u8(iphone));
     assert.deepEqual(senders(r2).senders.find((x) => x.name === "Dion").texts, ["say less", "i got u"]);
   });
 
-  test("Instagram / Messenger JSON (fixes Meta's broken emoji/accents)", () => {
+  test("Instagram / Messenger JSON (fixes Meta's broken emoji/accents)", async () => {
     const json = JSON.stringify({
       participants: [{ name: "Maya" }, { name: "Dion" }],
       messages: [
@@ -38,13 +38,13 @@ describe("export formats", () => {
         { sender_name: "Dion", photos: [{ uri: "x.jpg" }] },
       ],
     });
-    const r = parseExport("message_1.json", u8(json));
+    const r = await parseExport("message_1.json", u8(json));
     assert.equal(r.format, "instagram-messenger");
     assert.deepEqual(senders(r).senders.find((x) => x.name === "Dion").texts, ["café then? 😂"]);
     assert.equal(senders(r).senders.find((x) => x.name === "Maya").count, 1); // "Liked a message" skipped
   });
 
-  test("Telegram result.json", () => {
+  test("Telegram result.json", async () => {
     const json = JSON.stringify({
       chats: { list: [{ messages: [
         { type: "service", action: "create_group" },
@@ -52,59 +52,82 @@ describe("export formats", () => {
         { type: "message", from: "Maya", text: [{ type: "bold", text: "wait" }, " really?"] },
       ] }] },
     });
-    const s = senders(parseExport("result.json", u8(json)));
+    const s = senders(await parseExport("result.json", u8(json)));
     assert.deepEqual(s.senders.map((x) => x.name).sort(), ["Dion", "Maya"]);
     assert.deepEqual(s.senders.find((x) => x.name === "Maya").texts, ["wait really?"]);
   });
 
-  test("Hinge matches.json → all yours", () => {
+  test("Hinge matches.json → all yours", async () => {
     const json = JSON.stringify([
       { chats: [{ body: "ok but who hurt you, the geese?", timestamp: "x" }], like: [{ like: [{ comment: "this prompt is elite" }] }] },
       { match: [{}] },
     ]);
-    const r = parseExport("matches.json", u8(json));
+    const r = await parseExport("matches.json", u8(json));
     assert.equal(r.format, "hinge");
     const s = senders(r);
     assert.equal(s.guess, YOU);
     assert.deepEqual(s.senders[0].texts, ["ok but who hurt you, the geese?", "this prompt is elite"]);
   });
 
-  test("Tinder data.json → all yours", () => {
+  test("Tinder data.json → all yours", async () => {
     const json = JSON.stringify({ Usage: {}, Messages: [{ match_id: "1", messages: [{ message: "hey trouble", to: 1 }] }] });
-    const s = senders(parseExport("data.json", u8(json)));
+    const s = senders(await parseExport("data.json", u8(json)));
     assert.equal(s.guess, YOU);
     assert.deepEqual(s.senders[0].texts, ["hey trouble"]);
   });
 
-  test("CSV with sender column, and iMessage-style is_from_me column", () => {
+  test("CSV with sender column, and iMessage-style is_from_me column", async () => {
     const csv = 'date,sender,message\n2024-01-01,Dion,"hey, you up?"\n2024-01-01,Maya,"maybe ""why"""\n';
-    const s = senders(parseExport("chat.csv", u8(csv)));
+    const s = senders(await parseExport("chat.csv", u8(csv)));
     assert.deepEqual(s.senders.find((x) => x.name === "Maya").texts, ['maybe "why"']);
     const imsg = "is_from_me,text\n1,omw\n0,k\n1,say less\n";
-    const s2 = senders(parseExport("messages.csv", u8(imsg)));
+    const s2 = senders(await parseExport("messages.csv", u8(imsg)));
     assert.equal(s2.guess, YOU);
     assert.deepEqual(s2.senders.find((x) => x.name === YOU).texts, ["omw", "say less"]);
   });
 
-  test("plain 'Name: message' text and generic JSON", () => {
-    const s = senders(parseExport("notes.txt", u8("Dion: lowkey yes\nMaya: ok\nDion: say less\n")));
+  test("plain 'Name: message' text and generic JSON", async () => {
+    const s = senders(await parseExport("notes.txt", u8("Dion: lowkey yes\nMaya: ok\nDion: say less\n")));
     assert.equal(s.guess, "Dion");
     const generic = JSON.stringify({ data: { thread: [{ author: "Dion", body: "nah ur wild" }, { author: "Maya", body: "lol" }] } });
-    assert.deepEqual(senders(parseExport("x.json", u8(generic))).senders.find((x) => x.name === "Dion").texts, ["nah ur wild"]);
+    assert.deepEqual(senders(await parseExport("x.json", u8(generic))).senders.find((x) => x.name === "Dion").texts, ["nah ur wild"]);
   });
 
-  test("zip of an export: reads text/JSON inside, skips media", () => {
+  test("zip of an export: reads text/JSON inside, skips media", async () => {
     const zip = zipSync({
       "your_instagram_activity/messages/inbox/maya_123/message_1.json": u8(JSON.stringify({ messages: [{ sender_name: "Dion", content: "say less" }] })),
       "your_instagram_activity/messages/inbox/maya_123/photos/1.jpg": new Uint8Array([0xff, 0xd8, 0xff]),
       "WhatsApp Chat.txt": u8("1/1/24, 9:00 PM - Dion: bet\n1/1/24, 9:01 PM - Maya: ok"),
     });
-    const r = parseExport("export.zip", zip);
+    const r = await parseExport("export.zip", zip);
     assert.match(r.format, /zip/);
     assert.deepEqual(senders(r).senders.find((x) => x.name === "Dion").texts.sort(), ["bet", "say less"]);
   });
 
-  test("filters junk", () => {
+  test("binary files are rejected clearly, never shown as junk senders", async () => {
+    const junk = new Uint8Array(4000).map((_, i) => (i * 7919) % 256);
+    await assert.rejects(parseExport("weird.dat", junk), /can't read that file type/);
+    await assert.rejects(parseExport("a.gz", new Uint8Array([0x1f, 0x8b, 8, 0, 1, 2])), /\.gz/);
+    await assert.rejects(parseExport("photo.heic", new Uint8Array([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63, 0, 0])), /photo/);
+    assert.equal(sniff(new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d])), "pdf");
+  });
+
+  test("PDF chat exports", async () => {
+    const { readFileSync } = await import("node:fs");
+    const bytes = new Uint8Array(readFileSync(new URL("./fixtures/chat.pdf", import.meta.url)));
+    const r = await parseExport("Chat with Maya.pdf", bytes);
+    assert.match(r.format, /^pdf/);
+    assert.deepEqual(senders(r).senders.find((x) => x.name === "Dion").texts, ["lowkey just climbing lol", "say less, i got u"]);
+  });
+
+  test("UTF-16 text exports (some iMessage tools)", async () => {
+    const text = "Dion: say less\nMaya: ok\nDion: bet\n";
+    const bytes = new Uint8Array([0xff, 0xfe, ...Buffer.from(text, "utf16le")]);
+    const s = senders(await parseExport("messages.txt", bytes));
+    assert.deepEqual(s.senders.find((x) => x.name === "Dion").texts, ["say less", "bet"]);
+  });
+
+  test("filters junk", async () => {
     assert.equal(isUsefulMessage("https://example.com/x"), false);
     assert.equal(isUsefulMessage("This message was deleted"), false);
     assert.equal(isUsefulMessage("k"), false);
@@ -161,6 +184,9 @@ describe("import endpoints", () => {
 
   test("clear errors for empty or unreadable files", async () => {
     assert.equal((await preview("x.txt", u8("just some notes"))).status, 422);
+    const junk = await preview("x.pdf.bin", new Uint8Array(3000).map((_, i) => (i * 131) % 256));
+    assert.equal(junk.status, 400);
+    assert.match(junk.body.error, /can't read that file type/);
     assert.equal((await preview("x.zip", new Uint8Array([0x50, 0x4b, 1, 2, 3]))).status, 400);
   });
 });

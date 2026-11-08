@@ -78,7 +78,7 @@ struct TrainView: View {
                                 .foregroundStyle(Theme.accent)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Import from Files").font(.headline).foregroundStyle(Theme.ink)
-                                Text("Chat exports: WhatsApp, Instagram, Messenger, Telegram, Hinge, Tinder, CSV, JSON, TXT, zip, or images")
+                                Text("Chat exports: WhatsApp, Instagram, Messenger, Telegram, Hinge, Tinder, PDF, CSV, JSON, TXT, zip, or images")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                         }
@@ -259,7 +259,8 @@ struct TrainView: View {
                 guard data.count <= 40 * 1024 * 1024 else {
                     throw RizzError.server("\(url.lastPathComponent) is over 40 MB. Unzip it and pick just the messages files.")
                 }
-                if UTType(filenameExtension: url.pathExtension)?.conforms(to: .image) == true {
+                // Photos (by content, not just name: HEIC, PNG, JPEG...) are read like screenshots.
+                if UTType(filenameExtension: url.pathExtension)?.conforms(to: .image) == true || UIImage(data: data) != nil {
                     guard let jpeg = ImageTools.compressedJPEG(from: data) else { continue }
                     let learned = try await RizzAPI.learn(fromScreenshot: jpeg)
                     importedThisRound += learned.count

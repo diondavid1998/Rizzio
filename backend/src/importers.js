@@ -2,6 +2,60 @@
 // into { format, messages: [{ sender, text }] }. No AI involved: plain parsing, so it's free.
 import { unzipSync, strFromU8 } from "fflate";
 
+/** An upload we can't read as chat text, with a message for the user. */
+export class ImportError extends Error {
+  constructor(message, kind = "unreadable") {
+    super(message);
+    this.kind = kind;
+  }
+}
+
+const startsWith = (b, sig, offset = 0) => sig.every((v, i) => b[offset + i] === v);
+
+/** What a file really is, from its first bytes (file names can lie). */
+export function sniff(b) {
+  if (b.length >= 4 && startsWith(b, [0x50, 0x4b])) return "zip";
+  if (startsWith(b, [0x25, 0x50, 0x44, 0x46])) return "pdf"; // %PDF
+  if (startsWith(b, [0xff, 0xd8, 0xff]) || startsWith(b, [0x89, 0x50, 0x4e, 0x47]) || startsWith(b, [0x47, 0x49, 0x46, 0x38])) return "image";
+  if (b.length > 12 && startsWith(b, [0x66, 0x74, 0x79, 0x70], 4)) return "image"; // HEIC/HEIF/AVIF (also MP4/MOV, rejected later)
+  if (startsWith(b, [0x52, 0x49, 0x46, 0x46]) && startsWith(b, [0x57, 0x45, 0x42, 0x50], 8)) return "image"; // WEBP
+  if (startsWith(b, [0x1f, 0x8b])) return "gzip";
+  if (startsWith(b, [0x52, 0x61, 0x72, 0x21])) return "rar";
+  if (startsWith(b, [0x37, 0x7a, 0xbc, 0xaf])) return "7z";
+  if (startsWith(b, [0xff, 0xfe]) || startsWith(b, [0xfe, 0xff])) return "utf16";
+  // Lots of control bytes or NULs means it isn't text.
+  const n = Math.min(b.length, 65536);
+  let odd = 0;
+  for (let i = 0; i < n; i++) {
+    const c = b[i];
+    if (c === 0 || (c < 0x20 && c !== 0x09 && c !== 0x0a && c !== 0x0d)) odd++;
+  }
+  return n > 0 && odd / n > 0.02 ? "binary" : "text";
+}
+
+/** Text from bytes, handling UTF-8 (with or without BOM) and UTF-16. */
+export function decodeText(b) {
+  if (startsWith(b, [0xff, 0xfe])) return new TextDecoder("utf-16le").decode(b.subarray(2));
+  if (startsWith(b, [0xfe, 0xff])) return new TextDecoder("utf-16be").decode(b.subarray(2));
+  const text = strFromU8(b);
+  return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+}
+
+const UNREADABLE = {
+  gzip: "That's a .gz file. Unzip it first, then pick the chat file inside.",
+  rar: "RAR files aren't supported. Unzip it first, then pick the chat file inside.",
+  "7z": "7z files aren't supported. Unzip it first, then pick the chat file inside.",
+  binary: "Rizzio can't read that file type. Use a chat export (.txt, .json, .csv, .zip, PDF) or screenshots.",
+};
+
+/** PDF chat exports: pull the text out, then read it like a text export. */
+async function pdfText(bytes) {
+  const { extractText, getDocumentProxy } = await import("unpdf");
+  const pdf = await getDocumentProxy(bytes);
+  const { text } = await extractText(pdf, { mergePages: true });
+  return Array.isArray(text) ? text.join("\n") : text;
+}
+
 export const YOU = "You"; // sender name for exports that only contain your own messages (Hinge, Tinder)
 
 const SKIP = [
@@ -47,7 +101,7 @@ export function parseWhatsApp(text) {
 export function parseNameColonLines(text) {
   const messages = [];
   for (const line of text.split(/\r?\n/)) {
-    const m = /^([^:\n]{1,40}):\s+(.+)$/.exec(line.trim());
+    const m = /^([\p{L}\p{N}][\p{L}\p{N} ._'’&()-]{0,39}):\s+(.+)$/u.exec(line.trim());
     if (m && !/^https?$/i.test(m[1])) messages.push({ sender: m[1].trim(), text: m[2] });
   }
   return messages;
@@ -206,20 +260,34 @@ function parseTextFile(name, text) {
 const TEXTY = /\.(json|txt|csv|text|log)$/i;
 
 /** Parses one uploaded file (bytes). Zips are opened and every text/JSON/CSV inside is read; media is skipped. */
-export function parseExport(name, bytes) {
-  const isZip = bytes.length > 4 && bytes[0] === 0x50 && bytes[1] === 0x4b;
-  if (isZip) {
+export async function parseExport(name, bytes) {
+  const kind = sniff(bytes);
+  if (kind === "image") throw new ImportError("That's a photo. Rizzio reads it like a screenshot.", "image");
+  if (UNREADABLE[kind]) throw new ImportError(UNREADABLE[kind]);
+  if (kind === "pdf") {
+    let text;
+    try {
+      text = await pdfText(bytes);
+    } catch {
+      throw new ImportError("Couldn't read that PDF.");
+    }
+    const r = parseTextFile("export.txt", text);
+    return { format: `pdf (${r.format})`, messages: r.messages };
+  }
+  if (kind === "zip") {
     let files;
     try {
       files = unzipSync(bytes, { filter: (f) => TEXTY.test(f.name) && !f.name.includes("__MACOSX") && f.originalSize < 50_000_000 });
     } catch {
       throw new Error("Couldn't open that zip file.");
     }
-    const parts = Object.entries(files).map(([n, data]) => ({ name: n, ...parseTextFile(n, strFromU8(data)) }));
+    const parts = Object.entries(files)
+      .filter(([, data]) => !["binary", "zip", "image", "pdf"].includes(sniff(data)))
+      .map(([n, data]) => ({ name: n, ...parseTextFile(n, decodeText(data)) }));
     const formats = [...new Set(parts.filter((p) => p.messages.length).map((p) => p.format))];
     return { format: formats.length ? `zip (${formats.join(", ")})` : "zip", messages: parts.flatMap((p) => p.messages) };
   }
-  return parseTextFile(name, strFromU8(bytes));
+  return parseTextFile(name, decodeText(bytes));
 }
 
 /**
@@ -230,6 +298,7 @@ export function summarizeSenders(messages, limitPerSender = 2000) {
   const bySender = new Map();
   for (const m of messages) {
     const sender = (m.sender ?? "").toString().trim() || "Unknown";
+    if (/[\ufffd\u0000-\u001f]/.test(sender) || sender.length > 60) continue; // garbled, not a real name
     const text = (m.text ?? "").toString().trim();
     if (!isUsefulMessage(text)) continue;
     if (!bySender.has(sender)) bySender.set(sender, []);

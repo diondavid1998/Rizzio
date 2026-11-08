@@ -3,7 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import { AIError } from "./ai.js";
 import { SIGNAL_KINDS } from "./db.js";
 import { randomUUID } from "node:crypto";
-import { parseExport, summarizeSenders } from "./importers.js";
+import { ImportError, parseExport, summarizeSenders } from "./importers.js";
 import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, renderPersona, sanitizePersona } from "./persona.js";
 import { renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
@@ -206,13 +206,14 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
   app.post(
     "/v1/learn/file/preview",
     express.raw({ type: () => true, limit: MAX_IMPORT_BYTES }),
-    (req, res) => {
+    async (req, res) => {
       const name = str(req.query.name, 200) || "upload.txt";
       if (!Buffer.isBuffer(req.body) || req.body.length === 0) return res.status(400).json({ error: "Send the file contents." });
       let parsed;
       try {
-        parsed = parseExport(name, new Uint8Array(req.body));
+        parsed = await parseExport(name, new Uint8Array(req.body));
       } catch (err) {
+        if (err instanceof ImportError) return res.status(err.kind === "image" ? 415 : 400).json({ error: err.message, kind: err.kind });
         return res.status(400).json({ error: err.message });
       }
       const { senders, guess } = summarizeSenders(parsed.messages);
