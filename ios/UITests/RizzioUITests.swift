@@ -50,8 +50,9 @@ final class RizzioUITests: XCTestCase {
         if el.exists && el.isHittable { return el }
         for _ in 0..<6 { app.swipeDown(velocity: .fast) }
         var tries = 0
-        while !(el.exists && el.isHittable) && tries < 45 {
-            nudge(up: true)
+        // Long lists (Persona) need more steps; after the first stretch, take bigger swipes.
+        while !(el.exists && el.isHittable) && tries < 80 {
+            if tries < 30 { nudge(up: true) } else { app.swipeUp(velocity: .slow) }
             tries += 1
         }
         XCTAssertTrue(el.exists && el.isHittable, "Couldn't find \(el)", file: file, line: line)
