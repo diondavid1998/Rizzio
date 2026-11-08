@@ -1,6 +1,7 @@
-// Reads exported chat data (WhatsApp, Instagram/Messenger, Telegram, Hinge, Tinder, CSV/JSON/TXT, zips of those)
+// Reads exported chat data in any common form (chat apps, documents, spreadsheets, databases, email, archives)
 // into { format, messages: [{ sender, text }] }. No AI involved: plain parsing, so it's free.
-import { unzipSync, strFromU8 } from "fflate";
+import { gunzipSync, strFromU8, unzipSync } from "fflate";
+import { docxText, markupToText, odtText, parseEmails, parseMetaHTML, parseSQLite, parseSmsBackupXML, rtfToText, untar, xlsxRows } from "./formats.js";
 
 /** An upload we can't read as chat text, with a message for the user. */
 export class ImportError extends Error {
@@ -17,7 +18,15 @@ export function sniff(b) {
   if (b.length >= 4 && startsWith(b, [0x50, 0x4b])) return "zip";
   if (startsWith(b, [0x25, 0x50, 0x44, 0x46])) return "pdf"; // %PDF
   if (startsWith(b, [0xff, 0xd8, 0xff]) || startsWith(b, [0x89, 0x50, 0x4e, 0x47]) || startsWith(b, [0x47, 0x49, 0x46, 0x38])) return "image";
-  if (b.length > 12 && startsWith(b, [0x66, 0x74, 0x79, 0x70], 4)) return "image"; // HEIC/HEIF/AVIF (also MP4/MOV, rejected later)
+  if (b.length > 12 && startsWith(b, [0x66, 0x74, 0x79, 0x70], 4)) {
+    const brand = String.fromCharCode(...b.subarray(8, 12));
+    return /^(heic|heix|hevc|heim|heis|mif1|msf1|avif)$/.test(brand) ? "image" : "media"; // otherwise MP4/MOV/M4A
+  }
+  if (startsWith(b, [...Buffer.from("SQLite format 3\0")])) return "sqlite";
+  if (b.length > 262 && startsWith(b, [0x75, 0x73, 0x74, 0x61, 0x72], 257)) return "tar"; // "ustar"
+  if (startsWith(b, [0x49, 0x44, 0x33]) || startsWith(b, [0x4f, 0x67, 0x67, 0x53]) || startsWith(b, [0x1a, 0x45, 0xdf, 0xa3]) ||
+      (startsWith(b, [0x52, 0x49, 0x46, 0x46]) && (startsWith(b, [0x57, 0x41, 0x56, 0x45], 8) || startsWith(b, [0x41, 0x56, 0x49, 0x20], 8)))) return "media";
+  if (startsWith(b, [0x42, 0x4d]) && b.length > 26 && b[14] === 40) return "image"; // BMP
   if (startsWith(b, [0x52, 0x49, 0x46, 0x46]) && startsWith(b, [0x57, 0x45, 0x42, 0x50], 8)) return "image"; // WEBP
   if (startsWith(b, [0x1f, 0x8b])) return "gzip";
   if (startsWith(b, [0x52, 0x61, 0x72, 0x21])) return "rar";
@@ -42,10 +51,10 @@ export function decodeText(b) {
 }
 
 const UNREADABLE = {
-  gzip: "That's a .gz file. Unzip it first, then pick the chat file inside.",
   rar: "RAR files aren't supported. Unzip it first, then pick the chat file inside.",
   "7z": "7z files aren't supported. Unzip it first, then pick the chat file inside.",
-  binary: "Rizzio can't read that file type. Use a chat export (.txt, .json, .csv, .zip, PDF) or screenshots.",
+  media: "That's a video or audio file. Rizzio learns from text, so use a chat export or screenshots.",
+  binary: "Rizzio can't read that file type. Use a chat export, document, spreadsheet, PDF, zip, or screenshots.",
 };
 
 /** PDF chat exports: pull the text out, then read it like a text export. */
@@ -108,7 +117,7 @@ export function parseNameColonLines(text) {
 }
 
 /** Minimal CSV reader (quoted fields, commas, newlines inside quotes). */
-export function parseCSVRows(text) {
+export function parseCSVRows(text, delim = ",") {
   const rows = [];
   let row = [], field = "", quoted = false;
   for (let i = 0; i < text.length; i++) {
@@ -118,7 +127,7 @@ export function parseCSVRows(text) {
       else if (c === '"') quoted = false;
       else field += c;
     } else if (c === '"') quoted = true;
-    else if (c === ",") { row.push(field); field = ""; }
+    else if (c === delim) { row.push(field); field = ""; }
     else if (c === "\n" || c === "\r") {
       if (c === "\r" && text[i + 1] === "\n") i++;
       row.push(field); rows.push(row); row = []; field = "";
@@ -149,16 +158,20 @@ function senderFromFlag(value) {
 }
 
 export function parseCSV(text) {
-  const rows = parseCSVRows(text);
+  return rowsToMessages(parseCSVRows(text));
+}
+
+/** Table rows (first row = header) → messages. Used for CSV, TSV and Excel. */
+export function rowsToMessages(rows) {
   if (rows.length < 2) return [];
-  const header = rows[0].map((h) => h.trim());
+  const header = rows[0].map((h) => String(h ?? "").trim());
   const textKey = pickKey(header, TEXT_KEYS);
   const senderKey = pickKey(header, SENDER_KEYS);
   if (!textKey) return [];
   const ti = header.indexOf(textKey);
   const si = senderKey ? header.indexOf(senderKey) : -1;
   return rows.slice(1).map((r) => {
-    const rawSender = si >= 0 ? r[si] ?? "" : YOU;
+    const rawSender = String(si >= 0 ? r[si] ?? "" : YOU);
     const sender = senderFromFlag(rawSender) ?? (rawSender.trim() || "Unknown");
     return { sender, text: r[ti] ?? "" };
   });
@@ -237,33 +250,137 @@ export function parseJSON(data) {
 
 // ---------- dispatcher ----------
 
-function parseTextFile(name, text) {
-  const lower = name.toLowerCase();
-  if (lower.endsWith(".json")) {
-    try {
-      return parseJSON(JSON.parse(text));
-    } catch {
-      return { format: "json", messages: [] };
-    }
+/** Sender for text that has no names on it (notes, docs). The app asks before learning these. */
+export const UNLABELED = "Unlabeled lines (only if all yours)";
+
+function tryJSON(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
   }
-  if (lower.endsWith(".csv")) return { format: "csv", messages: parseCSV(text) };
-  const wa = parseWhatsApp(text);
-  if (wa.length >= 2) return { format: "whatsapp", messages: wa };
-  if (text.trimStart().startsWith("{") || text.trimStart().startsWith("[")) {
-    try {
-      return parseJSON(JSON.parse(text));
-    } catch { /* not JSON */ }
-  }
-  return { format: "text", messages: parseNameColonLines(text) };
 }
 
-const TEXTY = /\.(json|txt|csv|text|log)$/i;
+/** JSON Lines: one JSON object per line. */
+function tryJSONL(text) {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length < 2 || !lines.every((l) => l.trimStart().startsWith("{"))) return undefined;
+  const objs = lines.map(tryJSON);
+  return objs.every((o) => o && typeof o === "object") ? objs : undefined;
+}
 
-/** Parses one uploaded file (bytes). Zips are opened and every text/JSON/CSV inside is read; media is skipped. */
-export async function parseExport(name, bytes) {
+/** Reads text in whatever shape it's in: JSON, JSONL, CSV/TSV, HTML, XML, RTF, email, WhatsApp, "Name: text". */
+export function parseTextFile(name, text) {
+  const lower = name.toLowerCase();
+  const head = text.trimStart().slice(0, 2000);
+
+  if (/\.(json|jsonl|ndjson)$/.test(lower) || /^[[{]/.test(head)) {
+    const data = tryJSON(text);
+    if (data !== undefined) return parseJSON(data);
+    const lines = tryJSONL(text);
+    if (lines) return { ...parseJSON(lines), format: "jsonl" };
+    if (/\.json$/.test(lower)) return { format: "json", messages: [] };
+  }
+  if (/^\{\\rtf/.test(head)) return withFormat("rtf", parseTextFile("x.txt", rtfToText(text)));
+  if (/<(smses|sms|mms)\b/i.test(head)) return { format: "sms-backup-xml", messages: parseSmsBackupXML(text) };
+  if (/\.(html?|xhtml)$/.test(lower) || /^<(!doctype html|html|head|body|div|table|meta)\b/i.test(head)) {
+    const meta = parseMetaHTML(text);
+    if (meta.length) return { format: "instagram-messenger-html", messages: meta };
+    return withFormat("html", parseTextFile("x.txt", markupToText(text)));
+  }
+  if (/\.xml$/.test(lower) || /^<\?xml/.test(head)) return withFormat("xml", parseTextFile("x.txt", markupToText(text)));
+  if (/\.(eml|mbox|mbx)$/.test(lower) || /^From .+\n/.test(head) || (/^From:\s/m.test(head) && /^(Subject|Date|To):\s/m.test(head))) {
+    const mails = parseEmails(text);
+    if (mails.length) return { format: "email", messages: mails };
+  }
+  if (/\.(csv|tsv)$/.test(lower)) {
+    const rows = parseCSVRows(text, lower.endsWith(".tsv") || (!head.includes(",") && head.includes("\t")) ? "\t" : ",");
+    const msgs = rowsToMessages(rows);
+    if (msgs.length) return { format: "csv", messages: msgs };
+  }
+  const wa = parseWhatsApp(text);
+  if (wa.length >= 2) return { format: "whatsapp", messages: wa };
+  const named = parseNameColonLines(text);
+  if (named.length >= 2) return { format: "text", messages: named };
+  // Headered CSV/TSV without a .csv name
+  const firstLine = head.split(/\r?\n/)[0] ?? "";
+  for (const delim of [",", "\t", ";"]) {
+    if (firstLine.includes(delim)) {
+      const msgs = rowsToMessages(parseCSVRows(text, delim));
+      if (msgs.length) return { format: "csv", messages: msgs };
+    }
+  }
+  if (named.length) return { format: "text", messages: named };
+  // No names anywhere: offer the lines themselves (the app asks before learning them).
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(isUsefulMessage);
+  return { format: "text", messages: lines.length >= 3 ? lines.map((t) => ({ sender: UNLABELED, text: t })) : [] };
+}
+
+function withFormat(prefix, r) {
+  return { format: r.format === "text" ? prefix : `${prefix} (${r.format})`, messages: r.messages };
+}
+
+const MEDIA = /\.(jpe?g|png|gif|heic|heif|webp|bmp|tiff?|mp4|mov|m4v|avi|mkv|webm|mp3|m4a|aac|wav|ogg|opus|amr|caf|vcf|ttf|otf|woff2?|exe|dll|so|dylib|apk|ipa)$/i;
+const MAX_UNPACKED = 300 * 1024 * 1024;
+
+function unzip(bytes) {
+  let total = 0;
+  try {
+    return unzipSync(bytes, {
+      filter: (f) => {
+        if (f.name.includes("__MACOSX") || f.name.endsWith("/") || MEDIA.test(f.name)) return false;
+        total += f.originalSize;
+        return f.originalSize < 100_000_000 && total < MAX_UNPACKED;
+      },
+    });
+  } catch {
+    throw new ImportError("Couldn't open that zip file. It may be damaged or password-protected.");
+  }
+}
+
+/** Reads every file in an archive, skipping what isn't text. */
+async function parseArchive(label, files, depth) {
+  const parts = [];
+  for (const [n, data] of Object.entries(files)) {
+    if (MEDIA.test(n)) continue;
+    try {
+      const r = await parseBytes(n, data, depth + 1);
+      if (r.messages.length) parts.push(r);
+    } catch { /* a file inside we can't read: skip it */ }
+  }
+  const formats = [...new Set(parts.map((p) => p.format))];
+  return { format: formats.length ? `${label} (${formats.join(", ")})` : label, messages: parts.flatMap((p) => p.messages) };
+}
+
+async function parseBytes(name, bytes, depth) {
   const kind = sniff(bytes);
-  if (kind === "image") throw new ImportError("That's a photo. Rizzio reads it like a screenshot.", "image");
-  if (UNREADABLE[kind]) throw new ImportError(UNREADABLE[kind]);
+  const top = depth === 0;
+  if (kind === "image") {
+    if (top) throw new ImportError("That's a photo. Rizzio reads it like a screenshot.", "image");
+    return { format: "image", messages: [] };
+  }
+  if (UNREADABLE[kind]) {
+    if (top) throw new ImportError(UNREADABLE[kind]);
+    return { format: kind, messages: [] };
+  }
+  if (kind === "sqlite") {
+    try {
+      return parseSQLite(bytes);
+    } catch {
+      throw new ImportError("Couldn't read that database file. If it's encrypted (like WhatsApp .crypt14), it can't be opened.");
+    }
+  }
+  if (kind === "gzip") {
+    if (depth > 4) return { format: "gzip", messages: [] };
+    let inner;
+    try {
+      inner = gunzipSync(bytes);
+    } catch {
+      throw new ImportError("Couldn't open that .gz file.");
+    }
+    return withFormat("gzip", await parseBytes(name.replace(/\.(gz|tgz)$/i, (m) => (m.toLowerCase() === ".tgz" ? ".tar" : "")), inner, depth + 1));
+  }
+  if (kind === "tar") return depth > 4 ? { format: "tar", messages: [] } : parseArchive("tar", untar(bytes), depth);
   if (kind === "pdf") {
     let text;
     try {
@@ -271,23 +388,29 @@ export async function parseExport(name, bytes) {
     } catch {
       throw new ImportError("Couldn't read that PDF.");
     }
-    const r = parseTextFile("export.txt", text);
-    return { format: `pdf (${r.format})`, messages: r.messages };
+    return withFormat("pdf", parseTextFile("export.txt", text));
   }
   if (kind === "zip") {
-    let files;
-    try {
-      files = unzipSync(bytes, { filter: (f) => TEXTY.test(f.name) && !f.name.includes("__MACOSX") && f.originalSize < 50_000_000 });
-    } catch {
-      throw new Error("Couldn't open that zip file.");
+    if (depth > 4) return { format: "zip", messages: [] };
+    const files = unzip(bytes);
+    if (files["word/document.xml"]) return withFormat("docx", parseTextFile("x.txt", docxText(files)));
+    if (files["xl/workbook.xml"]) return { format: "xlsx", messages: rowsToMessages(xlsxRows(files)) };
+    if (files["content.xml"] && files["mimetype"]) {
+      const mime = strFromU8(files["mimetype"]);
+      if (mime.includes("spreadsheet")) return { format: "ods", messages: [] };
+      return withFormat("odt", parseTextFile("x.txt", odtText(files)));
     }
-    const parts = Object.entries(files)
-      .filter(([, data]) => !["binary", "zip", "image", "pdf"].includes(sniff(data)))
-      .map(([n, data]) => ({ name: n, ...parseTextFile(n, decodeText(data)) }));
-    const formats = [...new Set(parts.filter((p) => p.messages.length).map((p) => p.format))];
-    return { format: formats.length ? `zip (${formats.join(", ")})` : "zip", messages: parts.flatMap((p) => p.messages) };
+    return parseArchive("zip", files, depth);
   }
   return parseTextFile(name, decodeText(bytes));
+}
+
+/**
+ * Parses one uploaded file of any kind: chat exports, documents, spreadsheets, databases, emails,
+ * web pages and archives of those (opened recursively). Media inside archives is skipped.
+ */
+export async function parseExport(name, bytes) {
+  return parseBytes(name, bytes, 0);
 }
 
 /**

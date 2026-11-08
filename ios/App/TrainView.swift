@@ -78,7 +78,7 @@ struct TrainView: View {
                                 .foregroundStyle(Theme.accent)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Import from Files").font(.headline).foregroundStyle(Theme.ink)
-                                Text("Chat exports: WhatsApp, Instagram, Messenger, Telegram, Hinge, Tinder, PDF, CSV, JSON, TXT, zip, or images")
+                                Text("Any chat export or file: WhatsApp, iMessage, Instagram, Messenger, Telegram, SMS backups, Hinge, Tinder, PDF, Word, Excel, CSV, email, zip, or images")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                         }
@@ -256,8 +256,8 @@ struct TrainView: View {
                 let access = url.startAccessingSecurityScopedResource()
                 defer { if access { url.stopAccessingSecurityScopedResource() } }
                 let data = try Data(contentsOf: url)
-                guard data.count <= 40 * 1024 * 1024 else {
-                    throw RizzError.server("\(url.lastPathComponent) is over 40 MB. Unzip it and pick just the messages files.")
+                guard data.count <= 100 * 1024 * 1024 else {
+                    throw RizzError.server("\(url.lastPathComponent) is over 100 MB. Unzip it and pick just the messages files.")
                 }
                 // Photos (by content, not just name: HEIC, PNG, JPEG...) are read like screenshots.
                 if UTType(filenameExtension: url.pathExtension)?.conforms(to: .image) == true || UIImage(data: data) != nil {
@@ -269,7 +269,8 @@ struct TrainView: View {
                 }
                 let preview = try await RizzAPI.previewImport(filename: url.lastPathComponent, data: data)
                 let pending = PendingImport(filename: url.lastPathComponent, preview: preview)
-                if preview.senders.count == 1 {
+                // One named sender: just learn it. Unlabeled lines (no names in the file) always ask first.
+                if preview.senders.count == 1 && !preview.senders[0].name.hasPrefix("Unlabeled") {
                     try await commit(pending, sender: preview.senders[0].name)
                 } else {
                     importQueue.append(pending) // ask "which one is you?" after reading everything

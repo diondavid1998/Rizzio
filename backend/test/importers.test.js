@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, test } from "node:test";
-import { strToU8, zipSync } from "fflate";
+import { gzipSync, strToU8, zipSync } from "fflate";
+import { DatabaseSync } from "node:sqlite";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createApp } from "../src/app.js";
 import { openDb } from "../src/db.js";
-import { YOU, isUsefulMessage, parseExport, sniff, summarizeSenders } from "../src/importers.js";
+import { UNLABELED, YOU, isUsefulMessage, parseExport, sniff, summarizeSenders } from "../src/importers.js";
 
 const u8 = (s) => strToU8(s);
 const senders = (r) => summarizeSenders(r.messages);
@@ -108,6 +112,7 @@ describe("export formats", () => {
     const junk = new Uint8Array(4000).map((_, i) => (i * 7919) % 256);
     await assert.rejects(parseExport("weird.dat", junk), /can't read that file type/);
     await assert.rejects(parseExport("a.gz", new Uint8Array([0x1f, 0x8b, 8, 0, 1, 2])), /\.gz/);
+    await assert.rejects(parseExport("clip.mov", new Uint8Array([0, 0, 0, 20, 0x66, 0x74, 0x79, 0x70, 0x71, 0x74, 0x20, 0x20, 0, 0])), /video or audio/);
     await assert.rejects(parseExport("photo.heic", new Uint8Array([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63, 0, 0])), /photo/);
     assert.equal(sniff(new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d])), "pdf");
   });
@@ -125,6 +130,135 @@ describe("export formats", () => {
     const bytes = new Uint8Array([0xff, 0xfe, ...Buffer.from(text, "utf16le")]);
     const s = senders(await parseExport("messages.txt", bytes));
     assert.deepEqual(s.senders.find((x) => x.name === "Dion").texts, ["say less", "bet"]);
+  });
+
+  const textsOf = async (name, bytes, who) => senders(await parseExport(name, bytes)).senders.find((x) => x.name === who)?.texts;
+
+  test("iMessage chat.db, WhatsApp msgstore.db, Android SMS db", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "rz-test-"));
+    try {
+      const mk = (file, sql) => {
+        const path = join(dir, file);
+        const db = new DatabaseSync(path);
+        db.exec(sql);
+        db.close();
+        return new Uint8Array(readFileSync(path));
+      };
+      const chatdb = mk("chat.db", `CREATE TABLE handle (ROWID INTEGER PRIMARY KEY, id TEXT);
+        CREATE TABLE message (ROWID INTEGER PRIMARY KEY, text TEXT, attributedBody BLOB, is_from_me INTEGER, handle_id INTEGER, date INTEGER);
+        INSERT INTO handle VALUES (1, '+15551234');
+        INSERT INTO message VALUES (1, 'u up?', NULL, 0, 1, 1), (2, 'maybe lol', NULL, 1, 1, 2), (3, 'say less', NULL, 1, 1, 3);`);
+      assert.equal(sniff(chatdb), "sqlite");
+      const r = await parseExport("chat.db", chatdb);
+      assert.equal(r.format, "imessage");
+      assert.equal(senders(r).guess, YOU);
+      assert.deepEqual(senders(r).senders.find((x) => x.name === YOU).texts, ["maybe lol", "say less"]);
+
+      const wa = mk("msgstore.db", `CREATE TABLE message (_id INTEGER PRIMARY KEY, from_me INTEGER, text_data TEXT, timestamp INTEGER);
+        INSERT INTO message VALUES (1, 1, 'bet', 1), (2, 0, 'ok', 2);`);
+      assert.deepEqual(await textsOf("msgstore.db", wa, YOU), ["bet"]);
+
+      const sms = mk("mmssms.db", `CREATE TABLE sms (_id INTEGER PRIMARY KEY, type INTEGER, address TEXT, body TEXT, date INTEGER);
+        INSERT INTO sms VALUES (1, 2, '555', 'omw now', 1), (2, 1, '555', 'kk', 2);`);
+      assert.deepEqual(await textsOf("mmssms.db", sms, YOU), ["omw now"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("SMS Backup & Restore XML", async () => {
+    const xml = `<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><smses count="3">
+      <sms address="555" body="you free friday?" type="1" contact_name="Maya" />
+      <sms address="555" body="for you? always &amp; forever" type="2" contact_name="Maya" />
+      <mms msg_box="2" address="555"><parts><part ct="text/plain" text="lol bet" /></parts></mms></smses>`;
+    const r = await parseExport("sms-20240101.xml", u8(xml));
+    assert.equal(r.format, "sms-backup-xml");
+    assert.deepEqual(senders(r).senders.find((x) => x.name === YOU).texts, ["for you? always & forever", "lol bet"]);
+  });
+
+  test("Instagram/Facebook HTML download, and plain HTML pages", async () => {
+    const html = `<html><body>
+      <div class="pam _3-95 _2ph- _a6-g uiBoxWhite noborder"><div class="_3-95 _2pim _a6-h _a6-i">Dion</div><div class="_3-95 _a6-p"><div><div></div><div>say less</div></div></div><div class="_3-94 _a6-o">Jan 1</div></div>
+      <div class="pam _3-95 _2ph- _a6-g uiBoxWhite noborder"><div class="_3-95 _2pim _a6-h _a6-i">Maya</div><div class="_3-95 _a6-p"><div>ok cool</div></div><div class="_3-94 _a6-o">Jan 1</div></div>
+      </body></html>`;
+    const r = await parseExport("message_1.html", u8(html));
+    assert.equal(r.format, "instagram-messenger-html");
+    assert.deepEqual(senders(r).senders.find((x) => x.name === "Dion").texts, ["say less"]);
+    assert.deepEqual(await textsOf("chat.html", u8("<html><p>Dion: nah ur wild</p><p>Maya: lol</p><p>Dion: bet</p></html>"), "Dion"), ["nah ur wild", "bet"]);
+  });
+
+  test("Word, Excel and OpenOffice documents", async () => {
+    const docx = zipSync({
+      "[Content_Types].xml": u8("<Types/>"),
+      "word/document.xml": u8('<w:document><w:body><w:p><w:r><w:t>Dion: lowkey yes</w:t></w:r></w:p><w:p><w:r><w:t>Maya: ok</w:t></w:r></w:p><w:p><w:r><w:t xml:space="preserve">Dion: say less</w:t></w:r></w:p></w:body></w:document>'),
+    });
+    assert.deepEqual(await textsOf("chat.docx", docx, "Dion"), ["lowkey yes", "say less"]);
+
+    const xlsx = zipSync({
+      "xl/workbook.xml": u8("<workbook/>"),
+      "xl/sharedStrings.xml": u8("<sst><si><t>Sender</t></si><si><t>Message</t></si><si><t>Dion</t></si><si><t>hey trouble</t></si><si><t>Maya</t></si><si><t>hi</t></si></sst>"),
+      "xl/worksheets/sheet1.xml": u8('<worksheet><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c></row><row r="2"><c r="A2" t="s"><v>2</v></c><c r="B2" t="s"><v>3</v></c></row><row r="3"><c r="A3" t="s"><v>4</v></c><c r="B3" t="s"><v>5</v></c></row></sheetData></worksheet>'),
+    });
+    const x = await parseExport("chat.xlsx", xlsx);
+    assert.equal(x.format, "xlsx");
+    assert.deepEqual(senders(x).senders.find((s) => s.name === "Dion").texts, ["hey trouble"]);
+
+    const odt = zipSync({ mimetype: u8("application/vnd.oasis.opendocument.text"), "content.xml": u8("<office:text><text:p>Dion: bet</text:p><text:p>Maya: ok</text:p><text:p>Dion: say less</text:p></office:text>") });
+    assert.deepEqual(await textsOf("chat.odt", odt, "Dion"), ["bet", "say less"]);
+  });
+
+  test("RTF, TSV, JSONL, Markdown and email (eml/mbox)", async () => {
+    const rtf = String.raw`{\rtf1\ansi{\fonttbl\f0 Helvetica;}\f0 Dion: caf\'e9 then?\par Maya: yes\par Dion: say less\par}`;
+    assert.deepEqual(await textsOf("chat.rtf", u8(rtf), "Dion"), ["café then?", "say less"]);
+
+    assert.deepEqual(await textsOf("chat.tsv", u8("from\ttext\nDion\tnah ur wild\nMaya\tlol\n"), "Dion"), ["nah ur wild"]);
+
+    const jsonl = '{"author":"Dion","text":"bet"}\n{"author":"Maya","text":"ok"}\n{"author":"Dion","text":"omw"}\n';
+    assert.deepEqual(await textsOf("chat.jsonl", u8(jsonl), "Dion"), ["bet", "omw"]);
+
+    assert.deepEqual(await textsOf("notes.md", u8("# chat\n\n**Dion**: hi\nDion: hey you\nMaya: hi\n"), "Dion"), ["hey you"]);
+
+    const mbox = [
+      "From dion@x.com Mon Jan 1 00:00:00 2024",
+      "From: Dion David <dion@x.com>", "To: maya@x.com", "Subject: hi", "", "dinner friday? my treat", "",
+      "On Sun, Maya wrote:", "> maybe",
+      "From maya@x.com Mon Jan 1 00:00:00 2024",
+      "From: Maya <maya@x.com>", "Subject: re", "", "sounds fun", "",
+    ].join("\n");
+    const m = await parseExport("inbox.mbox", u8(mbox));
+    assert.equal(m.format, "email");
+    assert.deepEqual(senders(m).senders.find((x) => x.name === "Dion David").texts, ["dinner friday? my treat"]);
+  });
+
+  test("tar, tar.gz and .gz archives, nested zips", async () => {
+    const tarOf = (files) => {
+      const blocks = [];
+      for (const [name, data] of Object.entries(files)) {
+        const h = new Uint8Array(512);
+        h.set(u8(name), 0);
+        h.set(u8("0000644\0"), 100);
+        h.set(u8(data.length.toString(8).padStart(11, "0") + "\0"), 124);
+        h[156] = 48;
+        h.set(u8("ustar\0"), 257);
+        blocks.push(h, data, new Uint8Array((512 - (data.length % 512)) % 512));
+      }
+      blocks.push(new Uint8Array(1024));
+      return Buffer.concat(blocks);
+    };
+    const chat = u8("1/1/24, 9:00 PM - Dion: bet\n1/1/24, 9:01 PM - Maya: ok");
+    const tar = new Uint8Array(tarOf({ "export/chat.txt": chat, "export/pic.jpg": new Uint8Array([0xff, 0xd8, 0xff]) }));
+    assert.equal(sniff(tar), "tar");
+    assert.deepEqual(await textsOf("export.tar", tar, "Dion"), ["bet"]);
+    assert.deepEqual(await textsOf("export.tar.gz", gzipSync(tar), "Dion"), ["bet"]);
+    assert.deepEqual(await textsOf("chat.txt.gz", gzipSync(chat), "Dion"), ["bet"]);
+    const nested = zipSync({ "inner.zip": zipSync({ "a/message_1.json": u8(JSON.stringify({ messages: [{ sender_name: "Dion", content: "say less" }] })) }) });
+    assert.deepEqual(await textsOf("outer.zip", nested, "Dion"), ["say less"]);
+  });
+
+  test("text with no names becomes 'unlabeled lines' (the app asks before learning them)", async () => {
+    const r = await parseExport("my texts.txt", u8("lowkey yes\nsay less\nnah ur wild\n"));
+    assert.deepEqual(senders(r).senders.map((x) => x.name), [UNLABELED]);
+    assert.ok(UNLABELED.length <= 60);
   });
 
   test("filters junk", async () => {

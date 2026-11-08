@@ -200,7 +200,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
   // ---- Import exported chats (WhatsApp, Instagram, Telegram, Hinge, Tinder, CSV/JSON/TXT, zips) ----
   // Step 1 parses the file and asks "which one is you?"; step 2 saves only that person's messages.
   const pendingImports = new Map(); // importId -> { userId, senders, expires }
-  const MAX_IMPORT_BYTES = 40 * 1024 * 1024;
+  const MAX_IMPORT_BYTES = 100 * 1024 * 1024;
   const MAX_IMPORT_MESSAGES = 1500;
 
   app.post(
