@@ -82,6 +82,19 @@ enum RizzAPI {
         return batch
     }
 
+    // MARK: Reference library
+
+    struct InspirationItem: Codable { let them: String; let reply: String }
+    private struct InspirationRequest: Codable { let text: String; let mode: String; let limit: Int }
+    private struct InspirationResponse: Codable { let items: [InspirationItem] }
+
+    /// Relevant example exchanges from the server's built-in library, for the on-phone model. Never fails: empty if offline.
+    static func inspiration(text: String, mode: RizzMode, limit: Int = 4) async -> [InspirationItem] {
+        let request = InspirationRequest(text: String(text.prefix(3000)), mode: mode.rawValue, limit: limit)
+        let response: InspirationResponse? = try? await send("POST", "v1/inspiration", body: request, timeout: 5)
+        return response?.items ?? []
+    }
+
     // MARK: Persona
 
     private struct PersonaEnvelope: Codable { let persona: Persona }

@@ -103,6 +103,7 @@ enum OnDeviceAI {
             "- \(spec.title): \(Int(persona.value(spec.key)))/100 (0 = \(spec.left), 100 = \(spec.right))"
         }
         if persona.isOn("lowercase") { parts.append("- Write everything in lowercase.") }
+        if persona.isOn("noEmoji") { parts.append("- No emoji at all.") }
         if persona.isOn("noPickupLines") { parts.append("- No canned pickup lines.") }
         if persona.isOn("noDoubleText") { parts.append("- Never needy or chasing.") }
         if let goal = GoalSpec.all.first(where: { $0.key == persona.goal }) { parts.append("- Goal: \(goal.title).") }
@@ -146,15 +147,19 @@ enum OnDeviceAI {
         if let jpeg { content.append("On screen:\n" + transcript(try read(jpeg))) }
         if let text, !text.isEmpty { content.append("Their message or prompt:\n\(text.prefix(2500))") }
         if let draft, !draft.isEmpty { content.append("The user's draft:\n\(draft.prefix(600))") }
-        let prompt = [task(mode: mode, tone: tone), personaText(persona), styleText(me), content.joined(separator: "\n\n")]
+        // A few relevant exchanges from Rizzio's built-in library (ideas for angle, not the user's voice).
+        let references = await RizzAPI.inspiration(text: content.joined(separator: "\n"), mode: mode)
+        let referenceText = references.isEmpty ? "" :
+            "Example exchanges for ideas only (not the user's voice, don't copy them):\n" +
+            references.map { "- \"\($0.them)\" → \"\($0.reply)\"" }.joined(separator: "\n")
+        let prompt = [task(mode: mode, tone: tone), personaText(persona), styleText(me), referenceText, content.joined(separator: "\n\n")]
             .filter { !$0.isEmpty }
             .joined(separator: "\n\n")
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *) {
             let session = LanguageModelSession(instructions: instructions)
             let response = try await session.respond(to: prompt, generating: GeneratedReplies.self)
-            var replies = response.content.replies.map { Reply(text: $0.text, angle: $0.angle) }
-            if persona.isOn("lowercase") { replies = replies.map { Reply(text: $0.text.lowercased(), angle: $0.angle) } }
+            let replies = persona.enforce(response.content.replies.map { Reply(text: $0.text, angle: $0.angle) })
             guard !replies.isEmpty else { throw RizzError.server("Apple Intelligence didn't write anything. Try again.") }
             return Result(context: response.content.context, replies: Array(replies.prefix(5)))
         }

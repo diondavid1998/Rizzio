@@ -85,6 +85,8 @@ final class KeyboardModel: ObservableObject {
     @Published var isLoading = false
     @Published var message: String?
     @Published var hasFullAccess = false
+    /// The "No emoji" rule, also shown as a one-tap button on the keyboard.
+    @Published var noEmoji = SharedStore.shared.persona.isOn("noEmoji")
 
     var insert: (String) -> Void = { _ in }
     var insertPlain: (String) -> Void = { _ in }
@@ -96,6 +98,7 @@ final class KeyboardModel: ObservableObject {
     private var lastLoaded: Date?
 
     func reload() {
+        noEmoji = SharedStore.shared.persona.isOn("noEmoji") // you may have changed it in the app
         guard let latest = SharedStore.shared.latestBatch else { return }
         if latest.createdAt != lastLoaded {
             lastLoaded = latest.createdAt
@@ -104,11 +107,29 @@ final class KeyboardModel: ObservableObject {
         }
     }
 
+    /// A reply as it should appear and be sent (emoji removed when No emoji is on).
+    func shown(_ reply: Reply) -> String { noEmoji ? reply.text.withoutEmoji : reply.text }
+
+    /// Emoji on/off. Saved to your persona so future replies follow it; turning emoji back on rewrites these replies.
+    func toggleEmoji() {
+        noEmoji.toggle()
+        var persona = SharedStore.shared.persona
+        persona.toggles["noEmoji"] = noEmoji
+        SharedStore.shared.persona = persona
+        guard hasFullAccess else { return }
+        let rewrite = !noEmoji && batch?.hasScreenshot == true
+        Task { @MainActor in
+            try? await RizzAPI.savePersona(persona)
+            if rewrite { self.regenerate() }
+        }
+    }
+
     /// Inserts a reply and tells the agent you picked it.
     func use(_ reply: Reply, at index: Int) {
-        insert(reply.text)
+        let text = shown(reply)
+        insert(text)
         guard let id = batch?.generationId else { return }
-        SharedStore.shared.pendingInsert = PendingInsert(generationId: id, replyIndex: index, text: reply.text)
+        SharedStore.shared.pendingInsert = PendingInsert(generationId: id, replyIndex: index, text: text)
         if hasFullAccess { RizzAPI.feedbackInBackground(.picked, generationId: id, replyIndex: index) }
     }
 
@@ -225,6 +246,12 @@ struct KeyboardRootView: View {
                     }
                 }
             }
+            Button { model.toggleEmoji() } label: {
+                Image(systemName: model.noEmoji ? "face.dashed" : "face.smiling")
+                    .padding(6)
+                    .foregroundColor(model.noEmoji ? .secondary : Theme.accent)
+            }
+            .accessibilityLabel(model.noEmoji ? "Emoji off" : "Emoji on")
             Button { model.regenerate() } label: {
                 Image(systemName: "arrow.clockwise")
                     .padding(6)
@@ -258,7 +285,7 @@ struct KeyboardRootView: View {
                         Button { model.use(reply, at: index) } label: {
                             // Looks like a message you'd send, right-aligned like your own bubbles.
                             VStack(alignment: .trailing, spacing: 3) {
-                                Text(reply.text)
+                                Text(model.shown(reply))
                                     .font(.callout)
                                     .foregroundColor(Theme.bubbleMineText)
                                     .multilineTextAlignment(.leading)

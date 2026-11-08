@@ -15,7 +15,7 @@ class FakeAI {
     this.calls.replies.push(args);
     return {
       context: "Prompt: my irrational fear — geese",
-      replies: Array.from({ length: 5 }, (_, i) => ({ text: `reply ${i}`, angle: `angle ${i}` })),
+      replies: this.replyTexts?.map((text) => ({ text, angle: "x" })) ?? Array.from({ length: 5 }, (_, i) => ({ text: `reply ${i}`, angle: `angle ${i}` })),
     };
   }
   async rebuildProfile(args) {
@@ -263,6 +263,29 @@ describe("persona", () => {
     assert.match(memory, /Write in all lowercase/);
     assert.match(memory, /Never bring up: politics/);
     assert.match(ai.calls.replies.at(-1).requestText, /follow the persona settings/);
+  });
+
+  test("No emoji toggle: the model is told, and any emoji that slip through are removed", async () => {
+    ai.replyTexts = ["ok but who hurt you 😂😂", "say less 👍🏽 friday?", "🇯🇵 trip soon?", "no emoji here :)", "❤️"];
+    await call("PUT", "/v1/me/persona", { persona: { toggles: { noEmoji: true } } });
+    const r = await call("POST", "/v1/replies", { mode: "prompt", text: "I love hiking" });
+    assert.match(ai.calls.replies.at(-1).memory, /emoji: OFF/);
+    assert.deepEqual(r.body.replies.map((x) => x.text), ["ok but who hurt you", "say less friday?", "trip soon?", "no emoji here :)"]);
+    await call("PUT", "/v1/me/persona", { persona: { toggles: { noEmoji: false } } });
+    const withEmoji = await call("POST", "/v1/replies", { mode: "prompt", text: "I love hiking" });
+    assert.equal(withEmoji.body.replies[0].text, "ok but who hurt you 😂😂");
+  });
+
+  test("replies include relevant reference exchanges from the built-in library", async () => {
+    await call("POST", "/v1/replies", { mode: "prompt", text: "My most irrational fear: geese" });
+    const sent = ai.calls.replies.at(-1).requestText;
+    assert.match(sent, /Reference exchanges \(from Rizzio's library, NOT the user's voice\)/);
+    assert.match(sent, /geese have chosen violence/);
+    assert.doesNotMatch(ai.calls.replies.at(-1).memory, /Reference exchanges/); // kept out of the cached memory
+    const free = await call("POST", "/v1/inspiration", { text: "just got back from a hike with my dog", mode: "chat", limit: 3 });
+    assert.equal(free.status, 200);
+    assert.equal(free.body.items.length, 3);
+    assert.ok(free.body.items.every((e) => e.them && e.reply));
   });
 
   test("test drive uses unsaved settings and isn't saved or learned from", async () => {

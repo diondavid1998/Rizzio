@@ -156,6 +156,13 @@ final class RizzioUITests: XCTestCase {
         flip(lowercase)
         XCTAssertNotEqual(lowercase.value as? String, before)
 
+        // Emoji on/off switch flips and greys out the Emoji slider.
+        let emoji = reveal(element("toggle.emoji"))
+        let emojiBefore = emoji.value as? String
+        flip(emoji)
+        XCTAssertNotEqual(emoji.value as? String, emojiBefore)
+        waitFor(text(containing: "Off: replies are words only"), 5)
+
         // Never-mention text.
         let avoid = reveal(element("avoid"))
         avoid.tap()

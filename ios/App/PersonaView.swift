@@ -51,8 +51,21 @@ struct PersonaView: View {
 
                 ForEach(SliderSpec.Group.allCases, id: \.self) { group in
                     Section(group.rawValue) {
+                        if group == .style {
+                            Toggle(isOn: emojiBinding) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Emoji in replies")
+                                    Text(persona.isOn("noEmoji") ? "Off: replies are words only" : "On: as much as the Emoji slider says")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                            .tint(Theme.accent)
+                            .accessibilityIdentifier("toggle.emoji")
+                        }
                         ForEach(SliderSpec.all.filter { $0.group == group }) { spec in
                             PersonaSlider(spec: spec, value: binding(for: spec.key))
+                                .disabled(spec.key == "emoji" && persona.isOn("noEmoji"))
+                                .opacity(spec.key == "emoji" && persona.isOn("noEmoji") ? 0.4 : 1)
                         }
                         if group == .strategy {
                             Picker("Goal", selection: $persona.goal) {
@@ -130,6 +143,11 @@ struct PersonaView: View {
 
     private func toggleBinding(_ key: String) -> Binding<Bool> {
         Binding(get: { persona.isOn(key) }, set: { persona.toggles[key] = $0 })
+    }
+
+    /// "Emoji in replies" is the inverse of the noEmoji rule.
+    private var emojiBinding: Binding<Bool> {
+        Binding(get: { !persona.isOn("noEmoji") }, set: { persona.toggles["noEmoji"] = !$0 })
     }
 
     private func apply(_ preset: PersonaPreset) {
@@ -237,7 +255,7 @@ struct VibeCard: View {
         else if flirt > 65 { line = "you had me at farmers market. what are you getting first?" }
         else { line = "farmers market then a long run is a solid sunday. what's the best stall?" }
         if length < 25 { line = line.components(separatedBy: ". ").first ?? line }
-        if persona.value("emoji") > 55 { line += " 😂" }
+        if persona.value("emoji") > 55 && !persona.isOn("noEmoji") { line += " 😂" }
         if persona.isOn("lowercase") { line = line.lowercased() }
         return line
     }

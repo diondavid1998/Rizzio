@@ -4,7 +4,8 @@ import { AIError } from "./ai.js";
 import { SIGNAL_KINDS } from "./db.js";
 import { randomUUID } from "node:crypto";
 import { ImportError, parseExport, summarizeSenders } from "./importers.js";
-import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, renderPersona, sanitizePersona } from "./persona.js";
+import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, enforcePersona, renderPersona, sanitizePersona } from "./persona.js";
+import { inspiration, renderInspiration } from "./corpus.js";
 import { renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
 const MODES = ["auto", "prompt", "chat", "draft"];
@@ -103,8 +104,11 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const preview = b.preview === true;
       const persona = preview && b.persona ? sanitizePersona(b.persona) : sanitizePersona(store.getPersona(req.userId));
       const memory = renderMemory(user, store.bestExamples(req.userId, 25, { ownWordsOnly: true })) + "\n\n" + renderPersona(persona);
-      const requestText = renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image });
-      const result = await ai.generateReplies({ memory, requestText, image });
+      // A few relevant exchanges from the built-in library, as ideas for angle and flow (not voice).
+      const refs = renderInspiration(inspiration([text, draft].filter(Boolean).join("\n"), { mode: b.mode, limit: b.mode === "draft" ? 3 : 6 }));
+      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image }), refs].filter(Boolean).join("\n\n");
+      const raw = await ai.generateReplies({ memory, requestText, image });
+      const result = { ...raw, replies: enforcePersona(persona, raw.replies) };
       const generationId = preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, ...result });
       res.json({ generationId, ...result });
     } catch (err) {
@@ -113,6 +117,14 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
   });
 
   // ---- Free mode (Apple Intelligence on the phone): store results, no AI calls here ----
+
+  /** Relevant exchanges from the built-in library, for the on-phone model's prompt. No AI. */
+  app.post("/v1/inspiration", (req, res) => {
+    const b = req.body ?? {};
+    const mode = MODES.includes(b.mode) ? b.mode : "auto";
+    const limit = Math.min(Math.max(Number(b.limit) || 4, 1), 10);
+    res.json({ items: inspiration(str(b.text, 4000) ?? "", { mode, limit }) });
+  });
 
   const cleanReplies = (raw) =>
     Array.isArray(raw)

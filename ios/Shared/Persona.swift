@@ -10,7 +10,7 @@ struct Persona: Codable, Equatable {
 
     static let `default` = Persona(
         sliders: Dictionary(uniqueKeysWithValues: SliderSpec.all.map { ($0.key, $0.defaultValue) }),
-        toggles: ["lowercase": false, "noPickupLines": true, "mirrorEnergy": true, "useMyInterests": true, "noDoubleText": true],
+        toggles: ["lowercase": false, "noEmoji": false, "noPickupLines": true, "mirrorEnergy": true, "useMyInterests": true, "noDoubleText": true],
         goal: "match",
         avoid: "",
         notes: ""
@@ -111,4 +111,33 @@ struct AutoTuneResult: Decodable {
     }
     let settings: [Setting]
     let lowercase: Bool
+}
+
+extension Persona {
+    /// Applies the hard rules (No emoji, all lowercase) to finished replies, whichever AI wrote them.
+    func enforce(_ replies: [Reply]) -> [Reply] {
+        replies.compactMap { reply in
+            var text = reply.text
+            if isOn("noEmoji") { text = text.withoutEmoji }
+            if isOn("lowercase") { text = text.lowercased() }
+            return text.isEmpty ? nil : Reply(text: text, angle: reply.angle)
+        }
+    }
+}
+
+extension String {
+    /// The text with emoji (including skin tones, flags and joined emoji) removed and spacing tidied.
+    var withoutEmoji: String {
+        let kept = unicodeScalars.filter { scalar in
+            let p = scalar.properties
+            if scalar.value == 0x200D || scalar.value == 0xFE0F || scalar.value == 0x20E3 { return false }
+            if (0x1F3FB...0x1F3FF).contains(scalar.value) || (0x1F1E6...0x1F1FF).contains(scalar.value) { return false }
+            // Digits, # and * count as "emoji" in Unicode; only drop real pictographs.
+            return !(p.isEmojiPresentation || (p.isEmoji && scalar.value > 0x238C))
+        }
+        var out = String(String.UnicodeScalarView(kept))
+        while out.contains("  ") { out = out.replacingOccurrences(of: "  ", with: " ") }
+        for mark in [".", ",", "!", "?"] { out = out.replacingOccurrences(of: " " + mark, with: mark) }
+        return out.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 }

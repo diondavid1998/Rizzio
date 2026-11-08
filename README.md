@@ -25,7 +25,7 @@ Setup → **AI** switches the engine for everything (Action Button, keyboard, Tr
 
 The everyday flow is the Action Button and the keyboard. The app is where you shape how Rizzio sounds:
 
-- **Persona**: 12 sliders (Flirty, Humor, Boldness, Warmth, Spice, Humor style, Teasing, Length, Emoji, Polish, Questions, Pace), presets (Smooth, Golden retriever, Dry wit, Hopeless romantic, Chaos, Chill), rules like "all lowercase" and "no pickup lines", a goal (match, keep it going, number, date, friends), a "never mention" list, and a **Test drive** to see sample replies before saving. **Match how I actually text** sets the sliders from how you really text.
+- **Persona**: 12 sliders (Flirty, Humor, Boldness, Warmth, Spice, Humor style, Teasing, Length, Emoji, Polish, Questions, Pace), presets (Smooth, Golden retriever, Dry wit, Hopeless romantic, Chaos, Chill), an **Emoji in replies** on/off switch (also a one-tap button on the keyboard; when off, emoji are removed from every reply), rules like "all lowercase" and "no pickup lines", a goal (match, keep it going, number, date, friends), a "never mention" list, and a **Test drive** to see sample replies before saving. **Match how I actually text** sets the sliders from how you really text.
 - **Train**: upload chat screenshots from Photos, or import almost any file from Files (up to 100 MB): WhatsApp (.txt/.zip/msgstore.db), iMessage chat.db, Instagram/Messenger (JSON or HTML), Telegram result.json, SMS Backup & Restore XML, Android SMS databases, Hinge/Tinder "Download my data", PDF, Word (.docx), Excel (.xlsx), OpenOffice (.odt), RTF, Markdown, CSV/TSV, JSON/JSONL, email (.eml/.mbox), HTML, and zip/tar/tar.gz/gz archives of any of these (opened recursively; media inside is skipped). If a chat has several people, Rizzio asks "Which one is you?" and learns only your messages; text with no names on it is offered as "unlabeled lines" and only learned if you pick it. Files are parsed without AI (free). Not readable: encrypted backups (WhatsApp .crypt14), RAR/7z, and video/audio. The learned-message list is paged and searchable instead of shown all at once.
 - **History**: mark which replies got a match, so Rizzio learns what works.
 
@@ -44,6 +44,15 @@ Rizzio is meant to act like you, not like a generic pickup-line bot. It keeps a 
 Every few signals it rewrites a short **style profile** of you, which you can read (and correct) in the **Train** tab. Every reply is written with that profile plus your best real messages. You can delete anything it learned, or reset it.
 
 > Why a screenshot? iOS doesn't let keyboards see the screen. Action Button / Back Tap + Shortcuts is the most seamless way Apple allows.
+
+## Built-in reference library
+
+Rizzio ships with a library of good exchanges in `backend/data/corpus/`:
+
+- `the-rizz-corpus.json`: 5,000 short, on-topic, light exchanges picked from the [the-rizz corpus](https://huggingface.co/datasets/the-rizz/the-rizz-corpus) on Hugging Face (getting-to-know-you chats). Rebuild it with `node backend/scripts/build-corpus.mjs path/to/the-rizz-corpus.txt`. The dataset page states no license, so check that before any App Store release.
+- `rizzio-playbook.json`: Rizzio's own examples of Hinge prompt comments.
+
+For each request, the server picks the few exchanges most related to what's on screen and shows them to the AI as ideas for angle and flow (free mode gets them from `POST /v1/inspiration`). They're never treated as your voice: what you upload in **Train** decides how replies sound. To add another dataset, drop a JSON file in that folder shaped like `{ "source", "kind": "chat" | "prompt", "pairs": [["their message", "a good reply"], ...] }`.
 
 ## Repo layout
 

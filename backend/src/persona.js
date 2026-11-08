@@ -19,6 +19,7 @@ export const SLIDERS = [
 
 export const TOGGLES = [
   { key: "lowercase", text: "Write in all lowercase." },
+  { key: "noEmoji", text: "Never use emoji (text emoticons like :) are fine only if the user writes them)." },
   { key: "noPickupLines", text: "Never use canned pickup lines or cheesy puns." },
   { key: "mirrorEnergy", text: "Mirror the other person's energy and message length." },
   { key: "useMyInterests", text: "Work in the user's own interests and life details when it fits." },
@@ -35,7 +36,7 @@ export const GOALS = {
 
 export const DEFAULT_PERSONA = {
   sliders: Object.fromEntries(SLIDERS.map((s) => [s.key, s.def])),
-  toggles: { lowercase: false, noPickupLines: true, mirrorEnergy: true, useMyInterests: true, noDoubleText: true },
+  toggles: { lowercase: false, noEmoji: false, noPickupLines: true, mirrorEnergy: true, useMyInterests: true, noDoubleText: true },
   goal: "match",
   avoid: "",
   notes: "",
@@ -74,6 +75,10 @@ export function renderPersona(persona) {
   const p = sanitizePersona(persona);
   const lines = [];
   for (const s of SLIDERS) {
+    if (s.key === "emoji" && p.toggles.noEmoji) {
+      lines.push("- emoji: OFF. The user turned emoji off: no emoji at all in any reply.");
+      continue;
+    }
     const v = p.sliders[s.key];
     const where =
       v < 35 ? `${band(v)} ${s.left}` : v < 65 ? `balanced between ${s.left} and ${s.right}` : `${band(v)} ${s.right}`;
@@ -92,4 +97,23 @@ export function renderPersona(persona) {
     "When these settings and the user's learned voice disagree on style details (length, emoji, capitalization), follow the settings: the user chose them on purpose.",
   );
   return parts.join("\n\n");
+}
+
+// Emoji, skin tones, flags, keycaps and the joiners that glue them together.
+const EMOJI = /(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[\u{1F3FB}-\u{1F3FF}\u{FE0F}\u{200D}\u{20E3}])+/gu;
+
+/** Removes emoji from a reply (for the "No emoji" toggle), tidying the spaces left behind. */
+export function stripEmoji(text) {
+  return text.replace(EMOJI, "").replace(/[ \t]{2,}/g, " ").replace(/ +([.,!?])/g, "$1").trim();
+}
+
+/** Applies the persona's hard rules to finished replies, so they hold even if the model slips. */
+export function enforcePersona(persona, replies) {
+  const p = sanitizePersona(persona);
+  return replies.map((r) => {
+    let text = r.text;
+    if (p.toggles.noEmoji) text = stripEmoji(text);
+    if (p.toggles.lowercase) text = text.toLowerCase();
+    return { ...r, text };
+  }).filter((r) => r.text);
 }
