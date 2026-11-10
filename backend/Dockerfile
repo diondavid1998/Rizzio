@@ -7,4 +7,5 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY src ./src
 COPY data ./data
-CMD ["npm", "start"]
+# node directly (not npm), so the stop signal reaches the server and it exits cleanly
+CMD ["node", "--disable-warning=ExperimentalWarning", "src/server.js"]

@@ -69,6 +69,10 @@ export class Store {
     this.db = db;
   }
 
+  close() {
+    this.db.close();
+  }
+
   ensureUser(id) {
     this.db.prepare("INSERT OR IGNORE INTO users (id) VALUES (?)").run(id);
     return this.getUser(id);

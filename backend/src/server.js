@@ -30,4 +30,16 @@ const store = openDb(DB_PATH);
 const ai = fake ? new FakeAI() : new ClaudeAI({ apiKey: ANTHROPIC_API_KEY, model: RIZZIO_MODEL });
 const app = createApp({ store, ai, appToken: APP_TOKEN, storage: { persistent } });
 
-app.listen(PORT, () => console.log(`Rizzio backend listening on :${PORT} (db: ${DB_PATH})`));
+const server = app.listen(PORT, () => console.log(`Rizzio backend listening on :${PORT} (db: ${DB_PATH})`));
+
+// Railway stops the old copy with SIGTERM on every deploy: finish open requests, close the database, exit cleanly.
+for (const signal of ["SIGTERM", "SIGINT"]) {
+  process.once(signal, () => {
+    console.log(`${signal}: shutting down`);
+    server.close(() => {
+      store.close();
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(0), 8000).unref();
+  });
+}
