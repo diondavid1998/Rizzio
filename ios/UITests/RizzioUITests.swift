@@ -47,9 +47,10 @@ final class RizzioUITests: XCTestCase {
     @discardableResult
     func reveal(_ el: XCUIElement, file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
         dismissKeyboard()
-        if el.exists && el.isHittable { return el }
-        for _ in 0..<6 { app.swipeDown(velocity: .fast) }
         var tries = 0
+        if !(el.exists && el.isHittable) {
+            for _ in 0..<6 { app.swipeDown(velocity: .fast) }
+        }
         // Long lists (Persona) need more steps; after the first stretch, take bigger swipes.
         while !(el.exists && el.isHittable) && tries < 80 {
             if tries < 30 { nudge(up: true) } else { app.swipeUp(velocity: .slow) }
