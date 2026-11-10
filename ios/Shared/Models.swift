@@ -28,6 +28,25 @@ enum Tone: String, CaseIterable, Codable, Identifiable {
     }
 }
 
+/// The keyboard's length meter. Auto follows the Length slider in Persona.
+enum ReplyLength: String, CaseIterable, Codable, Identifiable {
+    case auto, phrase, short, medium, long
+    var id: String { rawValue }
+    var label: String { rawValue.capitalized }
+    /// How many bars the meter fills.
+    var level: Int { ReplyLength.allCases.firstIndex(of: self) ?? 0 }
+    /// What it means to the AI (the server has the same list in prompts.js).
+    var hint: String? {
+        switch self {
+        case .auto: return nil
+        case .phrase: return "a phrase: 1-5 words, like a quick reaction"
+        case .short: return "short: 5-12 words, one quick line"
+        case .medium: return "medium: 12-25 words, one or two sentences"
+        case .long: return "long: 25-50 words, a few sentences with a real story, opinion or question"
+        }
+    }
+}
+
 struct Reply: Codable, Hashable {
     let text: String
     let angle: String

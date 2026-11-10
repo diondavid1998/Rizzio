@@ -279,6 +279,15 @@ describe("persona", () => {
     assert.doesNotMatch(ai.calls.replies.at(-1).requestText, /asked for this change/);
   });
 
+  test("keyboard length meter sets how long replies are", async () => {
+    await call("POST", "/v1/replies", { mode: "prompt", text: "I love hiking", length: "phrase" });
+    assert.match(ai.calls.replies.at(-1).requestText, /Length for this request: a phrase: 1-5 words/);
+    await call("POST", "/v1/replies", { mode: "prompt", text: "I love hiking", length: "long" });
+    assert.match(ai.calls.replies.at(-1).requestText, /25-50 words/);
+    await call("POST", "/v1/replies", { mode: "prompt", text: "I love hiking", length: "auto" });
+    assert.doesNotMatch(ai.calls.replies.at(-1).requestText, /Length for this request/);
+  });
+
   test("No emoji toggle: the model is told, and any emoji that slip through are removed", async () => {
     ai.replyTexts = ["ok but who hurt you 😂😂", "say less 👍🏽 friday?", "🇯🇵 trip soon?", "no emoji here :)", "❤️"];
     await call("PUT", "/v1/me/persona", { persona: { toggles: { noEmoji: true } } });

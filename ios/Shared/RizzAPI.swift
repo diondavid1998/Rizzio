@@ -36,10 +36,11 @@ enum RizzAPI {
         let image: ImagePayload?
         var instruction: String? = nil
         var previous: [String]? = nil
+        var length: String? = nil
     }
 
     static func generate(mode: RizzMode, tone: Tone? = nil, jpeg: Data? = nil, text: String? = nil, draft: String? = nil,
-                         instruction: String? = nil, previous: [String] = []) async throws -> RizzResult {
+                         instruction: String? = nil, previous: [String] = [], length: ReplyLength? = nil) async throws -> RizzResult {
         let payload = ReplyPayload(
             mode: mode,
             tone: (tone ?? SharedStore.shared.tone).rawValue,
@@ -47,7 +48,8 @@ enum RizzAPI {
             draft: draft,
             image: jpeg.map { ImagePayload(data: $0.base64EncodedString(), mediaType: "image/jpeg") },
             instruction: instruction,
-            previous: previous.isEmpty ? nil : previous
+            previous: previous.isEmpty ? nil : previous,
+            length: (length ?? SharedStore.shared.replyLength).rawValue
         )
         return try await send("POST", "v1/replies", body: payload, timeout: 60)
     }
@@ -71,7 +73,8 @@ enum RizzAPI {
             let me = try? await RizzAPI.me()
             let local = try await OnDeviceAI.replies(mode: mode, tone: tone ?? store.tone, jpeg: jpeg, text: text,
                                                      draft: draft, persona: store.persona, me: me,
-                                                     instruction: instruction, previous: previous)
+                                                     instruction: instruction, previous: previous,
+                                                     length: store.replyLength)
             let saved = try? await saveGeneration(mode: mode, tone: tone ?? store.tone, context: local.context, replies: local.replies)
             result = RizzResult(generationId: saved ?? "", context: local.context, replies: local.replies)
         } else {

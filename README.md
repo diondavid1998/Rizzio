@@ -11,6 +11,7 @@ AI reply suggestions for Hinge prompts and any text conversation, without leavin
 
 The keyboard can also:
 - **Chat with Rizzio** (speech-bubble button): quick asks like Shorter, Funnier, Bolder, Ask them out, Other prompt, Use their photo, More like me, or type any request in the text box ("make it about her dog", "use the second prompt") and tap **Ask**. Requests stack, so "shorter" then "about the dog" means both.
+- **Length meter** (Auto · Phrase · Short · Medium · Long): how long replies are, from a 1-5 word reaction to a 25-50 word answer. Auto follows the Length slider in Persona. Each reply shows its word count, and the choice also applies to the next Back Tap.
 - **Switch tone** with one tap (Me, Witty, Humor, Flirty, Chill, Bold, Sweet, Corny): the replies are rewritten in that tone right away.
 - **Clipboard**: copy someone's message, tap Clipboard, and get 5 replies (works in iMessage, Instagram, anything).
 - **Polish**: type a rough draft and get 5 better versions.

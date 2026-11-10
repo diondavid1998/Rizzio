@@ -81,7 +81,15 @@ export const TONES = {
   corny: "corny: on-purpose cheesy, groan-worthy puns played for laughs",
 };
 
-export function renderReplyRequest({ mode, tone, text, draft, hasImage, instruction, previous }) {
+/** Reply length picked on the keyboard's length meter. Overrides the persona's Length slider for this request. */
+export const LENGTHS = {
+  phrase: "a phrase: 1-5 words, like a quick reaction (\"ok but why geese\")",
+  short: "short: 5-12 words, one quick line",
+  medium: "medium: 12-25 words, one or two sentences",
+  long: "long: 25-50 words, a few sentences with a real story, opinion or question",
+};
+
+export function renderReplyRequest({ mode, tone, text, draft, hasImage, instruction, previous, length }) {
   const parts = [];
   if (mode === "auto")
     parts.push(
@@ -95,6 +103,9 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, instruct
       ? "Tone: follow the persona settings."
       : `Tone for this request: ${TONES[tone] ?? tone} (lean this way on top of the persona settings).`,
   );
+  if (LENGTHS[length]) {
+    parts.push(`Length for this request: ${LENGTHS[length]}. Every one of the 5 messages must be this long; this overrides the persona's length setting and the usual 6-25 words.`);
+  }
   if (previous?.length) {
     parts.push("Your earlier suggestions for this (the user wants new ones):\n" + previous.map((r) => `- ${r}`).join("\n"));
   }

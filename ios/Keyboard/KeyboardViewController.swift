@@ -86,6 +86,13 @@ final class KeyboardModel: ObservableObject {
     @Published var tone: Tone = SharedStore.shared.tone {
         didSet { if tone != oldValue, batch != nil, !isLoading { rewrite(instruction: nil) } }
     }
+    /// The length meter: Auto (Persona's Length slider), Phrase, Short, Medium, Long. Picking one rewrites the replies.
+    @Published var length: ReplyLength = SharedStore.shared.replyLength {
+        didSet {
+            SharedStore.shared.replyLength = length
+            if length != oldValue, batch != nil, !isLoading { rewrite(instruction: nil) }
+        }
+    }
     /// The chat panel: quick asks ("Shorter", "Ask them out") and typed requests ("make it about her dog").
     @Published var showChat = false
     /// What you've asked for on these replies so far, oldest first (the conversation with Rizzio), as shown.
@@ -279,6 +286,7 @@ struct KeyboardRootView: View {
     var body: some View {
         VStack(spacing: 6) {
             toolbar
+            lengthMeter
             if model.showChat { chatPanel }
             content
             bottomRow
@@ -364,7 +372,7 @@ struct KeyboardRootView: View {
                                     .padding(.horizontal, 12).padding(.vertical, 8)
                                     .background(Theme.bubbleMine)
                                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                Text(reply.angle)
+                                Text("\(KeyboardRootView.words(in: model.shown(reply))) words · \(reply.angle)")
                                     .font(.caption2)
                                     .foregroundColor(Theme.muted)
                                     .padding(.trailing, 6)
@@ -386,6 +394,47 @@ struct KeyboardRootView: View {
         } else {
             notice(model.message ?? "Double-tap the back of your phone on a profile, or copy a message and tap Clipboard.")
         }
+    }
+
+    static func words(in text: String) -> Int {
+        text.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).count
+    }
+
+    private func barColor(filled: Bool, selected: Bool) -> Color {
+        if selected { return filled ? Color.white : Color.white.opacity(0.35) }
+        return filled ? Theme.accent : Theme.hairline
+    }
+
+    /// How long replies should be: a row of segments, each with bars that fill up like a meter.
+    private var lengthMeter: some View {
+        HStack(spacing: 4) {
+            ForEach(ReplyLength.allCases) { option in
+                let selected = model.length == option
+                Button { model.length = option } label: {
+                    HStack(spacing: 4) {
+                        if option == .auto {
+                            Image(systemName: "slider.horizontal.3").font(.system(size: 9, weight: .bold))
+                        } else {
+                            HStack(alignment: .bottom, spacing: 1.5) {
+                                ForEach(1...4, id: \.self) { bar in
+                                    RoundedRectangle(cornerRadius: 1)
+                                        .fill(barColor(filled: bar <= option.level, selected: selected))
+                                        .frame(width: 3, height: CGFloat(3 + bar * 2))
+                                }
+                            }
+                        }
+                        Text(option.label).font(.caption2.weight(.semibold))
+                    }
+                    .padding(.horizontal, 7).padding(.vertical, 5)
+                    .frame(maxWidth: .infinity)
+                    .background(selected ? Theme.accent : Theme.card)
+                    .foregroundColor(selected ? .white : .primary)
+                    .clipShape(Capsule())
+                }
+                .accessibilityLabel("Length: \(option.label)")
+            }
+        }
+        .disabled(model.isLoading)
     }
 
     /// Quick asks, plus "Ask" for anything you type in the text box.

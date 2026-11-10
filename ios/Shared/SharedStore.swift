@@ -45,6 +45,12 @@ final class SharedStore {
         set { defaults.set(newValue.rawValue, forKey: "tone") }
     }
 
+    /// The keyboard's length meter; also used by the Action Button / Back Tap shortcut.
+    var replyLength: ReplyLength {
+        get { ReplyLength(rawValue: defaults.string(forKey: "replyLength") ?? "") ?? .auto }
+        set { defaults.set(newValue.rawValue, forKey: "replyLength") }
+    }
+
     var isConfigured: Bool { !serverURL.isEmpty && !appToken.isEmpty }
 
     /// Free (Apple Intelligence on the phone) or Premium (Claude). Shared with the keyboard and Shortcut.
