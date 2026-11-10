@@ -55,6 +55,12 @@ final class RizzioUITests: XCTestCase {
             if tries < 30 { nudge(up: true) } else { app.swipeUp(velocity: .slow) }
             tries += 1
         }
+        // Barely on screen (right above the tab bar or under the nav bar) can't be tapped reliably: center it.
+        if el.exists {
+            let height = app.frame.height
+            if el.frame.midY > height * 0.72 { nudge(up: true) }
+            else if el.frame.midY < height * 0.2 { nudge(up: false) }
+        }
         XCTAssertTrue(el.exists && el.isHittable, "Couldn't find \(el)", file: file, line: line)
         return el
     }
