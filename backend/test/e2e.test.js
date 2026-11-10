@@ -45,7 +45,7 @@ test("full app flow, start to finish", async () => {
 
   try {
     // Setup tab: server reachable.
-    assert.deepEqual(await (await fetch(base + "/health")).json(), { ok: true });
+    assert.deepEqual(await (await fetch(base + "/health")).json(), { ok: true, persistent: true });
 
     // Persona tab loads defaults; Test drive works with unsaved sliders and saves nothing.
     const persona = (await call("GET", "/v1/me/persona")).body.persona;

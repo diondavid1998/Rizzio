@@ -36,7 +36,7 @@ function safeEqual(a, b) {
 /** Max AI calls per user per hour. */
 export const HOURLY_LIMIT = Number(process.env.RIZZIO_HOURLY_LIMIT) || 120;
 
-export function createApp({ store, ai, appToken, log = console, hourlyLimit = HOURLY_LIMIT }) {
+export function createApp({ store, ai, appToken, log = console, hourlyLimit = HOURLY_LIMIT, storage = { persistent: true } }) {
   const app = express();
   const usage = new Map(); // userId -> timestamps of AI calls in the last hour
 
@@ -75,7 +75,8 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
     if (store.getUser(userId).signals_since_rebuild >= REBUILD_EVERY) rebuildInBackground(userId);
   }
 
-  app.get("/health", (_req, res) => res.json({ ok: true }));
+  // "persistent: false" means the database isn't on a Railway Volume and is wiped on every deploy.
+  app.get("/health", (_req, res) => res.json({ ok: true, persistent: storage.persistent }));
 
   // Everything under /v1 needs the app token and a user id (a random id the app makes on first launch).
   app.use("/v1", (req, res, next) => {
