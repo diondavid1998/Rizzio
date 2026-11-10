@@ -1,5 +1,8 @@
 [build]
-builder = "RAILPACK"
+# A Dockerfile instead of Railpack: Railpack downloads its tools from GitHub on every build,
+# and those downloads kept failing with 504 errors.
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 startCommand = "npm start"
