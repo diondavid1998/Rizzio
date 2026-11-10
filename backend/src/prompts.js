@@ -70,7 +70,18 @@ export function renderMemory(user, examples) {
   return parts.join("\n\n");
 }
 
-export function renderReplyRequest({ mode, tone, text, draft, hasImage }) {
+/** What each quick tone means, so "Humor" and "Witty" come out different. */
+export const TONES = {
+  witty: "witty: clever wordplay, quick comebacks, smart observations",
+  humor: "humor: laugh-out-loud funny: a joke, an absurd bit, playful exaggeration or a silly hypothetical",
+  flirty: "flirty: openly interested, a little charged, compliments with a wink",
+  chill: "chill: low-key, relaxed, no pressure",
+  bold: "bold: confident and direct, a daring take or a clear ask",
+  sweet: "sweet: warm, genuine, kind",
+  corny: "corny: on-purpose cheesy, groan-worthy puns played for laughs",
+};
+
+export function renderReplyRequest({ mode, tone, text, draft, hasImage, instruction, previous }) {
   const parts = [];
   if (mode === "auto")
     parts.push(
@@ -82,8 +93,17 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage }) {
   parts.push(
     !tone || tone === "me"
       ? "Tone: follow the persona settings."
-      : `Tone for this request: ${tone} (lean this way on top of the persona settings).`,
+      : `Tone for this request: ${TONES[tone] ?? tone} (lean this way on top of the persona settings).`,
   );
+  if (previous?.length) {
+    parts.push("Your earlier suggestions for this (the user wants new ones):\n" + previous.map((r) => `- ${r}`).join("\n"));
+  }
+  if (instruction?.trim()) {
+    parts.push(
+      `The user asked for this change: "${instruction.trim()}"\n` +
+        "Follow it exactly (for example: a different prompt or photo, shorter, funnier, asking them out), keep the user's voice, and don't repeat the earlier suggestions.",
+    );
+  }
   if (text?.trim()) parts.push(`Copied text from the screen or conversation:\n"""\n${text.trim()}\n"""`);
   if (draft?.trim()) parts.push(`The user's draft:\n"""\n${draft.trim()}\n"""`);
   if (hasImage) parts.push("The screenshot is attached.");

@@ -59,9 +59,9 @@ enum ScreenKind: String, AppEnum {
 }
 
 enum ToneOption: String, AppEnum {
-    case witty, flirty, chill, bold, sweet, corny
+    case witty, humor, flirty, chill, bold, sweet, corny
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "Tone"
     static var caseDisplayRepresentations: [ToneOption: DisplayRepresentation] = [
-        .witty: "Witty", .flirty: "Flirty", .chill: "Chill", .bold: "Bold", .sweet: "Sweet", .corny: "Corny",
+        .witty: "Witty", .humor: "Humor", .flirty: "Flirty", .chill: "Chill", .bold: "Bold", .sweet: "Sweet", .corny: "Corny",
     ]
 }

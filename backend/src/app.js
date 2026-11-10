@@ -98,6 +98,9 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const text = str(b.text, 8000);
       const draft = str(b.draft, 2000);
       const tone = str(b.tone, 40) || "me";
+      // Follow-ups from the keyboard's chat: "make it about the dog", "shorter", "use the 2nd prompt".
+      const instruction = str(b.instruction, 300);
+      const previous = Array.isArray(b.previous) ? b.previous.filter((t) => typeof t === "string").slice(0, 10).map((t) => t.slice(0, 300)) : [];
       if (!image && !text?.trim() && !draft?.trim()) return res.status(400).json({ error: "Send an image, text, or draft." });
 
       const user = store.getUser(req.userId);
@@ -106,8 +109,8 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const persona = preview && b.persona ? sanitizePersona(b.persona) : sanitizePersona(store.getPersona(req.userId));
       const memory = renderMemory(user, store.bestExamples(req.userId, 25, { ownWordsOnly: true })) + "\n\n" + renderPersona(persona);
       // A few relevant exchanges from the built-in library, as ideas for angle and flow (not voice).
-      const refs = renderInspiration(inspiration([text, draft].filter(Boolean).join("\n"), { mode: b.mode, limit: b.mode === "draft" ? 3 : 6 }));
-      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image }), refs].filter(Boolean).join("\n\n");
+      const refs = renderInspiration(inspiration([text, draft, instruction].filter(Boolean).join("\n"), { mode: b.mode, limit: b.mode === "draft" ? 3 : 6 }));
+      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image, instruction, previous }), refs].filter(Boolean).join("\n\n");
       const raw = await ai.generateReplies({ memory, requestText, image });
       const result = { ...raw, replies: enforcePersona(persona, raw.replies) };
       const generationId = preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, ...result });

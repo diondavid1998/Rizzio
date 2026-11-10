@@ -265,6 +265,20 @@ describe("persona", () => {
     assert.match(ai.calls.replies.at(-1).requestText, /follow the persona settings/);
   });
 
+  test("keyboard chat follow-ups and the Humor tone reach the model", async () => {
+    await call("POST", "/v1/replies", {
+      mode: "prompt", tone: "humor", text: "Two truths and a lie: I have a dog, I hate pizza, I've been to Peru",
+      instruction: "make it about the dog", previous: ["reply 0", "reply 1"],
+    });
+    const sent = ai.calls.replies.at(-1).requestText;
+    assert.match(sent, /laugh-out-loud funny/);
+    assert.match(sent, /asked for this change: "make it about the dog"/);
+    assert.match(sent, /earlier suggestions[\s\S]*- reply 1/);
+    await call("POST", "/v1/replies", { mode: "prompt", tone: "witty", text: "I love hiking" });
+    assert.match(ai.calls.replies.at(-1).requestText, /clever wordplay/);
+    assert.doesNotMatch(ai.calls.replies.at(-1).requestText, /asked for this change/);
+  });
+
   test("No emoji toggle: the model is told, and any emoji that slip through are removed", async () => {
     ai.replyTexts = ["ok but who hurt you 😂😂", "say less 👍🏽 friday?", "🇯🇵 trip soon?", "no emoji here :)", "❤️"];
     await call("PUT", "/v1/me/persona", { persona: { toggles: { noEmoji: true } } });

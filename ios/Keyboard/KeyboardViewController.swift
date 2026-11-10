@@ -14,6 +14,7 @@ final class KeyboardViewController: UIInputViewController {
         model.currentFieldText = { [weak self] in self?.currentText() ?? "" }
         model.deleteBackward = { [weak self] in self?.textDocumentProxy.deleteBackward() }
         model.insertPlain = { [weak self] text in self?.textDocumentProxy.insertText(text) }
+        model.clearField = { [weak self] in self?.insertReply("") }
         model.nextKeyboard = { [weak self] in self?.advanceToNextInputMode() }
         model.currentDraft = { [weak self] in self?.currentText() ?? "" }
         model.hasFullAccess = hasFullAccess
@@ -81,7 +82,16 @@ final class KeyboardViewController: UIInputViewController {
 
 final class KeyboardModel: ObservableObject {
     @Published var batch: SuggestionBatch?
-    @Published var tone: Tone = SharedStore.shared.tone
+    /// Tapping a tone rewrites the current replies in that tone right away.
+    @Published var tone: Tone = SharedStore.shared.tone {
+        didSet { if tone != oldValue, batch != nil, !isLoading { rewrite(instruction: nil) } }
+    }
+    /// The chat panel: quick asks ("Shorter", "Ask them out") and typed requests ("make it about her dog").
+    @Published var showChat = false
+    /// What you've asked for on these replies so far, oldest first (the conversation with Rizzio), as shown.
+    @Published var thread: [String] = []
+    /// The same requests as sent to the AI. They all keep applying, so "shorter" then "about the dog" means both.
+    private var asks: [String] = []
     @Published var isLoading = false
     @Published var message: String?
     @Published var hasFullAccess = false
@@ -90,6 +100,7 @@ final class KeyboardModel: ObservableObject {
 
     var insert: (String) -> Void = { _ in }
     var insertPlain: (String) -> Void = { _ in }
+    var clearField: () -> Void = {}
     var deleteBackward: () -> Void = {}
     var nextKeyboard: () -> Void = {}
     var currentDraft: () -> String = { "" }
@@ -104,6 +115,8 @@ final class KeyboardModel: ObservableObject {
             lastLoaded = latest.createdAt
             batch = latest
             rejected = []
+            thread = [] // a new screenshot starts a new conversation
+            asks = []
         }
     }
 
@@ -165,14 +178,55 @@ final class KeyboardModel: ObservableObject {
 
     private var editDebounce: Timer?
 
-    /// Same screenshot, new tone.
-    func regenerate() {
-        guard let batch else { return }
-        if batch.hasScreenshot, let jpeg = SharedStore.shared.loadScreenshot() {
-            run { try await RizzAPI.generateAndStore(mode: batch.mode, tone: self.tone, jpeg: jpeg) }
-        } else {
-            message = "Take a new screenshot (Back Tap) or use Clipboard."
+    /// 5 fresh replies for the same screenshot or text.
+    func regenerate() { rewrite(instruction: nil) }
+
+    /// Quick asks in the chat panel, and what each one tells Rizzio.
+    struct QuickAsk: Hashable { let label: String; let instruction: String }
+    static let quickAsks: [QuickAsk] = [
+        .init(label: "Shorter", instruction: "make them shorter, just a few words"),
+        .init(label: "Funnier", instruction: "make them funnier"),
+        .init(label: "Bolder", instruction: "make them bolder and more confident"),
+        .init(label: "Ask them out", instruction: "suggest meeting up or a date, naturally"),
+        .init(label: "Other prompt", instruction: "reply to a different prompt or photo on the profile than last time"),
+        .init(label: "Use their photo", instruction: "comment on one of their photos instead of a prompt"),
+        .init(label: "More like me", instruction: "sound even more like the user's own texting style"),
+    ]
+
+    /// Rewrites the current replies, optionally with a request ("make it about the dog"). Keeps the conversation going.
+    func rewrite(instruction: String?, label: String? = nil) {
+        guard let batch else {
+            message = "Get replies first: Back Tap on a profile or chat, or copy their message and tap Clipboard."
+            return
         }
+        let previous = batch.replies.map(\.text)
+        let mode = batch.mode, tone = self.tone
+        let all = asks + [instruction].compactMap { $0 }
+        let ask = all.isEmpty ? nil : all.joined(separator: "; and also ")
+        let jpeg = batch.hasScreenshot ? SharedStore.shared.loadScreenshot() : nil
+        guard jpeg != nil || batch.sourceText != nil || batch.sourceDraft != nil else {
+            message = "Take a new screenshot (Back Tap) or use Clipboard."
+            return
+        }
+        run(onSuccess: {
+            guard let instruction else { return }
+            self.asks.append(instruction)
+            self.thread.append(label ?? instruction)
+        }) {
+            try await RizzAPI.generateAndStore(mode: mode, tone: tone, jpeg: jpeg, text: batch.sourceText,
+                                               draft: batch.sourceDraft, instruction: ask, previous: previous)
+        }
+    }
+
+    /// Sends what you typed in the text box as a request to Rizzio, then clears the box.
+    func askFromField() {
+        let typed = currentDraft().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !typed.isEmpty else {
+            message = "Type what you want in the text box (like \"make it about her dog\"), then tap Ask."
+            return
+        }
+        clearField()
+        rewrite(instruction: String(typed.prefix(300)))
     }
 
     /// Uses text you copied (e.g. their message) as the conversation.
@@ -195,7 +249,7 @@ final class KeyboardModel: ObservableObject {
         run { try await RizzAPI.generateAndStore(mode: .draft, tone: self.tone, text: context, draft: draft) }
     }
 
-    private func run(_ work: @escaping () async throws -> SuggestionBatch) {
+    private func run(onSuccess: @escaping () -> Void = {}, _ work: @escaping () async throws -> SuggestionBatch) {
         guard hasFullAccess else {
             message = "Turn on Allow Full Access for Rizzio in Settings."
             return
@@ -208,6 +262,7 @@ final class KeyboardModel: ObservableObject {
                 self.lastLoaded = newBatch.createdAt
                 self.batch = newBatch
                 self.rejected = []
+                onSuccess()
             } catch {
                 self.message = error.localizedDescription
             }
@@ -224,6 +279,7 @@ struct KeyboardRootView: View {
     var body: some View {
         VStack(spacing: 6) {
             toolbar
+            if model.showChat { chatPanel }
             content
             bottomRow
         }
@@ -246,6 +302,12 @@ struct KeyboardRootView: View {
                     }
                 }
             }
+            Button { model.showChat.toggle() } label: {
+                Image(systemName: model.showChat ? "bubble.left.and.text.bubble.right.fill" : "bubble.left.and.text.bubble.right")
+                    .padding(6)
+                    .foregroundColor(model.showChat ? Theme.accent : .primary)
+            }
+            .accessibilityLabel("Chat with Rizzio")
             Button { model.toggleEmoji() } label: {
                 Image(systemName: model.noEmoji ? "face.dashed" : "face.smiling")
                     .padding(6)
@@ -280,6 +342,15 @@ struct KeyboardRootView: View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
+                    // Your requests so far, like a chat with Rizzio.
+                    ForEach(Array(model.thread.enumerated()), id: \.offset) { _, ask in
+                        Text(ask)
+                            .font(.caption)
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 10).padding(.vertical, 5)
+                            .background(Theme.card)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
                     ForEach(Array(batch.replies.enumerated()), id: \.offset) { index, reply in
                         HStack(alignment: .top, spacing: 4) {
                         Button { model.use(reply, at: index) } label: {
@@ -315,6 +386,31 @@ struct KeyboardRootView: View {
         } else {
             notice(model.message ?? "Double-tap the back of your phone on a profile, or copy a message and tap Clipboard.")
         }
+    }
+
+    /// Quick asks, plus "Ask" for anything you type in the text box.
+    private var chatPanel: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                Button { model.askFromField() } label: {
+                    Label("Ask", systemImage: "paperplane.fill")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background(Theme.accent)
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
+                }
+                .accessibilityLabel("Ask Rizzio what you typed")
+                ForEach(KeyboardModel.quickAsks, id: \.self) { ask in
+                    Button(ask.label) { model.rewrite(instruction: ask.instruction, label: ask.label) }
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .overlay(Capsule().stroke(Theme.accent, lineWidth: 1))
+                        .foregroundColor(.primary)
+                }
+            }
+        }
+        .disabled(model.isLoading)
     }
 
     private func notice(_ text: String) -> some View {

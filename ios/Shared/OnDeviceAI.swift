@@ -130,7 +130,7 @@ enum OnDeviceAI {
         case .draft: job = "Rewrite the user's draft 5 ways that keep the meaning but land better."
         case .auto: job = "If this is a dating profile, write 5 comments to get a match. If it's a conversation, write 5 options for the user's next message (\"Me\")."
         }
-        return tone == .me ? job : job + " Lean \(tone.rawValue)."
+        return tone == .me ? job : job + " Tone: \(tone.hint)."
     }
 
     // MARK: Generation
@@ -141,12 +141,15 @@ enum OnDeviceAI {
     }
 
     static func replies(mode: RizzMode, tone: Tone, jpeg: Data?, text: String?, draft: String?,
-                        persona: Persona, me: MeResponse?) async throws -> Result {
+                        persona: Persona, me: MeResponse?,
+                        instruction: String? = nil, previous: [String] = []) async throws -> Result {
         if let reason = unavailableReason { throw RizzError.server(reason) }
         var content: [String] = []
         if let jpeg { content.append("On screen:\n" + transcript(try read(jpeg))) }
         if let text, !text.isEmpty { content.append("Their message or prompt:\n\(text.prefix(2500))") }
         if let draft, !draft.isEmpty { content.append("The user's draft:\n\(draft.prefix(600))") }
+        if !previous.isEmpty { content.append("Earlier suggestions (write new ones):\n" + previous.prefix(5).map { "- \($0)" }.joined(separator: "\n")) }
+        if let instruction, !instruction.isEmpty { content.append("The user asked for this change: \(instruction.prefix(300)). Follow it exactly.") }
         // A few relevant exchanges from Rizzio's built-in library (ideas for angle, not the user's voice).
         let references = await RizzAPI.inspiration(text: content.joined(separator: "\n"), mode: mode)
         let referenceText = references.isEmpty ? "" :

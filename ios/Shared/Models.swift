@@ -10,9 +10,22 @@ enum RizzMode: String, Codable {
 enum Tone: String, CaseIterable, Codable, Identifiable {
     /// Follow your Persona settings as they are.
     case me
-    case witty, flirty, chill, bold, sweet, corny
+    case witty, humor, flirty, chill, bold, sweet, corny
     var id: String { rawValue }
     var label: String { self == .me ? "Me" : rawValue.capitalized }
+    /// What the tone means to the AI (the server has the same list in prompts.js).
+    var hint: String {
+        switch self {
+        case .me: return "the user's own persona settings"
+        case .witty: return "witty: clever wordplay and quick comebacks"
+        case .humor: return "humor: laugh-out-loud funny, a joke, an absurd bit or a silly hypothetical"
+        case .flirty: return "flirty: openly interested, compliments with a wink"
+        case .chill: return "chill: low-key and relaxed"
+        case .bold: return "bold: confident and direct, a daring take or a clear ask"
+        case .sweet: return "sweet: warm and genuine"
+        case .corny: return "corny: on-purpose cheesy puns played for laughs"
+        }
+    }
 }
 
 struct Reply: Codable, Hashable {
@@ -29,6 +42,9 @@ struct SuggestionBatch: Codable {
     let createdAt: Date
     /// True when a screenshot is saved alongside, so the keyboard can regenerate with another tone.
     let hasScreenshot: Bool
+    /// The copied text or draft these replies were written for, so the keyboard can rewrite them without a screenshot.
+    var sourceText: String? = nil
+    var sourceDraft: String? = nil
 }
 
 /// What the server found in an exported chat file, before you say which sender is you.

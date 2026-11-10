@@ -34,15 +34,20 @@ enum RizzAPI {
         let text: String?
         let draft: String?
         let image: ImagePayload?
+        var instruction: String? = nil
+        var previous: [String]? = nil
     }
 
-    static func generate(mode: RizzMode, tone: Tone? = nil, jpeg: Data? = nil, text: String? = nil, draft: String? = nil) async throws -> RizzResult {
+    static func generate(mode: RizzMode, tone: Tone? = nil, jpeg: Data? = nil, text: String? = nil, draft: String? = nil,
+                         instruction: String? = nil, previous: [String] = []) async throws -> RizzResult {
         let payload = ReplyPayload(
             mode: mode,
             tone: (tone ?? SharedStore.shared.tone).rawValue,
             text: text,
             draft: draft,
-            image: jpeg.map { ImagePayload(data: $0.base64EncodedString(), mediaType: "image/jpeg") }
+            image: jpeg.map { ImagePayload(data: $0.base64EncodedString(), mediaType: "image/jpeg") },
+            instruction: instruction,
+            previous: previous.isEmpty ? nil : previous
         )
         return try await send("POST", "v1/replies", body: payload, timeout: 60)
     }
@@ -55,7 +60,9 @@ enum RizzAPI {
         jpeg: Data? = nil,
         text: String? = nil,
         draft: String? = nil,
-        keepScreenshot: Bool = false
+        keepScreenshot: Bool = false,
+        instruction: String? = nil,
+        previous: [String] = []
     ) async throws -> SuggestionBatch {
         let store = SharedStore.shared
         let result: RizzResult
@@ -63,11 +70,13 @@ enum RizzAPI {
             // Apple Intelligence writes the replies on the phone; the server only stores them (if reachable).
             let me = try? await RizzAPI.me()
             let local = try await OnDeviceAI.replies(mode: mode, tone: tone ?? store.tone, jpeg: jpeg, text: text,
-                                                     draft: draft, persona: store.persona, me: me)
+                                                     draft: draft, persona: store.persona, me: me,
+                                                     instruction: instruction, previous: previous)
             let saved = try? await saveGeneration(mode: mode, tone: tone ?? store.tone, context: local.context, replies: local.replies)
             result = RizzResult(generationId: saved ?? "", context: local.context, replies: local.replies)
         } else {
-            result = try await generate(mode: mode, tone: tone, jpeg: jpeg, text: text, draft: draft)
+            result = try await generate(mode: mode, tone: tone, jpeg: jpeg, text: text, draft: draft,
+                                        instruction: instruction, previous: previous)
         }
         if jpeg != nil, keepScreenshot { store.saveScreenshot(jpeg) }
         let batch = SuggestionBatch(
@@ -76,7 +85,9 @@ enum RizzAPI {
             replies: result.replies,
             mode: mode,
             createdAt: Date(),
-            hasScreenshot: jpeg != nil
+            hasScreenshot: jpeg != nil,
+            sourceText: text,
+            sourceDraft: draft
         )
         store.latestBatch = batch
         return batch

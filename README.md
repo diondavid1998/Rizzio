@@ -10,9 +10,11 @@ AI reply suggestions for Hinge prompts and any text conversation, without leavin
 4. Tap the comment box, switch to the **Rizzio keyboard**, and tap a reply to insert it.
 
 The keyboard can also:
+- **Chat with Rizzio** (speech-bubble button): quick asks like Shorter, Funnier, Bolder, Ask them out, Other prompt, Use their photo, More like me, or type any request in the text box ("make it about her dog", "use the second prompt") and tap **Ask**. Requests stack, so "shorter" then "about the dog" means both.
+- **Switch tone** with one tap (Me, Witty, Humor, Flirty, Chill, Bold, Sweet, Corny): the replies are rewritten in that tone right away.
 - **Clipboard**: copy someone's message, tap Clipboard, and get 5 replies (works in iMessage, Instagram, anything).
 - **Polish**: type a rough draft and get 5 better versions.
-- **Tones**: Witty, Flirty, Chill, Bold, Sweet, Corny. Tap ↻ to redo the last screenshot in a new tone.
+- **↻**: 5 fresh replies for the same screenshot or text.
 
 ## Free or Premium
 
