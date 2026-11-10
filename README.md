@@ -75,7 +75,7 @@ The backend is a small Node server (`backend/`) that holds your Claude API key, 
    - `ANTHROPIC_API_KEY` = `${{StreamScout.ANTHROPIC_API_KEY}}` (reuses StreamScout's key; replace `StreamScout` with that service's exact name in Railway, or just paste the key)
    - `APP_TOKEN` = a long random password (e.g. from `openssl rand -hex 24`)
    - `DB_PATH` = `/data/rizzio.sqlite`
-4. Right-click the service → **Attach Volume** → mount path `/data`. This is where your learned texting style lives, so it survives redeploys.
+4. Add a Volume to the service with mount path `/data` (right-click the service → **Attach Volume**, or ⌘K → "volume"; on a phone, use **+ Create** or Safari's desktop mode). This is where your learned texting style lives. **Without it, every deploy erases everything Rizzio learned.** Check it at `/health`: it must say `"persistent": true`.
 5. **Settings → Networking → Generate Domain**. You get a URL like `https://rizzio-backend-production.up.railway.app`.
 
 Check it works:
