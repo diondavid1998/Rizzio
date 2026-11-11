@@ -14,7 +14,7 @@ function load() {
   for (const f of readdirSync(DIR).filter((n) => n.endsWith(".json")).sort()) {
     const set = JSON.parse(readFileSync(new URL(f, DIR), "utf8"));
     for (const [them, reply, emotion] of set.pairs) {
-      docs.push({ them, reply, emotion, kind: set.kind ?? "chat", language: set.language ?? "en", source: set.source, toks: tokens(them) });
+      docs.push({ them, reply, emotion, kind: set.kind ?? "chat", source: set.source, toks: tokens(them) });
     }
   }
   const df = new Map();
@@ -23,14 +23,6 @@ function load() {
   const byToken = new Map();
   docs.forEach((d, i) => d.toks.forEach((t) => (byToken.get(t) ?? byToken.set(t, []).get(t)).push(i)));
   return { docs, idf, byToken };
-}
-
-// Common romanized Hindi words: if a conversation has a few, it's Hinglish and Hinglish examples are used.
-const HINGLISH = new Set("hai hain kya nahi nhi yaar yar bhai mein tum tu kaise kaisa kaisi kab kahan kyun kyu acha accha achha haan arre aaj kal mera meri mere tera teri tere bohot bahut kuch sab gaya gayi raha rahi karo kar wala wali hoga hogi matlab chal dekh suno bata batao abhi phir".split(" "));
-export function isHinglish(text) {
-  const words = String(text ?? "").toLowerCase().match(/[a-z]+/g) ?? [];
-  const hits = words.filter((w) => HINGLISH.has(w)).length;
-  return hits >= 2 && hits / words.length >= 0.12;
 }
 
 let library;
@@ -44,13 +36,9 @@ export function inspiration(text, { limit = 6, mode = "auto" } = {}) {
   const { docs, idf, byToken } = corpus();
   const q = tokens(text ?? "");
   const wantPrompt = mode === "prompt" || mode === "auto";
-  const hinglish = isHinglish(text);
   const scores = new Map();
   for (const t of q) {
-    for (const i of byToken.get(t) ?? []) {
-      if ((docs[i].language === "hinglish") !== hinglish) continue; // Hinglish examples only for Hinglish chats, and vice versa
-      scores.set(i, (scores.get(i) ?? 0) + idf(t));
-    }
+    for (const i of byToken.get(t) ?? []) scores.set(i, (scores.get(i) ?? 0) + idf(t));
   }
   const ranked = [...scores.entries()]
     .map(([i, s]) => {
@@ -73,7 +61,7 @@ export function inspiration(text, { limit = 6, mode = "auto" } = {}) {
     out.push(docs[i]);
   }
   // Pad with dating-profile examples (for profiles) or the top chat examples, in a stable order.
-  const fallback = docs.filter((x) => (x.language === "hinglish") === hinglish && (!wantPrompt || hinglish || x.kind === "prompt"));
+  const fallback = docs.filter((x) => !wantPrompt || x.kind === "prompt");
   for (let i = 0; out.length < limit && i < fallback.length; i++) {
     if (!out.includes(fallback[i])) out.push(fallback[i]);
   }

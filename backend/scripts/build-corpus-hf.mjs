@@ -1,5 +1,4 @@
-// Builds two more reference-library files from Hugging Face datasets (via the public datasets-server API):
-//   data/corpus/hinglish-everyday.json   from Abhishekcr448/Hinglish-Everyday-Conversations-1M (MIT)
+// Builds another reference-library file from a Hugging Face dataset (via the public datasets-server API):
 //   data/corpus/empathetic-dialogues.json from Estwld/empathetic_dialogues_llm (Meta's EmpatheticDialogues, CC BY-NC 4.0)
 //
 //   node scripts/build-corpus-hf.mjs
@@ -32,32 +31,6 @@ const BLOCK = /\b(sex|sexy|naked|nude|porn|kill|killed|die|died|dead|death|cance
 const clean = (s) => String(s ?? "").replace(/\s+/g, " ").replace(/_comma_/g, ",").trim();
 const STOP = new Set("i me my you your we it a an the and or but so to of in on at for with is am are was were be do did have has had that this what how not no yes just too very really like can will would about".split(" "));
 const words = (s) => (s.toLowerCase().match(/[a-z']+/g) ?? []).filter((w) => w.length > 2 && !STOP.has(w));
-
-// ---- Hinglish everyday banter: 1M rows; sample spread across the whole set ----
-{
-  const offsets = Array.from({ length: 120 }, (_, i) => Math.floor((i * 1_000_000) / 120));
-  const raw = await pages("Abhishekcr448/Hinglish-Everyday-Conversations-1M", offsets);
-  const seen = new Set();
-  const pairs = [];
-  for (const r of raw) {
-    const them = clean(r.input), reply = clean(r.output);
-    if (them.length < 8 || them.length > 140 || reply.length < 8 || reply.length > 140) continue;
-    if (BLOCK.test(them) || BLOCK.test(reply)) continue;
-    const key = reply.toLowerCase().replace(/[^a-z]/g, "");
-    if (seen.has(key)) continue;
-    seen.add(key);
-    pairs.push([them, reply]);
-  }
-  writeFileSync(out("hinglish-everyday.json"), JSON.stringify({
-    source: "https://huggingface.co/datasets/Abhishekcr448/Hinglish-Everyday-Conversations-1M",
-    license: "MIT",
-    note: "Synthetic casual Hinglish (Hindi-English) banter between two people. Used only when the conversation itself is in Hinglish.",
-    kind: "chat",
-    language: "hinglish",
-    pairs: pairs.slice(0, 5000),
-  }));
-  console.log(`hinglish: ${raw.length} rows read, ${pairs.length} kept, ${Math.min(pairs.length, 5000)} saved`);
-}
 
 // ---- EmpatheticDialogues: every train conversation; take (their message -> warm reply) turns ----
 {

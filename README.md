@@ -54,10 +54,9 @@ Rizzio ships with a library of good exchanges in `backend/data/corpus/`:
 
 - `the-rizz-corpus.json`: 5,000 short, on-topic, light exchanges picked from the [the-rizz corpus](https://huggingface.co/datasets/the-rizz/the-rizz-corpus) on Hugging Face (getting-to-know-you chats). Rebuild it with `node backend/scripts/build-corpus.mjs path/to/the-rizz-corpus.txt`. The dataset page states no license, so check that before any App Store release.
 - `rizzio-playbook.json`: Rizzio's own examples of Hinge prompt comments.
-- `hinglish-everyday.json`: 5,000 casual Hinglish exchanges from [Hinglish-Everyday-Conversations-1M](https://huggingface.co/datasets/Abhishekcr448/Hinglish-Everyday-Conversations-1M) (MIT). Used only when the conversation is in Hinglish.
 - `empathetic-dialogues.json`: 6,000 replies to someone sharing a feeling, from Meta's [EmpatheticDialogues](https://huggingface.co/datasets/Estwld/empathetic_dialogues_llm), labelled with the feeling. **License CC BY-NC 4.0 (non-commercial):** fine for personal use; remove or replace it before selling Rizzio.
 
-Rebuild the last two with `node backend/scripts/build-corpus-hf.mjs`. Considered and left out: Relationship_Advice (Reddit advice posts, unknown license, not texting) and HinGE (formal sentence translations, not conversation).
+Rebuild it with `node backend/scripts/build-corpus-hf.mjs`. Considered and left out: Hinglish-Everyday-Conversations (not wanted), Relationship_Advice (Reddit advice posts, unknown license, not texting) and HinGE (formal sentence translations, not conversation).
 
 For each request, the server picks the few exchanges most related to what's on screen and shows them to the AI as ideas for angle and flow (free mode gets them from `POST /v1/inspiration`). They're never treated as your voice: what you upload in **Train** decides how replies sound. To add another dataset, drop a JSON file in that folder shaped like `{ "source", "kind": "chat" | "prompt", "pairs": [["their message", "a good reply"], ...] }`.
 
