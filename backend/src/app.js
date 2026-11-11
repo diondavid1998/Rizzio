@@ -5,7 +5,7 @@ import { SIGNAL_KINDS } from "./db.js";
 import { randomUUID } from "node:crypto";
 import { ImportError, parseExport, summarizeSenders } from "./importers.js";
 import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, enforcePersona, renderPersona, sanitizePersona } from "./persona.js";
-import { inspiration, renderInspiration } from "./corpus.js";
+import { inspiration, related, renderInspiration } from "./corpus.js";
 import { renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
 const MODES = ["auto", "prompt", "chat", "draft"];
@@ -108,10 +108,15 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // A preview (the app's Test drive) can try unsaved slider settings and isn't saved or learned from.
       const preview = b.preview === true;
       const persona = preview && b.persona ? sanitizePersona(b.persona) : sanitizePersona(store.getPersona(req.userId));
-      const memory = renderMemory(user, store.bestExamples(req.userId, 25, { ownWordsOnly: true })) + "\n\n" + renderPersona(persona);
+      const best = store.bestExamples(req.userId, 25, { ownWordsOnly: true });
+      const memory = renderMemory(user, best) + "\n\n" + renderPersona(persona);
+      // The user's own messages most related to this one (beyond the 25 always shown), so wording follows how they talk about it.
+      const shown = new Set(best.map((e) => e.text));
+      const own = store.listExamples(req.userId).filter((e) => e.source !== "picked" && !shown.has(e.text)).map((e) => e.text);
+      const ownRelated = related([text, draft].filter(Boolean).join("\n"), own, 8);
       // A few relevant exchanges from the built-in library, as ideas for angle and flow (not voice).
       const refs = renderInspiration(inspiration([text, draft, instruction].filter(Boolean).join("\n"), { mode: b.mode, limit: b.mode === "draft" ? 3 : 6 }));
-      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image, instruction, previous, length }), refs].filter(Boolean).join("\n\n");
+      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image, instruction, previous, length, ownRelated }), refs].filter(Boolean).join("\n\n");
       const raw = await ai.generateReplies({ memory, requestText, image });
       const result = { ...raw, replies: enforcePersona(persona, raw.replies) };
       const generationId = preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, ...result });
@@ -128,7 +133,9 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
     const b = req.body ?? {};
     const mode = MODES.includes(b.mode) ? b.mode : "auto";
     const limit = Math.min(Math.max(Number(b.limit) || 4, 1), 10);
-    res.json({ items: inspiration(str(b.text, 4000) ?? "", { mode, limit }) });
+    const text = str(b.text, 4000) ?? "";
+    const own = store.listExamples(req.userId).filter((e) => e.source !== "picked").map((e) => e.text);
+    res.json({ items: inspiration(text, { mode, limit }), own: related(text, own, 6) });
   });
 
   const cleanReplies = (raw) =>

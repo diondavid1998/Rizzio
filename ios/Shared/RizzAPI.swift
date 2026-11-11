@@ -100,13 +100,14 @@ enum RizzAPI {
 
     struct InspirationItem: Codable { let them: String; let reply: String }
     private struct InspirationRequest: Codable { let text: String; let mode: String; let limit: Int }
-    private struct InspirationResponse: Codable { let items: [InspirationItem] }
+    private struct InspirationResponse: Codable { let items: [InspirationItem]; let own: [String]? }
 
-    /// Relevant example exchanges from the server's built-in library, for the on-phone model. Never fails: empty if offline.
-    static func inspiration(text: String, mode: RizzMode, limit: Int = 4) async -> [InspirationItem] {
+    /// Relevant example exchanges from the server's built-in library, plus the user's own messages on the same topic,
+    /// for the on-phone model. Never fails: empty if offline.
+    static func inspiration(text: String, mode: RizzMode, limit: Int = 4) async -> (items: [InspirationItem], own: [String]) {
         let request = InspirationRequest(text: String(text.prefix(3000)), mode: mode.rawValue, limit: limit)
         let response: InspirationResponse? = try? await send("POST", "v1/inspiration", body: request, timeout: 5)
-        return response?.items ?? []
+        return (response?.items ?? [], response?.own ?? [])
     }
 
     // MARK: Persona

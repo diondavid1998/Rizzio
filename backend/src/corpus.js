@@ -25,6 +25,21 @@ function load() {
   return { docs, idf, byToken };
 }
 
+/** The `limit` texts most related to `query` (shared words, rarer ones count more). For the user's own messages. */
+export function related(query, texts, limit = 8) {
+  const q = new Set(tokens(query ?? ""));
+  if (!q.size || !texts.length) return [];
+  const toks = texts.map((t) => tokens(t));
+  const df = new Map();
+  for (const ts of toks) for (const t of ts) df.set(t, (df.get(t) ?? 0) + 1);
+  return toks
+    .map((ts, i) => [i, ts.reduce((sum, t) => sum + (q.has(t) ? Math.log(1 + texts.length / df.get(t)) : 0), 0)])
+    .filter(([, s]) => s > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([i]) => texts[i]);
+}
+
 let library;
 export const corpus = () => (library ??= load());
 

@@ -94,7 +94,8 @@ enum OnDeviceAI {
     Write exactly 5 different messages. Each one is short (6 to 25 words), specific to a detail in what they said or wrote, \
     and easy to answer: end with a playful question, a light challenge, or a this-or-that.
     Be confident and warm. Never crude, no sexual content, no comments on bodies, no cheesy pickup lines, no em dashes.
-    Follow the persona settings. Copy the user's own example messages for length, capitalization, slang and emoji.
+    Follow the persona settings. The user's own messages decide how you sound and think: copy their wording, pet phrases, \
+    length, capitalization, slang, emoji, what they notice and how they react. Example exchanges from other people are only ideas.
     First read what they sent: is it a question, several questions, a rhetorical question, a challenge or hot take, \
     a tease, a story, a compliment, plans, or a dating-profile prompt? Then reply in the right form: answer real questions \
     (all of them) and hand it back, play along with rhetorical ones, push back playfully on challenges, tease back on teases, \
@@ -157,10 +158,15 @@ enum OnDeviceAI {
         if let hint = length.hint { content.append("Length: every message must be \(hint). This overrides the usual 6 to 25 words.") }
         if let instruction, !instruction.isEmpty { content.append("The user asked for this change: \(instruction.prefix(300)). Follow it exactly.") }
         // A few relevant exchanges from Rizzio's built-in library (ideas for angle, not the user's voice).
-        let references = await RizzAPI.inspiration(text: content.joined(separator: "\n"), mode: mode)
-        let referenceText = references.isEmpty ? "" :
-            "Example exchanges for ideas only (not the user's voice, don't copy them):\n" +
-            references.map { "- \"\($0.them)\" → \"\($0.reply)\"" }.joined(separator: "\n")
+        let library = await RizzAPI.inspiration(text: content.joined(separator: "\n"), mode: mode)
+        var referenceText = library.items.isEmpty ? "" :
+            "Example exchanges for ideas only (other people, not the user: never copy their wording):\n" +
+            library.items.map { "- \"\($0.them)\" → \"\($0.reply)\"" }.joined(separator: "\n")
+        if !library.own.isEmpty {
+            referenceText += (referenceText.isEmpty ? "" : "\n\n") +
+                "Things the user has said about this before (their real words: talk and think like this):\n" +
+                library.own.map { "- \($0)" }.joined(separator: "\n")
+        }
         let prompt = [task(mode: mode, tone: tone), personaText(persona), styleText(me), referenceText, content.joined(separator: "\n\n")]
             .filter { !$0.isEmpty }
             .joined(separator: "\n\n")
