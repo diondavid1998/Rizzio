@@ -293,6 +293,16 @@ describe("persona", () => {
     assert.ok(free.body.own.includes("tacos are a personality trait and I have it bad"), "free mode gets them too");
   });
 
+  test("earlier screenshots of the same profile are sent along (max 3)", async () => {
+    const img = { data: Buffer.from("x").toString("base64"), mediaType: "image/jpeg" };
+    await call("POST", "/v1/replies", { mode: "auto", image: img, earlierImages: [img, img, img, img, img] });
+    const sent = ai.calls.replies.at(-1);
+    assert.equal(sent.earlier.length, 3);
+    assert.match(sent.requestText, /3 earlier screenshots of what's probably the same profile/);
+    await call("POST", "/v1/replies", { mode: "chat", text: "hi", earlierImages: [img] });
+    assert.equal(ai.calls.replies.at(-1).earlier.length, 0, "earlier screens only go with a screenshot");
+  });
+
   test("keyboard length meter sets how long replies are", async () => {
     await call("POST", "/v1/replies", { mode: "prompt", text: "I love hiking", length: "phrase" });
     assert.match(ai.calls.replies.at(-1).requestText, /Length for this request: a phrase: 1-5 words/);

@@ -17,14 +17,16 @@ const REPLY_SCHEMA = {
   properties: {
     read: {
       type: "object",
-      description: "Fill this in first: what they sent and what a good reply has to do.",
+      description: "Fill this in first: who they are, what they sent and what a good reply has to do.",
       properties: {
+        person: { type: "string", description: "Everything known about the other person from the screenshots or chat: name, age, job, place, each prompt and answer, what the photos show, their vibe. Empty if nothing is known." },
+        hook: { type: "string", description: "The prompt, photo or message you're replying to, and why it's the best hook." },
         kind: { type: "string", enum: MESSAGE_KINDS },
         questions: { type: "array", items: { type: "string" }, description: "Every question they asked that needs an answer (empty if none)." },
         needs: { type: "string", description: "One line: what a good reply has to do here." },
         as_user: { type: "string", description: "One line: what the user would notice first and how they'd react, judging from their own messages." },
       },
-      required: ["kind", "questions", "needs", "as_user"],
+      required: ["person", "hook", "kind", "questions", "needs", "as_user"],
       additionalProperties: false,
     },
     context: { type: "string", description: "One short line naming what you replied to." },
@@ -180,9 +182,16 @@ export class ClaudeAI {
   }
 
   /** memory: the user's rendered voice profile + examples. */
-  async generateReplies({ memory, requestText, image }) {
+  /** earlier: screenshots taken just before this one (same profile, scrolled), oldest first. */
+  async generateReplies({ memory, requestText, image, earlier = [] }) {
     const content = [];
-    if (image) content.push(ClaudeAI.#image(image));
+    earlier.forEach((img, i) => {
+      content.push({ type: "text", text: `Earlier screenshot ${i + 1} of ${earlier.length}:` }, ClaudeAI.#image(img));
+    });
+    if (image) {
+      if (earlier.length) content.push({ type: "text", text: "Screenshot on screen now:" });
+      content.push(ClaudeAI.#image(image));
+    }
     content.push({ type: "text", text: requestText });
     const out = await this.#call({
       system: [
@@ -191,7 +200,7 @@ export class ClaudeAI {
       ],
       content,
       schema: REPLY_SCHEMA,
-      effort: "low", // short creative replies: speed matters more than deep reasoning
+      effort: image ? "medium" : "low", // screenshots need real reading; text-only replies stay fast
     });
     return { context: out.context, read: out.read, replies: out.replies.slice(0, 5) };
   }

@@ -28,12 +28,17 @@ struct GenerateRepliesIntent: AppIntent {
         case .profile: mode = .prompt
         case .chat: mode = .chat
         }
+        // Screenshots from the last few minutes are usually the same profile, scrolled: send them too.
+        let store = SharedStore.shared
+        let earlier = mode == .chat ? [] : store.profileScreens()
         let batch = try await RizzAPI.generateAndStore(
             mode: mode,
             tone: tone.flatMap { Tone(rawValue: $0.rawValue) },
             jpeg: jpeg,
-            keepScreenshot: true
+            keepScreenshot: true,
+            earlier: earlier
         )
+        store.addProfileScreen(jpeg)
         let list = batch.replies.enumerated().map { "\($0.offset + 1). \($0.element.text)" }.joined(separator: "\n")
         return .result(
             value: list,

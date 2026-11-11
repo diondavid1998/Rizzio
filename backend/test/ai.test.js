@@ -87,3 +87,21 @@ test("replies: the model reads the message first and labels each reply's form", 
   assert.match(system, /Never borrow their wording, tone or opinions/);
   assert.ok(schema.properties.read.required.includes("as_user"), "the model thinks as the user before writing");
 });
+
+test("profile screenshots: earlier screens come first, the current one last, with more effort", async () => {
+  const out = { read: { person: "Maya, 27, nurse", hook: "geese prompt", kind: "profile_prompt", questions: [], needs: "x", as_user: "x" }, context: "c", replies: [] };
+  const ai = new ClaudeAI({ apiKey: "x" });
+  ai.client = fakeClient({ text: JSON.stringify(out) });
+  const img = (d) => ({ data: d, mediaType: "image/jpeg" });
+  const r = await ai.generateReplies({ memory: "m", requestText: "t", image: img("NOW"), earlier: [img("A"), img("B")] });
+  assert.equal(r.read.person, "Maya, 27, nurse");
+  const req = ai.client.calls[0];
+  const blocks = req.messages[0].content;
+  const images = blocks.filter((b) => b.type === "image").map((b) => b.source.data);
+  assert.deepEqual(images, ["A", "B", "NOW"]);
+  assert.ok(blocks.some((b) => b.type === "text" && /on screen now/.test(b.text)));
+  assert.equal(req.output_config.effort, "medium");
+  assert.deepEqual(req.output_config.format.schema.properties.read.required.slice(0, 2), ["person", "hook"]);
+  await ai.generateReplies({ memory: "m", requestText: "text only" });
+  assert.equal(ai.client.calls.at(-1).output_config.effort, "low");
+});

@@ -38,7 +38,10 @@ The 5 messages:
 - Write in the conversation's language.
 
 Reading screenshots:
-- On a Hinge profile, find the prompt question and answer. If several are visible, pick the one with the most to work with and name it in "context". If a photo is the best hook, reply to the photo.
+- Get to know the person before writing. Fill in "read.person" with everything visible about them: name, age, job, school, hometown or location, height and other profile details, every prompt with their answer, what each photo shows (activity, place, pets, style, anything unusual), and the vibe all of it adds up to. Then pick the best hook in "read.hook" and say why.
+- A Hinge profile is a scrolling list of photos and prompt cards. Each prompt card has the prompt question in small text and their answer in large text. A row of details (age, height, job, location, religion, drinking...) usually sits under the first photo. On Hinge you like or comment on one specific prompt or photo, so each message replies to that one item, while knowing the whole person makes it personal (connect the hook to something else on their profile when it fits).
+- You may get several screenshots of the same profile, taken as the user scrolled: the earlier ones first, the one on screen now last. Use all of them to understand the person. If an earlier one clearly shows a different person (another name or face), ignore it.
+- If several prompts are visible, pick the one with the most to work with and name it in "context". If a photo is the best hook, reply to the photo.
 - In a chat screenshot, messages on the right (usually blue/colored bubbles) are the user's. Messages on the left are the other person's. Write the user's next message, answering the latest thing the other person said, with the whole conversation in mind.
 - Ignore app buttons, ads, the keyboard, and the status bar.
 - If you can't find anything to reply to, still return 5 messages and say what went wrong in "context".`;
@@ -107,7 +110,7 @@ export const LENGTHS = {
   long: "long: 25-50 words, a few sentences with a real story, opinion or question",
 };
 
-export function renderReplyRequest({ mode, tone, text, draft, hasImage, instruction, previous, length, ownRelated }) {
+export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier = 0, instruction, previous, length, ownRelated }) {
   const parts = [];
   if (mode === "auto")
     parts.push(
@@ -141,7 +144,13 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, instruct
   }
   if (text?.trim()) parts.push(`Copied text from the screen or conversation:\n"""\n${text.trim()}\n"""`);
   if (draft?.trim()) parts.push(`The user's draft:\n"""\n${draft.trim()}\n"""`);
-  if (hasImage) parts.push("The screenshot is attached.");
+  if (hasImage) {
+    parts.push(
+      earlier
+        ? `Attached: ${earlier} earlier screenshot${earlier === 1 ? "" : "s"} of what's probably the same profile, then the one on screen now (last). Read all of them before writing.`
+        : "The screenshot is attached.",
+    );
+  }
   return parts.join("\n\n");
 }
 

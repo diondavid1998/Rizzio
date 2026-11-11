@@ -148,10 +148,13 @@ enum OnDeviceAI {
     static func replies(mode: RizzMode, tone: Tone, jpeg: Data?, text: String?, draft: String?,
                         persona: Persona, me: MeResponse?,
                         instruction: String? = nil, previous: [String] = [],
-                        length: ReplyLength = .auto) async throws -> Result {
+                        length: ReplyLength = .auto, earlier: [Data] = []) async throws -> Result {
         if let reason = unavailableReason { throw RizzError.server(reason) }
         var content: [String] = []
-        if let jpeg { content.append("On screen:\n" + transcript(try read(jpeg))) }
+        for (i, screen) in earlier.enumerated() {
+            if let lines = try? read(screen) { content.append("Earlier screen \(i + 1) (probably the same profile, scrolled up):\n" + transcript(lines)) }
+        }
+        if let jpeg { content.append("On screen now:\n" + transcript(try read(jpeg))) }
         if let text, !text.isEmpty { content.append("Their message or prompt:\n\(text.prefix(2500))") }
         if let draft, !draft.isEmpty { content.append("The user's draft:\n\(draft.prefix(600))") }
         if !previous.isEmpty { content.append("Earlier suggestions (write new ones):\n" + previous.prefix(5).map { "- \($0)" }.joined(separator: "\n")) }

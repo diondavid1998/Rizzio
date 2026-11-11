@@ -9,6 +9,8 @@ AI reply suggestions for Hinge prompts and any text conversation, without leavin
 3. A few seconds later you see "5 replies ready".
 4. Tap the comment box, switch to the **Rizzio keyboard**, and tap a reply to insert it.
 
+**Scroll and tap again:** Hinge profiles are longer than one screen. Back Tap screenshots taken within 3 minutes of each other count as the same profile (up to 4 screens), so Rizzio reads the whole person: name, job, every prompt and photo. Before writing it notes who they are and which prompt or photo it is replying to.
+
 The keyboard can also:
 - **Chat with Rizzio** (speech-bubble button): quick asks like Shorter, Funnier, Bolder, Ask them out, Other prompt, Use their photo, More like me, or type any request in the text box ("make it about her dog", "use the second prompt") and tap **Ask**. Requests stack, so "shorter" then "about the dog" means both.
 - **Length meter** (Auto · Phrase · Short · Medium · Long): how long replies are, from a 1-5 word reaction to a 25-50 word answer. Auto follows the Length slider in Persona. Each reply shows its word count, and the choice also applies to the next Back Tap.

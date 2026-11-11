@@ -37,10 +37,12 @@ enum RizzAPI {
         var instruction: String? = nil
         var previous: [String]? = nil
         var length: String? = nil
+        var earlierImages: [ImagePayload]? = nil
     }
 
     static func generate(mode: RizzMode, tone: Tone? = nil, jpeg: Data? = nil, text: String? = nil, draft: String? = nil,
-                         instruction: String? = nil, previous: [String] = [], length: ReplyLength? = nil) async throws -> RizzResult {
+                         instruction: String? = nil, previous: [String] = [], length: ReplyLength? = nil,
+                         earlier: [Data] = []) async throws -> RizzResult {
         let payload = ReplyPayload(
             mode: mode,
             tone: (tone ?? SharedStore.shared.tone).rawValue,
@@ -49,7 +51,8 @@ enum RizzAPI {
             image: jpeg.map { ImagePayload(data: $0.base64EncodedString(), mediaType: "image/jpeg") },
             instruction: instruction,
             previous: previous.isEmpty ? nil : previous,
-            length: (length ?? SharedStore.shared.replyLength).rawValue
+            length: (length ?? SharedStore.shared.replyLength).rawValue,
+            earlierImages: earlier.isEmpty ? nil : earlier.map { ImagePayload(data: $0.base64EncodedString(), mediaType: "image/jpeg") }
         )
         return try await send("POST", "v1/replies", body: payload, timeout: 60)
     }
@@ -64,7 +67,8 @@ enum RizzAPI {
         draft: String? = nil,
         keepScreenshot: Bool = false,
         instruction: String? = nil,
-        previous: [String] = []
+        previous: [String] = [],
+        earlier: [Data] = []
     ) async throws -> SuggestionBatch {
         let store = SharedStore.shared
         let result: RizzResult
@@ -74,12 +78,12 @@ enum RizzAPI {
             let local = try await OnDeviceAI.replies(mode: mode, tone: tone ?? store.tone, jpeg: jpeg, text: text,
                                                      draft: draft, persona: store.persona, me: me,
                                                      instruction: instruction, previous: previous,
-                                                     length: store.replyLength)
+                                                     length: store.replyLength, earlier: earlier)
             let saved = try? await saveGeneration(mode: mode, tone: tone ?? store.tone, context: local.context, replies: local.replies)
             result = RizzResult(generationId: saved ?? "", context: local.context, replies: local.replies)
         } else {
             result = try await generate(mode: mode, tone: tone, jpeg: jpeg, text: text, draft: draft,
-                                        instruction: instruction, previous: previous)
+                                        instruction: instruction, previous: previous, earlier: earlier)
         }
         if jpeg != nil, keepScreenshot { store.saveScreenshot(jpeg) }
         let batch = SuggestionBatch(
