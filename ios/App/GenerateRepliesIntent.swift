@@ -59,10 +59,10 @@ struct GenerateRepliesIntent: AppIntent {
     }
 }
 
-/// The banner after the Action Button: show the best reply right away, the rest are in the keyboard.
+/// The banner after the Action Button / Back Tap: all 5 replies, numbered, best first.
 private func topReplyBanner(_ batch: SuggestionBatch) -> String {
-    guard let best = batch.replies.first else { return "No replies this time. Try another screenshot." }
-    return "💬 \(best.text)\n\n+\(batch.replies.count - 1) more in the Rizzio keyboard"
+    guard !batch.replies.isEmpty else { return "No replies this time. Try another screenshot." }
+    return batch.replies.enumerated().map { "\($0.offset + 1). \($0.element.text)" }.joined(separator: "\n\n")
 }
 
 enum ScreenKind: String, AppEnum {

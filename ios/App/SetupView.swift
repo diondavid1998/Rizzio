@@ -82,7 +82,7 @@ struct SetupView: View {
                     Step("Or Back Tap: Settings → Accessibility → Touch → Back Tap → Double Tap → Rizzio. You can set up both.")
                 }
                 Section("4. Use it") {
-                    Step("On a Hinge profile, press the Action Button (or double-tap the back). In a few seconds you'll see the best reply. Scroll and tap again to add more of their profile.")
+                    Step("On a Hinge profile, press the Action Button (or double-tap the back). In a few seconds a banner shows all 5 replies. Scroll and tap again to add more of their profile.")
                     Step("Tap the comment box, hold 🌐, pick Rizzio, and tap a reply. 👎 the ones that aren't you.")
                     Step("For texts: copy their message, then tap Clipboard in the Rizzio keyboard. Or type a draft and tap Polish.")
                     Step("Mark wins in History. The more you use it, the more it sounds like you.")
