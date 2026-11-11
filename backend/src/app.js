@@ -95,8 +95,9 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const b = req.body ?? {};
       if (!MODES.includes(b.mode)) return res.status(400).json({ error: "mode must be auto, prompt, chat or draft." });
       const image = parseImage(b.image);
-      // Earlier screenshots of the same profile (the user scrolled and Back Tapped again), oldest first.
-      const earlier = image && Array.isArray(b.earlierImages) ? b.earlierImages.slice(-3).map(parseImage) : [];
+      // Recent screenshots of the same profile (the user scrolled and Back Tapped again), oldest first.
+      // They also come with copied text, so a copied prompt is read knowing who the person is.
+      const earlier = Array.isArray(b.earlierImages) ? b.earlierImages.slice(image ? -3 : -4).map(parseImage) : [];
       const text = str(b.text, 8000);
       const draft = str(b.draft, 2000);
       const tone = str(b.tone, 40) || "me";
@@ -104,7 +105,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const instruction = str(b.instruction, 300);
       const length = str(b.length, 20); // keyboard length meter: phrase / short / medium / long (anything else = persona)
       const previous = Array.isArray(b.previous) ? b.previous.filter((t) => typeof t === "string").slice(0, 10).map((t) => t.slice(0, 300)) : [];
-      if (!image && !text?.trim() && !draft?.trim()) return res.status(400).json({ error: "Send an image, text, or draft." });
+      if (!image && !earlier.length && !text?.trim() && !draft?.trim()) return res.status(400).json({ error: "Send an image, text, or draft." });
 
       const user = store.getUser(req.userId);
       // A preview (the app's Test drive) can try unsaved slider settings and isn't saved or learned from.
@@ -118,7 +119,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const ownRelated = related([text, draft].filter(Boolean).join("\n"), own, 8);
       // A few relevant exchanges from the built-in library, as ideas for angle and flow (not voice).
       const refs = renderInspiration(inspiration([text, draft, instruction].filter(Boolean).join("\n"), { mode: b.mode, limit: b.mode === "draft" ? 3 : 6 }));
-      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image, earlier: earlier.length, instruction, previous, length, ownRelated }), refs].filter(Boolean).join("\n\n");
+      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image || earlier.length > 0, earlier: earlier.length, current: !!image, instruction, previous, length, ownRelated }), refs].filter(Boolean).join("\n\n");
       const raw = await ai.generateReplies({ memory, requestText, image, earlier });
       const result = { ...raw, replies: enforcePersona(persona, raw.replies) };
       const generationId = preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, ...result });

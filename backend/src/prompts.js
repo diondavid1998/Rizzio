@@ -110,7 +110,7 @@ export const LENGTHS = {
   long: "long: 25-50 words, a few sentences with a real story, opinion or question",
 };
 
-export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier = 0, instruction, previous, length, ownRelated }) {
+export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier = 0, current = true, instruction, previous, length, ownRelated }) {
   const parts = [];
   if (mode === "auto")
     parts.push(
@@ -146,9 +146,11 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier 
   if (draft?.trim()) parts.push(`The user's draft:\n"""\n${draft.trim()}\n"""`);
   if (hasImage) {
     parts.push(
-      earlier
-        ? `Attached: ${earlier} earlier screenshot${earlier === 1 ? "" : "s"} of what's probably the same profile, then the one on screen now (last). Read all of them before writing.`
-        : "The screenshot is attached.",
+      !current
+        ? `Attached: ${earlier} recent screenshot${earlier === 1 ? "" : "s"} of what's probably the profile the copied text comes from. Use them to know who the person is; reply to the copied text.`
+        : earlier
+          ? `Attached: ${earlier} earlier screenshot${earlier === 1 ? "" : "s"} of what's probably the same profile, then the one on screen now (last). Read all of them before writing.`
+          : "The screenshot is attached.",
     );
   }
   return parts.join("\n\n");

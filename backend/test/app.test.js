@@ -299,8 +299,9 @@ describe("persona", () => {
     const sent = ai.calls.replies.at(-1);
     assert.equal(sent.earlier.length, 3);
     assert.match(sent.requestText, /3 earlier screenshots of what's probably the same profile/);
-    await call("POST", "/v1/replies", { mode: "chat", text: "hi", earlierImages: [img] });
-    assert.equal(ai.calls.replies.at(-1).earlier.length, 0, "earlier screens only go with a screenshot");
+    await call("POST", "/v1/replies", { mode: "auto", text: "My simple pleasures: night-shift tacos", earlierImages: [img, img] });
+    assert.equal(ai.calls.replies.at(-1).earlier.length, 2, "a copied prompt is read with the recent profile screens");
+    assert.match(ai.calls.replies.at(-1).requestText, /reply to the copied text/);
   });
 
   test("keyboard length meter sets how long replies are", async () => {

@@ -200,7 +200,7 @@ export class ClaudeAI {
       ],
       content,
       schema: REPLY_SCHEMA,
-      effort: image ? "medium" : "low", // screenshots need real reading; text-only replies stay fast
+      effort: image || earlier.length ? "medium" : "low", // screenshots need real reading; text-only replies stay fast
     });
     return { context: out.context, read: out.read, replies: out.replies.slice(0, 5) };
   }

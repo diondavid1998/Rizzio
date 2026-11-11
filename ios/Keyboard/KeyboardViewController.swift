@@ -238,13 +238,16 @@ final class KeyboardModel: ObservableObject {
         rewrite(instruction: String(typed.prefix(300)))
     }
 
-    /// Uses text you copied (e.g. their message) as the conversation.
+    /// Uses text you copied: a profile prompt or their message. Rizzio works out which it is.
     func fromClipboard() {
         guard let text = UIPasteboard.general.string, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            message = "Copy their message first (long-press → Copy)."
+            message = "Copy their prompt or message first (long-press → Copy)."
             return
         }
-        run { try await RizzAPI.generateAndStore(mode: .chat, tone: self.tone, text: text) }
+        // Auto, not chat: a copied Hinge prompt ("My simple pleasures: ...") should get profile comments,
+        // not a reply as if they had texted it. Recent screenshots of the profile add who they are.
+        let screens = SharedStore.shared.profileScreens(maxAge: 600)
+        run { try await RizzAPI.generateAndStore(mode: .auto, tone: self.tone, text: text, earlier: screens) }
     }
 
     /// Rewrites what you've typed so far.
