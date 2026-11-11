@@ -1,4 +1,5 @@
 import AppIntents
+import UIKit
 import Foundation
 
 /// Shows up in the Shortcuts app as "Get Rizzio Replies".
@@ -10,8 +11,9 @@ struct GenerateRepliesIntent: AppIntent {
     static var openAppWhenRun: Bool = false
 
     /// Connects to the previous action's output (Take Screenshot) automatically, so nobody has to pick a file.
+    /// Optional: if it's empty, the screenshot is taken from the clipboard (Take Screenshot → Copy to Clipboard → this).
     @Parameter(title: "Screenshot", supportedTypeIdentifiers: ["public.image"], inputConnectionBehavior: .connectToPreviousIntentResult)
-    var screenshot: IntentFile
+    var screenshot: IntentFile?
 
     static var parameterSummary: some ParameterSummary {
         Summary("Get Rizzio replies for \(\.$screenshot)") {
@@ -27,8 +29,10 @@ struct GenerateRepliesIntent: AppIntent {
     var tone: ToneOption?
 
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
-        guard let jpeg = ImageTools.compressedJPEG(from: screenshot.data) else {
-            throw RizzError.server("Couldn't read that screenshot.")
+        // The connected Screenshot, or else an image on the clipboard (when the shortcut copies it there).
+        let raw = screenshot?.data ?? UIPasteboard.general.image?.pngData()
+        guard let raw, let jpeg = ImageTools.compressedJPEG(from: raw) else {
+            throw RizzError.server("No screenshot reached Rizzio. In your shortcut, add Copy to Clipboard between Take Screenshot and Get Rizzio Replies.")
         }
         let mode: RizzMode
         switch kind {

@@ -72,7 +72,9 @@ struct SetupView: View {
                 }
                 Section("2. Make the Shortcut") {
                     Step("Open the Shortcuts app → + → Add Action → search \"Take Screenshot\" and add it.")
-                    Step("Add Action → search \"Get Rizzio Replies\" and add it below. Its Screenshot field should show a blue \"Screenshot\" bubble. If it says \"Choose\", long-press it → Select Variable → tap the Take Screenshot step.")
+                    Step("Add Action → search \"Copy to Clipboard\" and add it below Take Screenshot.")
+                    Step("Add Action → search \"Get Rizzio Replies\" and add it last. Leave its Screenshot field empty: Rizzio reads the screenshot from the clipboard.")
+                    Step("The first time, iOS may ask to allow pasting. To stop it asking: Settings → Apps → Rizzio → Paste from Other Apps → Allow.")
                     Step("Name it \"Rizzio\". Optional: make a copy with Type set to Chat, for text conversations.")
                 }
                 Section("3. Put it on a button") {

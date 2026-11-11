@@ -124,7 +124,7 @@ In Xcode:
 
 1. Open **Rizzio → Setup**, paste your server URL and APP_TOKEN, and tap Save.
 2. Open the **You** tab: add a bit about yourself and a few messages that worked, then **Teach from chat screenshots** with 5–10 screenshots of your best conversations.
-3. Follow the rest of the **Setup** tab: add the keyboard and turn on Full Access, build the Shortcut (Take Screenshot → Get Rizzio Replies), and assign it to the Action Button (Settings → Action Button → Shortcut) or Back Tap (Settings → Accessibility → Touch → Back Tap).
+3. Follow the rest of the **Setup** tab: add the keyboard and turn on Full Access, build the Shortcut (Take Screenshot → Copy to Clipboard → Get Rizzio Replies, with its Screenshot field left empty), and assign it to the Action Button (Settings → Action Button → Shortcut) or Back Tap (Settings → Accessibility → Touch → Back Tap).
 4. Test it on the **Try it** tab with a saved screenshot first.
 
 ## Cost
