@@ -36,6 +36,14 @@ describe("built-in reference library", () => {
     assert.match(renderInspiration(r), /They shared \(feeling \w+\)/);
   });
 
+  test("every dataset in data/corpus loads, and results mix sources", () => {
+    const sources = new Set(corpus().docs.map((d) => d.source));
+    assert.ok(sources.size >= 7, `expected 7 datasets, got ${sources.size}`);
+    const r = inspiration("I love hiking and trying new coffee shops on weekends", { mode: "chat", limit: 6 });
+    assert.ok(new Set(r.map((e) => e.them)).size === 6);
+    assert.ok(new Set(r.map((e) => e.kind + e.them.length)).size > 1);
+  });
+
   test("stripEmoji", () => {
     assert.equal(stripEmoji("haha 😂 ok 👍🏽"), "haha ok");
     assert.equal(stripEmoji("👨‍👩‍👧 family day?"), "family day?");

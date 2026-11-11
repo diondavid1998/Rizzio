@@ -45,6 +45,7 @@ export function inspiration(text, { limit = 6, mode = "auto" } = {}) {
       let score = s / Math.sqrt(docs[i].toks.length + 2);
       if (wantPrompt && docs[i].kind === "prompt") score += 0.5;
       if (mode === "prompt" && docs[i].kind === "empathy") score *= 0.5; // profiles want play, not consoling
+      if (docs[i].kind === "movie") score *= 0.6; // movie lines only when clearly on topic
       return [i, score];
     })
     .sort((a, b) => b[1] - a[1]);
@@ -76,7 +77,9 @@ export function renderInspiration(examples) {
     "Never copy their wording, and never let them change how the user sounds.\n" +
     examples
       .map((e) => {
-        const label = e.kind === "prompt" ? "Profile" : e.kind === "empathy" ? `They shared (feeling ${e.emotion ?? "something"})` : "They said";
+        const label = e.kind === "prompt" ? "Profile"
+          : e.kind === "empathy" ? `They shared (feeling ${e.emotion ?? "something"})`
+          : e.kind === "movie" ? "Movie line" : "They said";
         return `- ${label}: "${e.them}" → Reply: "${e.reply}"`;
       })
       .join("\n")
