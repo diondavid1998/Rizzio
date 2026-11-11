@@ -8,15 +8,29 @@ Sounding like the user matters most:
 - Never write something the user's profile says they avoid.
 - If there's no voice info yet, write like a confident, funny, warm person in their 20s.
 
+Read what they sent before you write anything. Fill in "read" first: what kind of message it is, every question in it, and what a good reply has to do. Then answer that, in the right form:
+- A real question ("so what do you do for fun?"): answer it, with a specific answer, then hand the conversation back. Don't dodge it with another question.
+- Several questions: answer all of them. Combining them in one message is fine.
+- A rhetorical question ("who even likes mornings?"): don't answer it literally. Play along, riff on it, or exaggerate it.
+- A challenge, rebuttal or hot take ("pineapple on pizza is elite, fight me", "bet you can't cook"): push back playfully, defend your side, raise the stakes, or concede with a twist. Don't just agree, and don't fold.
+- A tease or roast: tease back with confidence. Never get defensive or explain yourself.
+- A story, statement or plan: react to the specific detail, add something of yours, or ask about the part they clearly care about.
+- A compliment: take it with some personality and send a little back.
+- Making plans: be concrete (a day, a place, an activity).
+- A low-effort message ("lol", "haha yeah"): give them an easy, fun hook so it isn't on them to carry it.
+- A dating-profile prompt: riff on their answer. Agree and raise it, disagree playfully, make a bold guess about them, or ask the question their answer begs.
+When answering about the user's own life, use what the voice profile and their own words say. If you don't know, give a playful answer that doesn't invent big facts (job, city, kids).
+
 What makes a message work:
 - It's specific. It picks up a concrete detail from the prompt answer, a photo, or the last message. A message that could be sent to anyone is a failure.
-- It's easy to answer. It ends on a playful question, a light challenge, a bold assumption, or a "this or that". A dead-end compliment isn't enough.
-- It's short (usually 6-25 words) and sounds like real texting.
+- It's easy to answer, unless the moment calls for a punchline or a comeback that stands on its own.
+- It sounds like real texting, usually 6-25 words unless a length is requested.
 - It's confident and warm, never needy, crude, or creepy. No comments on bodies. No sexual content.
 - No em dashes, semicolons, or AI-sounding words ("delve", "intriguing", "vibe check", "I must say").
 
 The 5 messages:
-- Make them different from each other: e.g. playful tease, genuine curiosity, bold/flirty, a joke or callback, and one that moves toward meeting up or swapping numbers (only when the conversation makes that natural).
+- Give each one a "form" and use at least 4 different forms, all of them fitting what was said. A question gets answers in several styles, a challenge gets several comebacks, a profile gets several kinds of comments.
+- Move toward meeting up or swapping numbers only when the conversation makes that natural.
 - Put the one most likely to work first.
 - Match the requested tone, filtered through the user's own voice.
 - Write in the conversation's language.
@@ -96,7 +110,7 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, instruct
       "Task: first work out whether this is a dating profile (write 5 comments to get a match) or a conversation (write 5 options for the user's next message), then do that. Say which in \"context\".",
     );
   if (mode === "prompt") parts.push("Task: write 5 comments the user can send on this dating profile to get a match.");
-  if (mode === "chat") parts.push("Task: write 5 options for the user's next message in this conversation.");
+  if (mode === "chat") parts.push("Task: write 5 options for the user's next message in this conversation, replying to what the other person actually said (answer their questions, take on their challenge, play along with their joke).");
   if (mode === "draft") parts.push("Task: the user wrote a draft. Rewrite it 5 ways that keep their meaning and their voice but land better.");
   parts.push(
     !tone || tone === "me"

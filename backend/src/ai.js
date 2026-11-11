@@ -2,9 +2,30 @@ import Anthropic from "@anthropic-ai/sdk";
 import { SLIDERS } from "./persona.js";
 import { AUTOTUNE_SYSTEM, EXTRACT_SYSTEM, PROFILE_SYSTEM, REPLY_SYSTEM } from "./prompts.js";
 
+/** How a reply responds to what was said. The model picks one per reply and must use at least 4 different ones. */
+export const REPLY_FORMS = [
+  "answer", "answer_and_ask", "play_along", "comeback", "tease_back", "agree_and_raise", "playful_disagree",
+  "bold_guess", "follow_up_question", "callback", "story", "compliment_back", "make_plans", "hook",
+];
+export const MESSAGE_KINDS = [
+  "profile_prompt", "photo", "question", "several_questions", "rhetorical_question", "challenge_or_hot_take",
+  "tease", "story_or_statement", "compliment", "making_plans", "low_effort", "mixed",
+];
+
 const REPLY_SCHEMA = {
   type: "object",
   properties: {
+    read: {
+      type: "object",
+      description: "Fill this in first: what they sent and what a good reply has to do.",
+      properties: {
+        kind: { type: "string", enum: MESSAGE_KINDS },
+        questions: { type: "array", items: { type: "string" }, description: "Every question they asked that needs an answer (empty if none)." },
+        needs: { type: "string", description: "One line: what a good reply has to do here." },
+      },
+      required: ["kind", "questions", "needs"],
+      additionalProperties: false,
+    },
     context: { type: "string", description: "One short line naming what you replied to." },
     replies: {
       type: "array",
@@ -13,14 +34,15 @@ const REPLY_SCHEMA = {
         type: "object",
         properties: {
           text: { type: "string", description: "The message exactly as it should be sent." },
-          angle: { type: "string", description: "2-3 word label for the approach." },
+          form: { type: "string", enum: REPLY_FORMS, description: "How this reply responds to what was said." },
+          angle: { type: "string", description: "2-4 word label for the approach, shown to the user." },
         },
-        required: ["text", "angle"],
+        required: ["text", "form", "angle"],
         additionalProperties: false,
       },
     },
   },
-  required: ["context", "replies"],
+  required: ["read", "context", "replies"],
   additionalProperties: false,
 };
 
@@ -170,7 +192,7 @@ export class ClaudeAI {
       schema: REPLY_SCHEMA,
       effort: "low", // short creative replies: speed matters more than deep reasoning
     });
-    return { context: out.context, replies: out.replies.slice(0, 5) };
+    return { context: out.context, read: out.read, replies: out.replies.slice(0, 5) };
   }
 
   async rebuildProfile({ evidence }) {

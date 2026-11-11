@@ -95,7 +95,11 @@ enum OnDeviceAI {
     and easy to answer: end with a playful question, a light challenge, or a this-or-that.
     Be confident and warm. Never crude, no sexual content, no comments on bodies, no cheesy pickup lines, no em dashes.
     Follow the persona settings. Copy the user's own example messages for length, capitalization, slang and emoji.
-    Make the 5 messages different approaches, best one first.
+    First read what they sent: is it a question, several questions, a rhetorical question, a challenge or hot take, \
+    a tease, a story, a compliment, plans, or a dating-profile prompt? Then reply in the right form: answer real questions \
+    (all of them) and hand it back, play along with rhetorical ones, push back playfully on challenges, tease back on teases, \
+    react to the specific detail of a story, and riff on a profile prompt.
+    Make the 5 messages different forms that all fit what was said, best one first.
     """
 
     static func personaText(_ persona: Persona) -> String {
@@ -225,6 +229,8 @@ enum OnDeviceAI {
 @available(iOS 26.0, *)
 @Generable
 struct GeneratedReplies {
+    @Guide(description: "What kind of message they sent: question, several questions, rhetorical, challenge, tease, story, compliment, plans, or profile prompt, and what a good reply must do")
+    var read: String
     @Guide(description: "One short line naming what you replied to")
     var context: String
     @Guide(description: "Exactly five different messages, best first")
@@ -236,7 +242,7 @@ struct GeneratedReplies {
 struct GeneratedReply {
     @Guide(description: "The message exactly as the user would send it")
     var text: String
-    @Guide(description: "Two or three words naming the approach, like playful tease")
+    @Guide(description: "Two to four words naming how it responds, like answer + ask back, playful comeback, play along")
     var angle: String
 }
 

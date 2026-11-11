@@ -63,3 +63,24 @@ test("explains an empty Claude balance in plain English", async () => {
   ai.client = c;
   await assert.rejects(ai.rebuildProfile({ evidence: "x" }), /out of credits/);
 });
+
+test("replies: the model reads the message first and labels each reply's form", async () => {
+  const out = {
+    read: { kind: "several_questions", questions: ["what do you do?", "dogs or cats?"], needs: "answer both, then ask back" },
+    context: "Their two questions",
+    replies: [{ text: "nurse by day, chaos by night. dogs, obviously. you?", form: "answer_and_ask", angle: "answer + ask" }],
+  };
+  const ai = new ClaudeAI({ apiKey: "x" });
+  ai.client = fakeClient({ text: JSON.stringify(out) });
+  const r = await ai.generateReplies({ memory: "m", requestText: "Task: chat" });
+  assert.deepEqual(r.read.questions, ["what do you do?", "dogs or cats?"]);
+  assert.equal(r.replies[0].form, "answer_and_ask");
+  const req = ai.client.calls[0];
+  const schema = req.output_config.format.schema;
+  assert.deepEqual(Object.keys(schema.properties), ["read", "context", "replies"], "read comes first so it's decided before writing");
+  assert.ok(schema.properties.replies.items.properties.form.enum.includes("comeback"));
+  const system = req.system.map((b) => b.text).join("\n");
+  assert.match(system, /rhetorical question/i);
+  assert.match(system, /challenge, rebuttal or hot take/);
+  assert.match(system, /at least 4 different forms/);
+});
