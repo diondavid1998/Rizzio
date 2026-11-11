@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { corpus, inspiration } from "../src/corpus.js";
+import { corpus, inspiration, isHinglish, renderInspiration } from "../src/corpus.js";
 import { stripEmoji } from "../src/persona.js";
 
 describe("built-in reference library", () => {
@@ -27,6 +27,22 @@ describe("built-in reference library", () => {
   test("filtered for family-friendly, light topics", () => {
     const bad = /\b(sex|naked|porn|suicid|funeral|cancer)\w*/i;
     assert.ok(!corpus().docs.some((d) => bad.test(d.them) || bad.test(d.reply)));
+  });
+
+  test("Hinglish examples only for Hinglish chats", () => {
+    assert.equal(isHinglish("yaar aaj office mein bohot kaam tha"), true);
+    assert.equal(isHinglish("I love hiking with my dog"), false);
+    const hi = inspiration("yaar aaj office mein bohot kaam tha, thak gaya", { mode: "chat", limit: 4 });
+    assert.ok(hi.every((e) => isHinglish(e.them + " " + e.reply)), "Hinglish in, Hinglish out");
+    const en = inspiration("work was so busy today, I'm exhausted", { mode: "chat", limit: 6 });
+    assert.ok(en.every((e) => !isHinglish(e.them + " " + e.reply)), "no Hinglish for English chats");
+  });
+
+  test("feelings pull in EmpatheticDialogues examples, labelled with the feeling", () => {
+    const r = inspiration("I just got promoted and I am so proud of myself", { mode: "chat", limit: 5 });
+    const empathy = r.filter((e) => e.kind === "empathy");
+    assert.ok(empathy.length >= 1 && empathy.length <= 3, "mixed with other sources");
+    assert.match(renderInspiration(r), /They shared \(feeling \w+\)/);
   });
 
   test("stripEmoji", () => {
