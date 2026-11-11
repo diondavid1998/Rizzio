@@ -72,7 +72,7 @@ struct SetupView: View {
                 }
                 Section("2. Make the Shortcut") {
                     Step("Open the Shortcuts app → + → Add Action → search \"Take Screenshot\" and add it.")
-                    Step("Add Action → search \"Get Rizzio Replies\" and add it. Its Screenshot field should say \"Screenshot\".")
+                    Step("Add Action → search \"Get Rizzio Replies\" and add it below. Its Screenshot field should show a blue \"Screenshot\" bubble. If it says \"Choose\", long-press it → Select Variable → tap the Take Screenshot step.")
                     Step("Name it \"Rizzio\". Optional: make a copy with Type set to Chat, for text conversations.")
                 }
                 Section("3. Put it on a button") {
@@ -80,7 +80,7 @@ struct SetupView: View {
                     Step("Or Back Tap: Settings → Accessibility → Touch → Back Tap → Double Tap → Rizzio. You can set up both.")
                 }
                 Section("4. Use it") {
-                    Step("On a Hinge profile, press the Action Button. In a few seconds you'll see \"5 replies ready\".")
+                    Step("On a Hinge profile, press the Action Button (or double-tap the back). In a few seconds you'll see the best reply. Scroll and tap again to add more of their profile.")
                     Step("Tap the comment box, hold 🌐, pick Rizzio, and tap a reply. 👎 the ones that aren't you.")
                     Step("For texts: copy their message, then tap Clipboard in the Rizzio keyboard. Or type a draft and tap Polish.")
                     Step("Mark wins in History. The more you use it, the more it sounds like you.")

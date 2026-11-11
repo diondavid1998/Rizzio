@@ -9,8 +9,16 @@ struct GenerateRepliesIntent: AppIntent {
     static var description = IntentDescription("Reads a screenshot (a dating profile or a chat) and writes 5 replies. Open the Rizzio keyboard to use them.")
     static var openAppWhenRun: Bool = false
 
-    @Parameter(title: "Screenshot", supportedTypeIdentifiers: ["public.image"])
+    /// Connects to the previous action's output (Take Screenshot) automatically, so nobody has to pick a file.
+    @Parameter(title: "Screenshot", supportedTypeIdentifiers: ["public.image"], inputConnectionBehavior: .connectToPreviousIntentResult)
     var screenshot: IntentFile
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Get Rizzio replies for \(\.$screenshot)") {
+            \.$kind
+            \.$tone
+        }
+    }
 
     @Parameter(title: "Type", default: .auto)
     var kind: ScreenKind
