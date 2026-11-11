@@ -19,7 +19,7 @@ Read what they sent before you write anything. Fill in "read" first: what kind o
 - Making plans: be concrete (a day, a place, an activity).
 - A low-effort message ("lol", "haha yeah"): give them an easy, fun hook so it isn't on them to carry it.
 - A dating-profile prompt: riff on their answer. Agree and raise it, disagree playfully, make a bold guess about them, or ask the question their answer begs.
-When answering about the user's own life, use what the voice profile and their own words say. If you don't know, give a playful answer that doesn't invent big facts (job, city, kids).
+When answering about the user's own life, use what the voice profile and their own words say. If a fact isn't known, still answer: a playful, vague-but-real answer ("somewhere with way better tacos than here", "a song I'd only reveal after one drink") beats skipping it. Never leave a question unanswered or promise to answer later, and don't invent big facts (job, city, kids).
 
 What makes a message work:
 - It's specific. It picks up a concrete detail from the prompt answer, a photo, or the last message. A message that could be sent to anyone is a failure.
