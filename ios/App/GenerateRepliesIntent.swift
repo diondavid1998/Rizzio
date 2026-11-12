@@ -28,7 +28,8 @@ struct GenerateRepliesIntent: AppIntent {
     @Parameter(title: "Tone (optional)")
     var tone: ToneOption?
 
-    func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+    /// Returns the 5 replies as a list, so the shortcut can show them with "Choose from List" and copy the one you tap.
+    func perform() async throws -> some IntentResult & ReturnsValue<[String]> {
         // The connected Screenshot, or else an image on the clipboard (when the shortcut copies it there).
         let raw = screenshot?.data ?? UIPasteboard.general.image?.pngData()
         guard let raw, let jpeg = ImageTools.compressedJPEG(from: raw) else {
@@ -51,19 +52,11 @@ struct GenerateRepliesIntent: AppIntent {
             earlier: earlier
         )
         store.addProfileScreen(jpeg)
-        let list = batch.replies.enumerated().map { "\($0.offset + 1). \($0.element.text)" }.joined(separator: "\n")
-        return .result(
-            value: list,
-            dialog: IntentDialog(stringLiteral: topReplyBanner(batch))
-        )
+        guard !batch.replies.isEmpty else { throw RizzError.server("No replies this time. Try another screenshot.") }
+        return .result(value: batch.replies.map(\.text))
     }
 }
 
-/// The banner after the Action Button / Back Tap: all 5 replies as bullets, one per line, best first.
-private func topReplyBanner(_ batch: SuggestionBatch) -> String {
-    guard !batch.replies.isEmpty else { return "No replies this time. Try another screenshot." }
-    return batch.replies.map { "• \($0.text)" }.joined(separator: "\n")
-}
 
 enum ScreenKind: String, AppEnum {
     case auto, profile, chat

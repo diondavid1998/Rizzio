@@ -74,6 +74,7 @@ struct SetupView: View {
                     Step("Open the Shortcuts app → + → Add Action → search \"Take Screenshot\" and add it.")
                     Step("Add Action → search \"Copy to Clipboard\" and add it below Take Screenshot.")
                     Step("Add Action → search \"Get Rizzio Replies\" and add it last. Leave its Screenshot field empty: Rizzio reads the screenshot from the clipboard.")
+                    Step("Add Action → \"Choose from List\" (it uses Rizzio's replies), then \"Copy to Clipboard\" last. You'll pick a reply and it's copied, ready to paste.")
                     Step("The first time, iOS may ask to allow pasting. To stop it asking: Settings → Apps → Rizzio → Paste from Other Apps → Allow.")
                     Step("Name it \"Rizzio\". Optional: make a copy with Type set to Chat, for text conversations.")
                 }
@@ -82,7 +83,7 @@ struct SetupView: View {
                     Step("Or Back Tap: Settings → Accessibility → Touch → Back Tap → Double Tap → Rizzio. You can set up both.")
                 }
                 Section("4. Use it") {
-                    Step("On a Hinge profile, press the Action Button (or double-tap the back). In a few seconds a banner shows all 5 replies. Scroll and tap again to add more of their profile.")
+                    Step("On a Hinge profile, press the Action Button (or double-tap the back). In a few seconds you pick one of 5 replies and it's copied. Scroll and tap again to add more of their profile.")
                     Step("Tap the comment box, hold 🌐, pick Rizzio, and tap a reply. 👎 the ones that aren't you.")
                     Step("For texts: copy their message, then tap Clipboard in the Rizzio keyboard. Or type a draft and tap Polish.")
                     Step("Mark wins in History. The more you use it, the more it sounds like you.")

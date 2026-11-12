@@ -6,7 +6,7 @@ AI reply suggestions for Hinge prompts and any text conversation, without leavin
 
 1. On a Hinge profile, **press the Action Button** (iPhone 15 Pro / 16 and newer) or **double-tap the back of your iPhone** (Back Tap).
 2. A Shortcut takes a screenshot and sends it to Rizzio in the background. Rizzio doesn't open.
-3. A few seconds later a banner shows all 5 replies.
+3. A few seconds later a list of 5 replies pops up: tap one and it is copied, ready to paste.
 4. Tap the comment box, switch to the **Rizzio keyboard**, and tap a reply to insert it.
 
 **Scroll and tap again:** Hinge profiles are longer than one screen. Back Tap screenshots taken within 3 minutes of each other count as the same profile (up to 4 screens), so Rizzio reads the whole person: name, job, every prompt and photo. Before writing it notes who they are and which prompt or photo it is replying to.
@@ -124,7 +124,7 @@ In Xcode:
 
 1. Open **Rizzio → Setup**, paste your server URL and APP_TOKEN, and tap Save.
 2. Open the **You** tab: add a bit about yourself and a few messages that worked, then **Teach from chat screenshots** with 5–10 screenshots of your best conversations.
-3. Follow the rest of the **Setup** tab: add the keyboard and turn on Full Access, build the Shortcut (Take Screenshot → Copy to Clipboard → Get Rizzio Replies, with its Screenshot field left empty), and assign it to the Action Button (Settings → Action Button → Shortcut) or Back Tap (Settings → Accessibility → Touch → Back Tap).
+3. Follow the rest of the **Setup** tab: add the keyboard and turn on Full Access, build the Shortcut (Take Screenshot → Copy to Clipboard → Get Rizzio Replies → Choose from List → Copy to Clipboard), and assign it to the Action Button (Settings → Action Button → Shortcut) or Back Tap (Settings → Accessibility → Touch → Back Tap).
 4. Test it on the **Try it** tab with a saved screenshot first.
 
 ## Cost
