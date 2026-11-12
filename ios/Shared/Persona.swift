@@ -10,7 +10,7 @@ struct Persona: Codable, Equatable {
 
     static let `default` = Persona(
         sliders: Dictionary(uniqueKeysWithValues: SliderSpec.all.map { ($0.key, $0.defaultValue) }),
-        toggles: ["lowercase": false, "noEmoji": false, "noPickupLines": true, "mirrorEnergy": true, "useMyInterests": true, "noDoubleText": true],
+        toggles: ["lowercase": false, "noEmoji": false, "noPhotos": false, "noPickupLines": true, "mirrorEnergy": true, "useMyInterests": true, "noDoubleText": true],
         goal: "match",
         avoid: "",
         notes: ""

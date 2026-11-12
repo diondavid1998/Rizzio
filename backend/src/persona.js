@@ -20,6 +20,7 @@ export const SLIDERS = [
 export const TOGGLES = [
   { key: "lowercase", text: "Write in all lowercase." },
   { key: "noEmoji", text: "Never use emoji (text emoticons like :) are fine only if the user writes them)." },
+  { key: "noPhotos", text: "Ignore their photos completely: reply only to their written prompts, profile text and messages. Never mention, describe or guess from what's in their pictures or how they look, and never pick a photo as the hook." },
   { key: "noPickupLines", text: "Never use canned pickup lines or cheesy puns." },
   { key: "mirrorEnergy", text: "Mirror the other person's energy and message length." },
   { key: "useMyInterests", text: "Work in the user's own interests and life details when it fits." },
@@ -36,7 +37,7 @@ export const GOALS = {
 
 export const DEFAULT_PERSONA = {
   sliders: Object.fromEntries(SLIDERS.map((s) => [s.key, s.def])),
-  toggles: { lowercase: false, noEmoji: false, noPickupLines: true, mirrorEnergy: true, useMyInterests: true, noDoubleText: true },
+  toggles: { lowercase: false, noEmoji: false, noPhotos: false, noPickupLines: true, mirrorEnergy: true, useMyInterests: true, noDoubleText: true },
   goal: "match",
   avoid: "",
   notes: "",

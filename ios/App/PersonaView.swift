@@ -61,6 +61,15 @@ struct PersonaView: View {
                             }
                             .tint(Theme.accent)
                             .accessibilityIdentifier("toggle.emoji")
+                            Toggle(isOn: photosBinding) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Reply to their photos")
+                                    Text(persona.isOn("noPhotos") ? "Off: only their prompts and messages" : "On: photos can be the hook too")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                            .tint(Theme.accent)
+                            .accessibilityIdentifier("toggle.photos")
                         }
                         ForEach(SliderSpec.all.filter { $0.group == group }) { spec in
                             PersonaSlider(spec: spec, value: binding(for: spec.key))
@@ -143,6 +152,11 @@ struct PersonaView: View {
 
     private func toggleBinding(_ key: String) -> Binding<Bool> {
         Binding(get: { persona.isOn(key) }, set: { persona.toggles[key] = $0 })
+    }
+
+    /// "Reply to their photos" is the inverse of the noPhotos rule.
+    private var photosBinding: Binding<Bool> {
+        Binding(get: { !persona.isOn("noPhotos") }, set: { persona.toggles["noPhotos"] = !$0 })
     }
 
     /// "Emoji in replies" is the inverse of the noEmoji rule.

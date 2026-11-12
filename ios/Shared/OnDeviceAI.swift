@@ -109,6 +109,7 @@ enum OnDeviceAI {
         }
         if persona.isOn("lowercase") { parts.append("- Write everything in lowercase.") }
         if persona.isOn("noEmoji") { parts.append("- No emoji at all.") }
+        if persona.isOn("noPhotos") { parts.append("- Reply only to their written prompts and messages, never to their photos.") }
         if persona.isOn("noPickupLines") { parts.append("- No canned pickup lines.") }
         if persona.isOn("noDoubleText") { parts.append("- Never needy or chasing.") }
         if let goal = GoalSpec.all.first(where: { $0.key == persona.goal }) { parts.append("- Goal: \(goal.title).") }

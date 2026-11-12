@@ -308,6 +308,15 @@ describe("persona", () => {
     assert.match(ai.calls.replies.at(-1).requestText, /reply to the copied text/);
   });
 
+  test("Reply to their photos switch: off means prompts and text only", async () => {
+    await call("PUT", "/v1/me/persona", { persona: { toggles: { noPhotos: true } } });
+    await call("POST", "/v1/replies", { mode: "prompt", text: "Typical Sunday: church at 11" });
+    assert.match(ai.calls.replies.at(-1).memory, /Ignore their photos completely/);
+    await call("PUT", "/v1/me/persona", { persona: { toggles: { noPhotos: false } } });
+    await call("POST", "/v1/replies", { mode: "prompt", text: "Typical Sunday: church at 11" });
+    assert.doesNotMatch(ai.calls.replies.at(-1).memory, /Ignore their photos/);
+  });
+
   test("keyboard length meter sets how long replies are", async () => {
     await call("POST", "/v1/replies", { mode: "prompt", text: "I love hiking", length: "phrase" });
     assert.match(ai.calls.replies.at(-1).requestText, /Length for this request: a phrase: 1-5 words/);

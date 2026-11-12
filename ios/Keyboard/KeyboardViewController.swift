@@ -455,7 +455,8 @@ struct KeyboardRootView: View {
                         .clipShape(Capsule())
                 }
                 .accessibilityLabel("Ask Rizzio what you typed")
-                ForEach(KeyboardModel.quickAsks, id: \.self) { ask in
+                // "Use their photo" makes no sense when the Reply to their photos switch is off.
+                ForEach(KeyboardModel.quickAsks.filter { $0.label != "Use their photo" || !SharedStore.shared.persona.isOn("noPhotos") }, id: \.self) { ask in
                     Button(ask.label) { model.rewrite(instruction: ask.instruction, label: ask.label) }
                         .font(.caption.weight(.semibold))
                         .padding(.horizontal, 10).padding(.vertical, 6)
