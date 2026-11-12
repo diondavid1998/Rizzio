@@ -10,14 +10,22 @@ enum Learner {
                        onEach: (UIImage?, [String]) -> Void = { _, _ in }) async throws -> (screens: Int, learned: Int) {
         var screens = 0
         var learned = 0
+        var unreadable = 0
         for (i, item) in items.enumerated() {
             progress("Reading screenshot \(i + 1) of \(items.count)…")
-            guard let data = try await item.loadTransferable(type: Data.self),
-                  let jpeg = ImageTools.compressedJPEG(from: data) else { continue }
+            // Photos stored only in iCloud are downloaded here; if that fails, count it and say so below.
+            let data = try? await item.loadTransferable(type: Data.self)
+            guard let data, let jpeg = ImageTools.compressedJPEG(from: data) else {
+                unreadable += 1
+                continue
+            }
             let messages = try await RizzAPI.learn(fromScreenshot: jpeg)
             screens += 1
             learned += messages.count
             onEach(ImageTools.compressedJPEG(from: data, maxDimension: 160).flatMap(UIImage.init(data:)), messages)
+        }
+        if screens == 0 && unreadable > 0 {
+            throw RizzError.server("Couldn't open \(unreadable == 1 ? "that photo" : "those photos"). If they're stored in iCloud, check you're online (or open them in Photos first so they download), then try again.")
         }
         if learned > 0 {
             progress("Updating your texting style…")

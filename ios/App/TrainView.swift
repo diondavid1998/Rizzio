@@ -57,7 +57,7 @@ struct TrainView: View {
 
                 // MARK: Upload
                 Section {
-                    PhotosPicker(selection: $uploadItems, maxSelectionCount: 20, matching: .screenshots) {
+                    PhotosPicker(selection: $uploadItems, maxSelectionCount: 20, matching: .images) {
                         HStack(spacing: 14) {
                             Image(systemName: "photo.on.rectangle")
                                 .font(.title2)

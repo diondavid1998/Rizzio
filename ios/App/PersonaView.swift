@@ -302,7 +302,7 @@ struct AutoTuneSheet: View {
         NavigationStack {
             List {
                 Section {
-                    PhotosPicker(selection: $uploadItems, maxSelectionCount: 20, matching: .screenshots) {
+                    PhotosPicker(selection: $uploadItems, maxSelectionCount: 20, matching: .images) {
                         Label("Upload chat screenshots", systemImage: "photo.on.rectangle")
                     }
                     .disabled(progress != nil)
@@ -461,7 +461,7 @@ struct TestDriveView: View {
                     .accessibilityIdentifier("customPrompt")
                 Button("Write replies") { Task { await run(text: customText, jpeg: nil) } }
                     .disabled(isLoading || customText.trimmingCharacters(in: .whitespaces).isEmpty)
-                PhotosPicker(selection: $photoItem, matching: .screenshots) {
+                PhotosPicker(selection: $photoItem, matching: .images) {
                     Label("Use a screenshot", systemImage: "photo")
                 }
             }
