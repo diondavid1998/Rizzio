@@ -93,6 +93,15 @@ final class KeyboardModel: ObservableObject {
             if length != oldValue, batch != nil, !isLoading { rewrite(instruction: nil) }
         }
     }
+    /// The side picked on a topic that invites one ("pineapple on pizza"): for / against / neutral, or nil.
+    @Published var side: String? = nil
+
+    /// Picks (or clears) a side and rewrites the replies to take it.
+    func pickSide(_ value: String) {
+        side = side == value ? nil : value
+        rewrite(instruction: nil)
+    }
+
     /// The chat panel: quick asks ("Shorter", "Ask them out") and typed requests ("make it about her dog").
     @Published var showChat = false
     /// What you've asked for on these replies so far, oldest first (the conversation with Rizzio), as shown.
@@ -124,6 +133,7 @@ final class KeyboardModel: ObservableObject {
             rejected = []
             thread = [] // a new screenshot starts a new conversation
             asks = []
+            side = nil
         }
     }
 
@@ -223,7 +233,8 @@ final class KeyboardModel: ObservableObject {
             self.thread.append(label ?? instruction)
         }) {
             try await RizzAPI.generateAndStore(mode: mode, tone: tone, jpeg: jpeg, text: batch.sourceText,
-                                               draft: batch.sourceDraft, instruction: ask, previous: previous, earlier: earlier)
+                                               draft: batch.sourceDraft, instruction: ask, previous: previous, earlier: earlier,
+                                               stance: self.side, stanceTopic: batch.sideTopic)
         }
     }
 
@@ -292,6 +303,7 @@ struct KeyboardRootView: View {
         VStack(spacing: 6) {
             toolbar
             lengthMeter
+            if let topic = model.batch?.sideTopic, !topic.isEmpty { sidePicker(topic) }
             if model.showChat { chatPanel }
             content
             bottomRow
@@ -399,6 +411,30 @@ struct KeyboardRootView: View {
         } else {
             notice(model.message ?? "Double-tap the back of your phone on a profile, or copy a message and tap Clipboard.")
         }
+    }
+
+    /// "Pick a side" on a topic: For / Against / Neutral. Tap again to go back to letting Rizzio decide.
+    private func sidePicker(_ topic: String) -> some View {
+        HStack(spacing: 6) {
+            Text(topic)
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Spacer(minLength: 4)
+            ForEach(["for", "against", "neutral"], id: \.self) { value in
+                let label = value.capitalized
+                let selected = model.side == value
+                Button(label) { model.pickSide(value) }
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 9).padding(.vertical, 5)
+                    .background(selected ? Theme.accent : Theme.card)
+                    .foregroundColor(selected ? .white : .primary)
+                    .clipShape(Capsule())
+                    .accessibilityLabel("\(label) on \(topic)")
+            }
+        }
+        .disabled(model.isLoading)
     }
 
     static func words(in text: String) -> Int {

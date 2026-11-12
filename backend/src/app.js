@@ -104,6 +104,8 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // Follow-ups from the keyboard's chat: "make it about the dog", "shorter", "use the 2nd prompt".
       const instruction = str(b.instruction, 300);
       const length = str(b.length, 20); // keyboard length meter: phrase / short / medium / long (anything else = persona)
+      const stance = ["for", "against", "neutral"].includes(b.stance) ? b.stance : null; // keyboard "Pick a side"
+      const stanceTopic = str(b.stanceTopic, 120);
       const previous = Array.isArray(b.previous) ? b.previous.filter((t) => typeof t === "string").slice(0, 10).map((t) => t.slice(0, 300)) : [];
       if (!image && !earlier.length && !text?.trim() && !draft?.trim()) return res.status(400).json({ error: "Send an image, text, or draft." });
 
@@ -119,7 +121,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const ownRelated = related([text, draft].filter(Boolean).join("\n"), own, 8);
       // A few relevant exchanges from the built-in library, as ideas for angle and flow (not voice).
       const refs = renderInspiration(inspiration([text, draft, instruction].filter(Boolean).join("\n"), { mode: b.mode, limit: b.mode === "draft" ? 3 : 6 }));
-      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image || earlier.length > 0, earlier: earlier.length, current: !!image, instruction, previous, length, ownRelated }), refs].filter(Boolean).join("\n\n");
+      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image || earlier.length > 0, earlier: earlier.length, current: !!image, instruction, previous, length, ownRelated, stance, stanceTopic }), refs].filter(Boolean).join("\n\n");
       const raw = await ai.generateReplies({ memory, requestText, image, earlier });
       const result = { ...raw, replies: enforcePersona(persona, raw.replies) };
       const generationId = preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, ...result });

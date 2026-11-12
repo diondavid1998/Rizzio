@@ -331,6 +331,15 @@ describe("persona", () => {
     assert.equal((await call("GET", "/v1/me")).body.aboutMe, "", "not saved until the user taps Save");
   });
 
+  test("Pick a side: the user's stance on the topic shapes all 5 replies", async () => {
+    await call("POST", "/v1/replies", { mode: "prompt", text: "Hot take: pineapple belongs on pizza", stance: "against", stanceTopic: "pineapple on pizza" });
+    const sent = ai.calls.replies.at(-1).requestText;
+    assert.match(sent, /picked a side on "pineapple on pizza": AGAINST/);
+    assert.match(sent, /playfully disagree/);
+    await call("POST", "/v1/replies", { mode: "prompt", text: "Hot take: pineapple belongs on pizza", stance: "sideways" });
+    assert.doesNotMatch(ai.calls.replies.at(-1).requestText, /picked a side/);
+  });
+
   test("keyboard length meter sets how long replies are", async () => {
     await call("POST", "/v1/replies", { mode: "prompt", text: "I love hiking", length: "phrase" });
     assert.match(ai.calls.replies.at(-1).requestText, /Length for this request: a phrase: 1-5 words/);

@@ -65,6 +65,8 @@ struct SuggestionBatch: Codable {
     /// The copied text or draft these replies were written for, so the keyboard can rewrite them without a screenshot.
     var sourceText: String? = nil
     var sourceDraft: String? = nil
+    /// Set when what they wrote invites taking a side; the keyboard then offers For / Against / Neutral.
+    var sideTopic: String? = nil
 }
 
 /// What the server found in an exported chat file, before you say which sender is you.

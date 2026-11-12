@@ -18,6 +18,9 @@ struct RizzResult: Decodable {
     let generationId: String
     let context: String
     let replies: [Reply]
+    /// What the model read; side_topic is set when the prompt invites taking a side ("pineapple on pizza").
+    struct ReadInfo: Decodable { let side_topic: String? }
+    var read: ReadInfo? = nil
 }
 
 /// Talks to the Rizzio backend (backend/ folder).
@@ -38,11 +41,13 @@ enum RizzAPI {
         var previous: [String]? = nil
         var length: String? = nil
         var earlierImages: [ImagePayload]? = nil
+        var stance: String? = nil
+        var stanceTopic: String? = nil
     }
 
     static func generate(mode: RizzMode, tone: Tone? = nil, jpeg: Data? = nil, text: String? = nil, draft: String? = nil,
                          instruction: String? = nil, previous: [String] = [], length: ReplyLength? = nil,
-                         earlier: [Data] = []) async throws -> RizzResult {
+                         earlier: [Data] = [], stance: String? = nil, stanceTopic: String? = nil) async throws -> RizzResult {
         let payload = ReplyPayload(
             mode: mode,
             tone: (tone ?? SharedStore.shared.tone).rawValue,
@@ -52,7 +57,9 @@ enum RizzAPI {
             instruction: instruction,
             previous: previous.isEmpty ? nil : previous,
             length: (length ?? SharedStore.shared.replyLength).rawValue,
-            earlierImages: earlier.isEmpty ? nil : earlier.map { ImagePayload(data: $0.base64EncodedString(), mediaType: "image/jpeg") }
+            earlierImages: earlier.isEmpty ? nil : earlier.map { ImagePayload(data: $0.base64EncodedString(), mediaType: "image/jpeg") },
+            stance: stance,
+            stanceTopic: stanceTopic
         )
         return try await send("POST", "v1/replies", body: payload, timeout: 60)
     }
@@ -68,7 +75,9 @@ enum RizzAPI {
         keepScreenshot: Bool = false,
         instruction: String? = nil,
         previous: [String] = [],
-        earlier: [Data] = []
+        earlier: [Data] = [],
+        stance: String? = nil,
+        stanceTopic: String? = nil
     ) async throws -> SuggestionBatch {
         let store = SharedStore.shared
         let result: RizzResult
@@ -78,12 +87,15 @@ enum RizzAPI {
             let local = try await OnDeviceAI.replies(mode: mode, tone: tone ?? store.tone, jpeg: jpeg, text: text,
                                                      draft: draft, persona: store.persona, me: me,
                                                      instruction: instruction, previous: previous,
-                                                     length: store.replyLength, earlier: earlier)
+                                                     length: store.replyLength, earlier: earlier,
+                                                     stance: stance, stanceTopic: stanceTopic)
             let saved = try? await saveGeneration(mode: mode, tone: tone ?? store.tone, context: local.context, replies: local.replies)
-            result = RizzResult(generationId: saved ?? "", context: local.context, replies: local.replies)
+            result = RizzResult(generationId: saved ?? "", context: local.context, replies: local.replies,
+                                read: .init(side_topic: local.sideTopic))
         } else {
             result = try await generate(mode: mode, tone: tone, jpeg: jpeg, text: text, draft: draft,
-                                        instruction: instruction, previous: previous, earlier: earlier)
+                                        instruction: instruction, previous: previous, earlier: earlier,
+                                        stance: stance, stanceTopic: stanceTopic)
         }
         if jpeg != nil, keepScreenshot { store.saveScreenshot(jpeg) }
         let batch = SuggestionBatch(
@@ -94,7 +106,8 @@ enum RizzAPI {
             createdAt: Date(),
             hasScreenshot: jpeg != nil,
             sourceText: text,
-            sourceDraft: draft
+            sourceDraft: draft,
+            sideTopic: [stanceTopic, result.read?.side_topic].compactMap { $0 }.first { !$0.isEmpty }
         )
         store.latestBatch = batch
         return batch

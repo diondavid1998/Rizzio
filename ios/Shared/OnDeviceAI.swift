@@ -144,12 +144,14 @@ enum OnDeviceAI {
     struct Result {
         let context: String
         let replies: [Reply]
+        var sideTopic: String? = nil
     }
 
     static func replies(mode: RizzMode, tone: Tone, jpeg: Data?, text: String?, draft: String?,
                         persona: Persona, me: MeResponse?,
                         instruction: String? = nil, previous: [String] = [],
-                        length: ReplyLength = .auto, earlier: [Data] = []) async throws -> Result {
+                        length: ReplyLength = .auto, earlier: [Data] = [],
+                        stance: String? = nil, stanceTopic: String? = nil) async throws -> Result {
         if let reason = unavailableReason { throw RizzError.server(reason) }
         var content: [String] = []
         for (i, screen) in earlier.enumerated() {
@@ -160,6 +162,10 @@ enum OnDeviceAI {
         if let draft, !draft.isEmpty { content.append("The user's draft:\n\(draft.prefix(600))") }
         if !previous.isEmpty { content.append("Earlier suggestions (write new ones):\n" + previous.prefix(5).map { "- \($0)" }.joined(separator: "\n")) }
         if let hint = length.hint { content.append("Length: every message must be \(hint). This overrides the usual 6 to 25 words.") }
+        if let stance {
+            let how = ["for": "agree with it and back it up", "against": "playfully disagree and argue the other side", "neutral": "stay playfully in the middle"][stance] ?? stance
+            content.append("The user picked a side on \(stanceTopic ?? "this"): \(stance). Every message must \(how).")
+        }
         if let instruction, !instruction.isEmpty { content.append("The user asked for this change: \(instruction.prefix(300)). Follow it exactly.") }
         // A few relevant exchanges from Rizzio's built-in library (ideas for angle, not the user's voice).
         let library = await RizzAPI.inspiration(text: content.joined(separator: "\n"), mode: mode)
@@ -180,7 +186,8 @@ enum OnDeviceAI {
             let response = try await session.respond(to: prompt, generating: GeneratedReplies.self)
             let replies = persona.enforce(response.content.replies.map { Reply(text: $0.text, angle: $0.angle) })
             guard !replies.isEmpty else { throw RizzError.server("Apple Intelligence didn't write anything. Try again.") }
-            return Result(context: response.content.context, replies: Array(replies.prefix(5)))
+            let topic = response.content.sideTopic.trimmingCharacters(in: .whitespacesAndNewlines)
+            return Result(context: response.content.context, replies: Array(replies.prefix(5)), sideTopic: topic.isEmpty ? nil : topic)
         }
         #endif
         throw RizzError.server(unavailableReason ?? "Free mode isn't available.")
@@ -268,6 +275,8 @@ struct GeneratedReplies {
     var read: String
     @Guide(description: "One short line naming what you replied to")
     var context: String
+    @Guide(description: "If it invites taking a side (an opinion, hot take, this-or-that), the topic in 2-6 words; otherwise empty")
+    var sideTopic: String
     @Guide(description: "Exactly five different messages, best first")
     var replies: [GeneratedReply]
 }

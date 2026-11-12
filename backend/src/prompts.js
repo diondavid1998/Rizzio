@@ -33,6 +33,7 @@ What makes a message work:
 The 5 messages:
 - Give each one a "form" and use at least 4 different forms, all of them fitting what was said. A question gets answers in several styles, a challenge gets several comebacks, a profile gets several kinds of comments.
 - At least one of the 5 is a question back to them that's easy and fun to answer and keeps the conversation going (form "follow_up_question" or "answer_and_ask"), tied to something specific they said or showed.
+- If the hook invites taking a side, name the topic in "read.side_topic". Unless the user picked a side, lean the way their own messages and profile show they think; if that's unknown, mix sides across the 5.
 - Move toward meeting up or swapping numbers only when the conversation makes that natural.
 - Put the one most likely to work first.
 - Match the requested tone, filtered through the user's own voice.
@@ -120,7 +121,13 @@ export const LENGTHS = {
   long: "long: 25-50 words, a few sentences with a real story, opinion or question",
 };
 
-export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier = 0, current = true, instruction, previous, length, ownRelated }) {
+const SIDES = {
+  for: "agree with it and back it up: defend it, raise it, or add why it's right",
+  against: "playfully disagree: argue the other side, push back, or tease the take, without being rude",
+  neutral: "stay playfully in the middle: see both sides, refuse to pick with humor, or propose a deciding challenge",
+};
+
+export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier = 0, current = true, instruction, previous, length, ownRelated, stance, stanceTopic }) {
   const parts = [];
   if (mode === "auto")
     parts.push(
@@ -143,6 +150,11 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier 
     parts.push(
       "Things the user has said before that relate to this (their real words: match how they talk and think about this topic):\n" +
         ownRelated.map((t) => `- ${t}`).join("\n"),
+    );
+  }
+  if (SIDES[stance]) {
+    parts.push(
+      `The user picked a side${stanceTopic?.trim() ? ` on "${stanceTopic.trim()}"` : ""}: ${stance.toUpperCase()}. Every one of the 5 messages takes that side (${SIDES[stance]}), in the user's own voice and persona.`,
     );
   }
   if (LENGTHS[length]) {
