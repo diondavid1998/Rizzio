@@ -276,6 +276,7 @@ describe("persona", () => {
     assert.match(sent, /earlier suggestions[\s\S]*- reply 1/);
     await call("POST", "/v1/replies", { mode: "prompt", tone: "question", text: "I love hiking" });
     assert.match(ai.calls.replies.at(-1).requestText, /every message asks them a question/);
+    assert.match(ai.calls.replies.at(-1).requestText, /must ask them a question and end with a question mark/);
     await call("POST", "/v1/replies", { mode: "prompt", tone: "witty", text: "I love hiking" });
     assert.match(ai.calls.replies.at(-1).requestText, /clever wordplay/);
     assert.doesNotMatch(ai.calls.replies.at(-1).requestText, /asked for this change/);

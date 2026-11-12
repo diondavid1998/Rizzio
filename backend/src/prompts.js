@@ -126,6 +126,11 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier 
       ? "Tone: follow the persona settings."
       : `Tone for this request: ${TONES[tone] ?? tone} (lean this way on top of the persona settings).`,
   );
+  if (tone === "question") {
+    parts.push(
+      "Every one of the 5 messages must ask them a question and end with a question mark. This overrides the usual mix of forms: vary the kind of question instead (this-or-that, playful challenge, curious follow-up, a guess turned into a question, a hypothetical), each about a different detail.",
+    );
+  }
   if (ownRelated?.length) {
     parts.push(
       "Things the user has said before that relate to this (their real words: match how they talk and think about this topic):\n" +
