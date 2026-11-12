@@ -54,8 +54,9 @@ struct GenerateRepliesIntent: AppIntent {
         store.addProfileScreen(jpeg)
         guard !batch.replies.isEmpty else { throw RizzError.server("No replies this time. Try another screenshot.") }
         let replies = batch.replies.map(\.text)
-        // Banner first (all 5 as bullets), then the shortcut's Choose from List lets you pick one to copy.
-        return .result(value: replies, dialog: IntentDialog(stringLiteral: replies.map { "• \($0)" }.joined(separator: "\n")))
+        // Banner first (all 5, numbered 1-5, one per line), then the shortcut's Choose from List lets you pick one to copy.
+        let banner = replies.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")
+        return .result(value: replies, dialog: IntentDialog(stringLiteral: banner))
     }
 }
 
