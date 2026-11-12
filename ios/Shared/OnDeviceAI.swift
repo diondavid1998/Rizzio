@@ -135,7 +135,7 @@ enum OnDeviceAI {
         case .draft: job = "Rewrite the user's draft 5 ways that keep the meaning but land better."
         case .auto: job = "If this is a dating profile, write 5 comments to get a match. If it's a conversation, write 5 options for the user's next message (\"Me\")."
         }
-        return tone == .me ? job : job + " Tone: \(tone.hint)."
+        return tone == .me ? job : job + " Tone: \(tone.hint). The tone changes what kind of message, not who is writing: keep the persona settings and the user's own voice."
     }
 
     // MARK: Generation

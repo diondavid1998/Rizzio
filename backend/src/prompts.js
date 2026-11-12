@@ -124,11 +124,11 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier 
   parts.push(
     !tone || tone === "me"
       ? "Tone: follow the persona settings."
-      : `Tone for this request: ${TONES[tone] ?? tone} (lean this way on top of the persona settings).`,
+      : `Tone for this request: ${TONES[tone] ?? tone}. The tone changes what kind of message to write, not who is writing it: wording, length, slang, emoji, capitalization, humor, flirtiness and boldness still follow the persona settings and the user's own voice.`,
   );
   if (tone === "question") {
     parts.push(
-      "Every one of the 5 messages must ask them a question and end with a question mark. This overrides the usual mix of forms: vary the kind of question instead (this-or-that, playful challenge, curious follow-up, a guess turned into a question, a hypothetical), each about a different detail.",
+      "Every one of the 5 messages must ask them a question and end with a question mark. This overrides the usual mix of forms: vary the kind of question instead (this-or-that, playful challenge, curious follow-up, a guess turned into a question, a hypothetical), each about a different detail. Ask them the way the user would: in their words, their humor and their persona settings (a flirty user asks flirty questions, a dry one asks dry ones).",
     );
   }
   if (ownRelated?.length) {

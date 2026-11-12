@@ -95,6 +95,7 @@ describe("replies", () => {
     assert.match(sent.memory, /who hurt the geese/);
     assert.match(sent.memory, /Voice: profile v1/); // profile learned from the PUT
     assert.match(sent.requestText, /Tone for this request: flirty/);
+    assert.match(sent.requestText, /not who is writing it/);
     assert.match(sent.memory, /Persona settings/);
   });
 });
