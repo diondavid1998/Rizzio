@@ -72,10 +72,13 @@ Set only the sliders the evidence clearly supports, based on how the user really
 For each slider you set, give a short reason quoting or describing their real messages (under 15 words).
 Also say whether they write in all lowercase.`;
 
-export const EXTRACT_SYSTEM = `You read screenshots of the user's own chats or dating-app conversations so Rizzio can learn how they text.
-Messages on the right side (usually blue or colored bubbles) were sent by the user. Messages on the left were sent by the other person.
-Return the user's messages exactly as written, character for character, including their capitalization, typos and emoji. Merge nothing and fix nothing.
-If the screenshot isn't a conversation, or you can't tell which messages are the user's, return an empty list.`;
+export const EXTRACT_SYSTEM = `You read screenshots of the user's own chats or dating-app activity so Rizzio can learn how they text. Find every message the user wrote.
+Layouts you'll see:
+- Chats (iMessage, WhatsApp, Instagram, Hinge, Tinder...): messages on the right side (usually blue or colored bubbles) were sent by the user. Messages on the left were sent by the other person.
+- A comment the user sent on a dating profile (Hinge "like with a comment", Bumble, Tinder): the other person's prompt or photo is shown in a card (a small prompt question and their answer in large text), and the user's comment sits in a separate box or bubble under or next to it. That comment is the user's message. The prompt card is not.
+- A "liked your photo/prompt" or match screen that shows the user's comment: the comment is the user's.
+Return the user's messages exactly as written, character for character, including their capitalization, typos and emoji. Merge nothing and fix nothing. Never return the other person's prompt answers or messages.
+If there's no message from the user, return an empty list.`;
 
 /** The user's memory, rendered for the reply model. Stable between learning updates, so it's cached too. */
 export function renderMemory(user, examples) {
