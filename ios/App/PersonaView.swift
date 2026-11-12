@@ -63,8 +63,8 @@ struct PersonaView: View {
                             .accessibilityIdentifier("toggle.emoji")
                             Toggle(isOn: photosBinding) {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Reply to their photos")
-                                    Text(persona.isOn("noPhotos") ? "Off: only their prompts and messages" : "On: photos can be the hook too")
+                                    Text("Scan photos")
+                                    Text(persona.isOn("noPhotos") ? "Off: only their prompts and messages" : "On: reads their photos too")
                                         .font(.caption).foregroundStyle(.secondary)
                                 }
                             }
@@ -154,7 +154,7 @@ struct PersonaView: View {
         Binding(get: { persona.isOn(key) }, set: { persona.toggles[key] = $0 })
     }
 
-    /// "Reply to their photos" is the inverse of the noPhotos rule.
+    /// "Scan photos" is the inverse of the noPhotos rule.
     private var photosBinding: Binding<Bool> {
         Binding(get: { !persona.isOn("noPhotos") }, set: { persona.toggles["noPhotos"] = !$0 })
     }
