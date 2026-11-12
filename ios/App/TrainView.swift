@@ -123,6 +123,13 @@ struct TrainView: View {
                     TextField("e.g. 27, NYC, nurse, into climbing and cooking, dry humor", text: $aboutMe, axis: .vertical)
                         .accessibilityIdentifier("aboutMe")
                         .lineLimit(2...5)
+                    Button {
+                        Task { await fillAbout() }
+                    } label: {
+                        Label("Fill in from what Rizzio knows", systemImage: "wand.and.stars")
+                    }
+                    .disabled(isBusy)
+                    .accessibilityIdentifier("fillAbout")
                     Button("Save") { Task { await saveText() } }.disabled(isBusy)
                 } header: {
                     Text("About you")
@@ -215,6 +222,16 @@ struct TrainView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// Puts a draft from what Rizzio has learned into the box. Nothing is saved until the user taps Save.
+    @MainActor private func fillAbout() async {
+        var draft = ""
+        await busy("Reading what Rizzio knows about you…", done: "Here's a draft. Edit anything, then tap Save.") {
+            draft = try await RizzAPI.suggestAbout()
+        }
+        if !draft.isEmpty { aboutMe = draft }
+        else if errorMessage == nil { successMessage = nil; errorMessage = "Rizzio doesn't know enough yet. Upload more of your chats first." }
     }
 
     @MainActor private func saveText() async {

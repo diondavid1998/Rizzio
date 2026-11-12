@@ -18,6 +18,10 @@ class FakeAI {
       replies: this.replyTexts?.map((text) => ({ text, angle: "x" })) ?? Array.from({ length: 5 }, (_, i) => ({ text: `reply ${i}`, angle: `angle ${i}` })),
     };
   }
+  async suggestAbout(args) {
+    this.calls.about = [...(this.calls.about ?? []), args];
+    return "27, Chicago, nurse, into climbing";
+  }
   async rebuildProfile(args) {
     this.calls.profile.push(args);
     return `Voice: profile v${this.calls.profile.length}`;
@@ -315,6 +319,16 @@ describe("persona", () => {
     await call("PUT", "/v1/me/persona", { persona: { toggles: { noPhotos: false } } });
     await call("POST", "/v1/replies", { mode: "prompt", text: "Typical Sunday: church at 11" });
     assert.doesNotMatch(ai.calls.replies.at(-1).memory, /Ignore their photos/);
+  });
+
+  test("About you can be drafted from the user's messages, without saving it", async () => {
+    assert.equal((await call("POST", "/v1/me/about/suggest")).status, 409, "needs something to go on");
+    store.addExamplesBulk(USER, ["just got off a 12 hour shift at the hospital", "climbing gym tonight?"], "imported");
+    const r = await call("POST", "/v1/me/about/suggest");
+    assert.equal(r.status, 200);
+    assert.equal(r.body.about, "27, Chicago, nurse, into climbing");
+    assert.match(ai.calls.about.at(-1).evidence, /12 hour shift/);
+    assert.equal((await call("GET", "/v1/me")).body.aboutMe, "", "not saved until the user taps Save");
   });
 
   test("keyboard length meter sets how long replies are", async () => {

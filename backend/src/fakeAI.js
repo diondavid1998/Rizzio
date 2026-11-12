@@ -15,6 +15,10 @@ export class FakeAI {
     };
   }
 
+  async suggestAbout() {
+    return "27, Chicago, nurse, into climbing and tacos, dry humor";
+  }
+
   async rebuildProfile({ evidence }) {
     const own = (evidence.match(/\[(?:OWN WORDS|WON)\]/g) ?? []).length;
     return `Voice: test profile built from ${own} of your messages.`;

@@ -236,6 +236,17 @@ enum RizzAPI {
         return result.voiceProfile
     }
 
+    private struct AboutSuggestion: Decodable { let about: String }
+
+    /// A draft "About you" from what Rizzio has learned. Not saved: the user edits it and taps Save.
+    static func suggestAbout() async throws -> String {
+        if SharedStore.shared.engine == .free {
+            return try await OnDeviceAI.suggestAbout(me: try await me())
+        }
+        let result: AboutSuggestion = try await send("POST", "v1/me/about/suggest", timeout: 60)
+        return result.about
+    }
+
     static func deleteExample(id: Int) async throws {
         let _: Empty = try await send("DELETE", "v1/me/examples/\(id)")
     }

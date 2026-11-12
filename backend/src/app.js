@@ -212,6 +212,25 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
     });
   });
 
+  /** Drafts About you from the user's own messages and profile. Returns the text; nothing is saved. */
+  app.post("/v1/me/about/suggest", rateLimit, async (req, res, next) => {
+    try {
+      const user = store.getUser(req.userId);
+      const own = store.listExamples(req.userId).filter((e) => e.source !== "picked").slice(0, 150);
+      if (!own.length && !user.voice_profile?.trim()) {
+        return res.status(409).json({ error: "Upload some of your chats in Train first, so Rizzio has something to go on." });
+      }
+      const evidence = [
+        `## Current note\n${user.about_me?.trim() || "(empty)"}`,
+        `## Voice profile\n${user.voice_profile?.trim() || "(not learned yet)"}`,
+        `## Messages the user sent\n${own.map((e) => `- ${e.text}`).join("\n") || "(none)"}`,
+      ].join("\n\n");
+      res.json({ about: await ai.suggestAbout({ evidence }) });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   /** Update about-me and hand-written examples, then re-learn. */
   app.put("/v1/me", (req, res) => {
     const b = req.body ?? {};

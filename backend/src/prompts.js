@@ -80,6 +80,11 @@ Layouts you'll see:
 Return the user's messages exactly as written, character for character, including their capitalization, typos and emoji. Merge nothing and fix nothing. Never return the other person's prompt answers or messages.
 If there's no message from the user, return an empty list.`;
 
+export const ABOUT_SYSTEM = `You draft the "About you" note for Rizzio, an assistant that writes texts as its user. The note is a few facts another model can work into replies.
+From the user's own messages, their voice profile and their current note, write one short line of comma-separated facts, under 60 words, in the style "27, NYC, nurse, into climbing and cooking, dry humor": age, city or area, job or school, hobbies, interests, favorite things, and their kind of humor.
+Only include facts the user clearly states or strongly implies about themselves. Leave out anything you'd be guessing. Never include health, religion, ethnicity, sexuality, money, or other people's names or details. Keep facts from the current note unless their messages contradict them.
+If almost nothing is known, return the few facts you have, or an empty string.`;
+
 /** The user's memory, rendered for the reply model. Stable between learning updates, so it's cached too. */
 export function renderMemory(user, examples) {
   const parts = [];

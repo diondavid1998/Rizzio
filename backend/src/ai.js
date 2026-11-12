@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { SLIDERS } from "./persona.js";
-import { AUTOTUNE_SYSTEM, EXTRACT_SYSTEM, PROFILE_SYSTEM, REPLY_SYSTEM } from "./prompts.js";
+import { ABOUT_SYSTEM, AUTOTUNE_SYSTEM, EXTRACT_SYSTEM, PROFILE_SYSTEM, REPLY_SYSTEM } from "./prompts.js";
 
 /** How a reply responds to what was said. The model picks one per reply and must use at least 4 different ones. */
 export const REPLY_FORMS = [
@@ -203,6 +203,17 @@ export class ClaudeAI {
       effort: image || earlier.length ? "medium" : "low", // screenshots need real reading; text-only replies stay fast
     });
     return { context: out.context, read: out.read, replies: out.replies.slice(0, 5) };
+  }
+
+  /** Drafts the About you note from what the user's own messages say about them. */
+  async suggestAbout({ evidence }) {
+    const out = await this.#call({
+      system: [{ type: "text", text: ABOUT_SYSTEM }],
+      content: [{ type: "text", text: evidence }],
+      schema: { type: "object", properties: { about: { type: "string" } }, required: ["about"], additionalProperties: false },
+      effort: "low",
+    });
+    return out.about.trim();
   }
 
   async rebuildProfile({ evidence }) {

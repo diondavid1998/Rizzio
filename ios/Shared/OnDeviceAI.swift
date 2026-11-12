@@ -186,6 +186,31 @@ enum OnDeviceAI {
         throw RizzError.server(unavailableReason ?? "Free mode isn't available.")
     }
 
+    /// Drafts the "About you" note (age, city, job, hobbies, humor) from the user's own messages.
+    static func suggestAbout(me: MeResponse) async throws -> String {
+        if let reason = unavailableReason { throw RizzError.server(reason) }
+        let own = me.styleExamples + me.learnedExamples.filter { $0.source != "picked" }.map(\.text)
+        guard !own.isEmpty || !me.voiceProfile.isEmpty else {
+            throw RizzError.server("Upload some of your chats in Train first, so Rizzio has something to go on.")
+        }
+        let prompt = """
+        From this person's own messages, write one short line of comma-separated facts about them, under 60 words, \
+        like "27, NYC, nurse, into climbing and cooking, dry humor": age, city, job or school, hobbies, interests, humor. \
+        Only facts they clearly state about themselves. No health, religion, ethnicity, sexuality, money, or other people's names. \
+        Keep facts from their current note. Reply with just the line.
+        Current note: \(me.aboutMe.prefix(300))
+        How they text: \(me.voiceProfile.prefix(500))
+        Their messages:
+        \(own.prefix(40).map { "- \($0)" }.joined(separator: "\n"))
+        """
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            return try await LanguageModelSession().respond(to: prompt).content.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        #endif
+        throw RizzError.server(unavailableReason ?? "Free mode isn't available.")
+    }
+
     /// Writes a short summary of how the user texts, from their own messages.
     static func styleProfile(me: MeResponse) async throws -> String {
         if let reason = unavailableReason { throw RizzError.server(reason) }
