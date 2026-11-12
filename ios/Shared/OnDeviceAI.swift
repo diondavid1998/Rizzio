@@ -163,7 +163,7 @@ enum OnDeviceAI {
         if !previous.isEmpty { content.append("Earlier suggestions (write new ones):\n" + previous.prefix(5).map { "- \($0)" }.joined(separator: "\n")) }
         if let hint = length.hint { content.append("Length: every message must be \(hint). This overrides the usual 6 to 25 words.") }
         if let stance {
-            let how = ["for": "agree with it and back it up", "against": "playfully disagree and argue the other side", "neutral": "stay playfully in the middle"][stance] ?? stance
+            let how = ["for": "agree with it and back it up", "against": "playfully disagree and argue the other side", "neutral": "stay playfully in the middle", "both": "split across the 5: some for, some against"][stance] ?? stance
             content.append("The user picked a side on \(stanceTopic ?? "this"): \(stance). Every message must \(how).")
         }
         if let instruction, !instruction.isEmpty { content.append("The user asked for this change: \(instruction.prefix(300)). Follow it exactly.") }

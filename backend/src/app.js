@@ -104,7 +104,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // Follow-ups from the keyboard's chat: "make it about the dog", "shorter", "use the 2nd prompt".
       const instruction = str(b.instruction, 300);
       const length = str(b.length, 20); // keyboard length meter: phrase / short / medium / long (anything else = persona)
-      const stance = ["for", "against", "neutral"].includes(b.stance) ? b.stance : null; // keyboard "Pick a side"
+      const stance = ["for", "against", "neutral", "both"].includes(b.stance) ? b.stance : null; // keyboard "Pick a side"
       const stanceTopic = str(b.stanceTopic, 120);
       const previous = Array.isArray(b.previous) ? b.previous.filter((t) => typeof t === "string").slice(0, 10).map((t) => t.slice(0, 300)) : [];
       if (!image && !earlier.length && !text?.trim() && !draft?.trim()) return res.status(400).json({ error: "Send an image, text, or draft." });

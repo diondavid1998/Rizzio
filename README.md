@@ -13,7 +13,7 @@ AI reply suggestions for Hinge prompts and any text conversation, without leavin
 
 The keyboard can also:
 - **Chat with Rizzio** (speech-bubble button): quick asks like Shorter, Funnier, Bolder, Ask them out, Other prompt, Use their photo, More like me, or type any request in the text box ("make it about her dog", "use the second prompt") and tap **Ask**. Requests stack, so "shorter" then "about the dog" means both.
-- **Pick a side**: when a prompt invites one (a hot take, a debate, a this-or-that), the keyboard shows the topic with **For · Against · Neutral**. Tap one and all 5 replies take that side, in your voice. Tap it again to let Rizzio decide.
+- **Pick a side**: when a prompt invites one (a hot take, a debate, a this-or-that), the keyboard shows **For <topic> · Against <topic> · Neutral · Both** (Both splits the 5 between the two sides). Tap one and the replies follow it, in your voice. Tap it again to let Rizzio decide.
 - **Length meter** (Auto · Phrase · Short · Medium · Long): how long replies are, from a 1-5 word reaction to a 25-50 word answer. Auto follows the Length slider in Persona. Each reply shows its word count, and the choice also applies to the next Back Tap.
 - **Switch tone** with one tap (Me, Witty, Humor, Question, Flirty, Chill, Bold, Sweet, Corny; Question makes all 5 a specific question about them): the replies are rewritten in that tone right away.
 - **Clipboard**: copy a profile prompt or someone's message, tap Clipboard, and get 5 replies (works in iMessage, Instagram, anything). Rizzio works out whether it's a prompt or a message, and uses your Back Tap screenshots from the last 10 minutes to know who the person is.

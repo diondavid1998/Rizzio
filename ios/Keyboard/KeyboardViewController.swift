@@ -413,28 +413,28 @@ struct KeyboardRootView: View {
         }
     }
 
-    /// "Pick a side" on a topic: For / Against / Neutral. Tap again to go back to letting Rizzio decide.
+    /// "Pick a side": For <topic>, Against <topic>, Neutral, Both. Tap the same one again to let Rizzio decide.
     private func sidePicker(_ topic: String) -> some View {
-        HStack(spacing: 6) {
-            Text(topic)
-                .font(.caption2.weight(.semibold))
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-            Spacer(minLength: 4)
-            ForEach(["for", "against", "neutral"], id: \.self) { value in
-                let label = value.capitalized
-                let selected = model.side == value
-                Button(label) { model.pickSide(value) }
-                    .font(.caption2.weight(.semibold))
-                    .padding(.horizontal, 9).padding(.vertical, 5)
-                    .background(selected ? Theme.accent : Theme.card)
-                    .foregroundColor(selected ? .white : .primary)
-                    .clipShape(Capsule())
-                    .accessibilityLabel("\(label) on \(topic)")
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                sideChip("for", "For \(topic)")
+                sideChip("against", "Against \(topic)")
+                sideChip("neutral", "Neutral")
+                sideChip("both", "Both")
             }
         }
         .disabled(model.isLoading)
+    }
+
+    private func sideChip(_ value: String, _ label: String) -> some View {
+        let selected = model.side == value
+        return Button(label) { model.pickSide(value) }
+            .font(.caption2.weight(.semibold))
+            .lineLimit(1)
+            .padding(.horizontal, 9).padding(.vertical, 5)
+            .background(selected ? Theme.accent : Theme.card)
+            .foregroundColor(selected ? .white : .primary)
+            .clipShape(Capsule())
     }
 
     static func words(in text: String) -> Int {

@@ -125,6 +125,7 @@ const SIDES = {
   for: "agree with it and back it up: defend it, raise it, or add why it's right",
   against: "playfully disagree: argue the other side, push back, or tease the take, without being rude",
   neutral: "stay playfully in the middle: see both sides, refuse to pick with humor, or propose a deciding challenge",
+  both: "split them: some of the 5 take the for side and some take the against side, so the user can choose",
 };
 
 export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier = 0, current = true, instruction, previous, length, ownRelated, stance, stanceTopic }) {
@@ -154,7 +155,7 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier 
   }
   if (SIDES[stance]) {
     parts.push(
-      `The user picked a side${stanceTopic?.trim() ? ` on "${stanceTopic.trim()}"` : ""}: ${stance.toUpperCase()}. Every one of the 5 messages takes that side (${SIDES[stance]}), in the user's own voice and persona.`,
+      `The user picked a side${stanceTopic?.trim() ? ` on "${stanceTopic.trim()}"` : ""}: ${stance.toUpperCase()}. ${stance === "both" ? "Across the 5 messages" : "Every one of the 5 messages takes that side"} (${SIDES[stance]}), in the user's own voice and persona.`,
     );
   }
   if (LENGTHS[length]) {

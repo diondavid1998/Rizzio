@@ -336,6 +336,8 @@ describe("persona", () => {
     const sent = ai.calls.replies.at(-1).requestText;
     assert.match(sent, /picked a side on "pineapple on pizza": AGAINST/);
     assert.match(sent, /playfully disagree/);
+    await call("POST", "/v1/replies", { mode: "prompt", text: "Hot take: pineapple belongs on pizza", stance: "both", stanceTopic: "pineapple on pizza" });
+    assert.match(ai.calls.replies.at(-1).requestText, /some of the 5 take the for side and some take the against side/);
     await call("POST", "/v1/replies", { mode: "prompt", text: "Hot take: pineapple belongs on pizza", stance: "sideways" });
     assert.doesNotMatch(ai.calls.replies.at(-1).requestText, /picked a side/);
   });
