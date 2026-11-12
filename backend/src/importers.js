@@ -224,6 +224,42 @@ export function parseJSON(data) {
     }
     return { format: "hinge", messages };
   }
+  // Snapchat "Download My Data" chat_history.json.
+  //  - 2023-style: { "Received Saved Chat History": [{From, Media Type, Text}], "Sent Saved Chat History": [{To, ...}], ... }
+  //  - newer: { "<friend>": [{From, Media Type, Content, IsSender}] }
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    const lists = Object.entries(data).filter(([, v]) => Array.isArray(v));
+    const snapRow = (m) => m && typeof m === "object" && "Media Type" in m && ("Text" in m || "Content" in m);
+    if (lists.length && lists.every(([, v]) => v.length === 0 || snapRow(v[0]))) {
+      if (lists.some(([k]) => /chat history/i.test(k))) {
+        const messages = [];
+        for (const [key, rows] of lists) {
+          const sent = /sent/i.test(key);
+          for (const m of rows) {
+            if (m["Media Type"] !== "TEXT") continue;
+            messages.push({ sender: sent ? YOU : String(m.From ?? "Them"), text: String(m.Text ?? m.Content ?? "") });
+          }
+        }
+        return { format: "snapchat", messages: messages.reverse() };
+      }
+      if (lists.some(([, v]) => v.some((m) => "IsSender" in (m ?? {})))) {
+        return {
+          format: "snapchat",
+          messages: lists.flatMap(([, rows]) =>
+            rows.filter((m) => m["Media Type"] === "TEXT").map((m) => ({ sender: m.IsSender ? YOU : String(m.From ?? "Them"), text: String(m.Content ?? m.Text ?? "") })),
+          ),
+        };
+      }
+    }
+    // Snapchat snap_history.json: only who sent photos/videos when, no text.
+    if (lists.some(([k]) => /snap history/i.test(k)) && lists.every(([, v]) => v.every((m) => !("Text" in (m ?? {})) && !("Content" in (m ?? {}))))) {
+      throw new ImportError("That's snap_history.json: it only lists photos and videos sent, with no text. Upload chat_history.json from the same Snapchat download instead.");
+    }
+    // Snapchat snapchat_ai.json: chats with the My AI bot, with nothing saying who sent what.
+    if (lists.length === 1 && lists[0][0] === "" && lists[0][1].every((m) => m && "Message" in m && "Type" in m)) {
+      throw new ImportError("That's your chat with Snapchat's My AI bot, which doesn't say who wrote what. Upload chat_history.json from the same Snapchat download instead: that has your chats with people.");
+    }
+  }
   // Generic: the largest array of objects that have a text-like key
   let best = [];
   const visit = (node, depth) => {

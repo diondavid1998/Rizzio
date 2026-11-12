@@ -261,6 +261,32 @@ describe("export formats", () => {
     assert.ok(UNLABELED.length <= 60);
   });
 
+  test("Snapchat chat_history.json (both layouts); snap_history and My AI give clear errors", async () => {
+    const old = JSON.stringify({
+      "Received Saved Chat History": [{ From: "friend_a", "Media Type": "TEXT", Created: "2024-01-01 10:00:00 UTC", Text: "did you see the game" }],
+      "Sent Saved Chat History": [
+        { To: "friend_a", "Media Type": "TEXT", Created: "2024-01-01 10:01:00 UTC", Text: "nahh what happened" },
+        { To: "friend_a", "Media Type": "MEDIA", Created: "2024-01-01 10:02:00 UTC", Text: "" },
+      ],
+      "Sent Unsaved Chat History": [{ To: "friend_a", "Media Type": "TEXT", Created: "2024-01-01 10:03:00 UTC", Text: "ok tell me everything" }],
+    });
+    const r = await parseExport("chat_history.json", u8(old));
+    assert.equal(r.format, "snapchat");
+    const s = senders(r);
+    assert.equal(s.guess, YOU);
+    assert.deepEqual(s.senders.find((x) => x.name === YOU).texts.sort(), ["nahh what happened", "ok tell me everything"]);
+    assert.deepEqual(s.senders.find((x) => x.name === "friend_a").texts, ["did you see the game"]);
+
+    const fresh = JSON.stringify({ friend_b: [
+      { From: "friend_b", "Media Type": "TEXT", Created: "x", Content: "ok but why", IsSender: false },
+      { From: "me", "Media Type": "TEXT", Created: "x", Content: "because i said so lol", IsSender: true },
+    ] });
+    assert.deepEqual(senders(await parseExport("chat_history.json", u8(fresh))).senders.find((x) => x.name === YOU).texts, ["because i said so lol"]);
+
+    await assert.rejects(parseExport("snap_history.json", u8(JSON.stringify({ "Received Snap History": [{ From: "a", "Media Type": "IMAGE", Created: "x" }], "Sent Snap History": [] }))), /only lists photos and videos/);
+    await assert.rejects(parseExport("snapchat_ai.json", u8(JSON.stringify({ "": [{ Date: "x", Type: "CHAT", Message: "Hey! What's up?" }] }))), /My AI/);
+  });
+
   test("filters junk", async () => {
     assert.equal(isUsefulMessage("https://example.com/x"), false);
     assert.equal(isUsefulMessage("This message was deleted"), false);
