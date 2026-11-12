@@ -32,6 +32,7 @@ What makes a message work:
 
 The 5 messages:
 - Give each one a "form" and use at least 4 different forms, all of them fitting what was said. A question gets answers in several styles, a challenge gets several comebacks, a profile gets several kinds of comments.
+- At least one of the 5 is a question back to them that's easy and fun to answer and keeps the conversation going (form "follow_up_question" or "answer_and_ask"), tied to something specific they said or showed.
 - Move toward meeting up or swapping numbers only when the conversation makes that natural.
 - Put the one most likely to work first.
 - Match the requested tone, filtered through the user's own voice.
@@ -100,6 +101,7 @@ export const TONES = {
   bold: "bold: confident and direct, a daring take or a clear ask",
   sweet: "sweet: warm, genuine, kind",
   corny: "corny: on-purpose cheesy, groan-worthy puns played for laughs",
+  question: "question: every message asks them a question about something specific on their profile or in what they said (a this-or-that, a playful challenge, a curious follow-up). Never generic like 'how's your week'; each question is easy and fun to answer, and the 5 ask different things",
 };
 
 /** Reply length picked on the keyboard's length meter. Overrides the persona's Length slider for this request. */

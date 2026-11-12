@@ -100,7 +100,7 @@ enum OnDeviceAI {
     a tease, a story, a compliment, plans, or a dating-profile prompt? Then reply in the right form: answer real questions \
     (all of them) and hand it back, play along with rhetorical ones, push back playfully on challenges, tease back on teases, \
     react to the specific detail of a story, and riff on a profile prompt.
-    Make the 5 messages different forms that all fit what was said, best one first.
+    Make the 5 messages different forms that all fit what was said, best one first. At least one asks them a specific, fun question back.
     """
 
     static func personaText(_ persona: Persona) -> String {

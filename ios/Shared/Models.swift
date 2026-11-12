@@ -10,7 +10,7 @@ enum RizzMode: String, Codable {
 enum Tone: String, CaseIterable, Codable, Identifiable {
     /// Follow your Persona settings as they are.
     case me
-    case witty, humor, flirty, chill, bold, sweet, corny
+    case witty, humor, question, flirty, chill, bold, sweet, corny
     var id: String { rawValue }
     var label: String { self == .me ? "Me" : rawValue.capitalized }
     /// What the tone means to the AI (the server has the same list in prompts.js).
@@ -24,6 +24,7 @@ enum Tone: String, CaseIterable, Codable, Identifiable {
         case .bold: return "bold: confident and direct, a daring take or a clear ask"
         case .sweet: return "sweet: warm and genuine"
         case .corny: return "corny: on-purpose cheesy puns played for laughs"
+        case .question: return "question: every message asks them a specific, fun question about their profile or what they said"
         }
     }
 }
