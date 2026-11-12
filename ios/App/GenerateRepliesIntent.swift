@@ -29,7 +29,7 @@ struct GenerateRepliesIntent: AppIntent {
     var tone: ToneOption?
 
     /// Returns the 5 replies as a list, so the shortcut can show them with "Choose from List" and copy the one you tap.
-    func perform() async throws -> some IntentResult & ReturnsValue<[String]> {
+    func perform() async throws -> some IntentResult & ReturnsValue<[String]> & ProvidesDialog {
         // The connected Screenshot, or else an image on the clipboard (when the shortcut copies it there).
         let raw = screenshot?.data ?? UIPasteboard.general.image?.pngData()
         guard let raw, let jpeg = ImageTools.compressedJPEG(from: raw) else {
@@ -53,7 +53,9 @@ struct GenerateRepliesIntent: AppIntent {
         )
         store.addProfileScreen(jpeg)
         guard !batch.replies.isEmpty else { throw RizzError.server("No replies this time. Try another screenshot.") }
-        return .result(value: batch.replies.map(\.text))
+        let replies = batch.replies.map(\.text)
+        // Banner first (all 5 as bullets), then the shortcut's Choose from List lets you pick one to copy.
+        return .result(value: replies, dialog: IntentDialog(stringLiteral: replies.map { "• \($0)" }.joined(separator: "\n")))
     }
 }
 
