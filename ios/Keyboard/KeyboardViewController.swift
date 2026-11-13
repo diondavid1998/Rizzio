@@ -93,12 +93,22 @@ final class KeyboardModel: ObservableObject {
             if length != oldValue, batch != nil, !isLoading { rewrite(instruction: nil) }
         }
     }
-    /// The side picked on a topic that invites one ("pineapple on pizza"): for / against / neutral, or nil.
+    /// The side picked on their take: one of the options Rizzio wrote for it ("Team 11am"), or a generic
+    /// for / against / neutral / both when there are none. Nil lets Rizzio decide.
     @Published var side: String? = nil
+    @Published var sideChoice: SideChoice? = nil
 
-    /// Picks (or clears) a side and rewrites the replies to take it.
+    /// Picks (or clears) a generic side and rewrites the replies to take it.
     func pickSide(_ value: String) {
         side = side == value ? nil : value
+        sideChoice = nil
+        rewrite(instruction: nil)
+    }
+
+    /// Picks (or clears) one of the options written for this take and rewrites the replies.
+    func pickSide(_ choice: SideChoice) {
+        sideChoice = sideChoice == choice ? nil : choice
+        side = nil
         rewrite(instruction: nil)
     }
 
@@ -134,6 +144,7 @@ final class KeyboardModel: ObservableObject {
             thread = [] // a new screenshot starts a new conversation
             asks = []
             side = latest.stance // a side picked in the Back Tap popup shows as selected
+            sideChoice = latest.sideOptions?.first { $0.label == latest.sideLabel }
         }
     }
 
@@ -234,7 +245,8 @@ final class KeyboardModel: ObservableObject {
         }) {
             try await RizzAPI.generateAndStore(mode: mode, tone: tone, jpeg: jpeg, text: batch.sourceText,
                                                draft: batch.sourceDraft, instruction: ask, previous: previous, earlier: earlier,
-                                               stance: self.side, stanceTopic: batch.sideTopic)
+                                               stance: self.side, stanceTopic: batch.sideTopic,
+                                               side: self.sideChoice, sideOptions: batch.sideOptions)
         }
     }
 
@@ -303,7 +315,7 @@ struct KeyboardRootView: View {
         VStack(spacing: 6) {
             toolbar
             lengthMeter
-            if let topic = model.batch?.sideTopic, !topic.isEmpty { sidePicker(topic) }
+            if let topic = model.batch?.sideTopic, !topic.isEmpty { sidePicker(topic, options: model.batch?.sideOptions ?? []) }
             if model.showChat { chatPanel }
             content
             bottomRow
@@ -413,14 +425,28 @@ struct KeyboardRootView: View {
         }
     }
 
-    /// "Pick a side": For <topic>, Against <topic>, Neutral, Both. Tap the same one again to let Rizzio decide.
-    private func sidePicker(_ topic: String) -> some View {
+    /// "Pick a side": the options Rizzio wrote for this take ("Team 11am · Team 9am"), or For / Against / Neutral / Both.
+    /// Tap the same one again to let Rizzio decide.
+    private func sidePicker(_ topic: String, options: [SideChoice]) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
-                sideChip("for", "For \(topic)")
-                sideChip("against", "Against \(topic)")
-                sideChip("neutral", "Neutral")
-                sideChip("both", "Both")
+                if options.isEmpty {
+                    sideChip("for", "For \(topic)")
+                    sideChip("against", "Against \(topic)")
+                    sideChip("neutral", "Neutral")
+                    sideChip("both", "Both")
+                } else {
+                    ForEach(options, id: \.self) { choice in
+                        let selected = model.sideChoice == choice
+                        Button(choice.label) { model.pickSide(choice) }
+                            .font(.caption2.weight(.semibold))
+                            .lineLimit(1)
+                            .padding(.horizontal, 9).padding(.vertical, 5)
+                            .background(selected ? Theme.accent : Theme.card)
+                            .foregroundColor(selected ? .white : .primary)
+                            .clipShape(Capsule())
+                    }
+                }
             }
         }
         .disabled(model.isLoading)

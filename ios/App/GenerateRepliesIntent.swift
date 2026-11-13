@@ -31,8 +31,13 @@ struct GenerateRepliesIntent: AppIntent {
     var tone: ToneOption?
 
     /// Which side of their take to reply from ("11am church over 9am"): ask each time, or always use one.
+    /// Asked only when Scan photos is off (replies are about their prompts, not photos).
     @Parameter(title: "Pick a side", default: .ask)
     var side: SideOption
+
+    /// Holds the side picked from the options Rizzio offers for this prompt ("Team 11am"). Filled when it asks.
+    @Parameter(title: "Picked side", default: "")
+    var pickedSide: String
 
     /// Returns the 5 replies as a list, so the shortcut can show them with "Choose from List" and copy the one you tap.
     func perform() async throws -> some IntentResult & ReturnsValue<[String]> & ProvidesDialog & ShowsSnippetView {
@@ -56,19 +61,27 @@ struct GenerateRepliesIntent: AppIntent {
         )
         store.addProfileScreen(jpeg)
 
-        // The prompt invites a side: ask which one (or use the shortcut's setting), then write replies that take it.
-        if let topic = batch.sideTopic, !topic.isEmpty, side != .decide {
-            var choice = side
-            if choice == .ask {
-                choice = try await $side.requestDisambiguation(
-                    among: [.forIt, .against, .neutral, .both, .decide],
+        // Their prompt has a take: ask which side (with options written for this prompt), then write replies from it.
+        // Only when Scan photos is off: with photos on, Rizzio picks its own hook.
+        let scanPhotos = !store.persona.isOn("noPhotos")
+        if let topic = batch.sideTopic, !topic.isEmpty, side != .decide, !scanPhotos {
+            let options = batch.sideOptions ?? []
+            if side == .ask, !options.isEmpty {
+                let decide = "Let Rizzio decide"
+                let picked = try await $pickedSide.requestDisambiguation(
+                    among: options.map(\.label) + [decide],
                     dialog: IntentDialog(stringLiteral: "\(topic.prefix(1).uppercased() + topic.dropFirst()): which side?")
                 )
-            }
-            if let stance = choice.stance {
+                if let choice = options.first(where: { $0.label == picked }) {
+                    batch = try await RizzAPI.generateAndStore(
+                        mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, earlier: earlier,
+                        stanceTopic: topic, side: choice, sideOptions: options
+                    )
+                }
+            } else if let stance = side.stance {
                 batch = try await RizzAPI.generateAndStore(
                     mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, earlier: earlier,
-                    stance: stance, stanceTopic: topic
+                    stance: stance, stanceTopic: topic, sideOptions: options
                 )
             }
         }

@@ -106,6 +106,10 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const length = str(b.length, 20); // keyboard length meter: phrase / short / medium / long (anything else = persona)
       const stance = ["for", "against", "neutral", "both"].includes(b.stance) ? b.stance : null; // keyboard "Pick a side"
       const stanceTopic = str(b.stanceTopic, 120);
+      // A side the model offered for this take ("Team 11am"), picked in the Back Tap popup or the keyboard.
+      const side = b.side && typeof b.side === "object" && str(b.side.label, 60)
+        ? { label: str(b.side.label, 60), how: str(b.side.how, 200) ?? "" }
+        : null;
       const previous = Array.isArray(b.previous) ? b.previous.filter((t) => typeof t === "string").slice(0, 10).map((t) => t.slice(0, 300)) : [];
       if (!image && !earlier.length && !text?.trim() && !draft?.trim()) return res.status(400).json({ error: "Send an image, text, or draft." });
 
@@ -126,7 +130,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const overused = overusedPhrases(store.history(req.userId, 20).map((g) => g.replies.map((r) => r.text)), [...own, ...shown]);
       // A few relevant exchanges from the built-in library, as ideas for angle and flow (not voice).
       const refs = renderInspiration(inspiration([text, draft, instruction].filter(Boolean).join("\n"), { mode: b.mode, limit: b.mode === "draft" ? 3 : 6 }));
-      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image || earlier.length > 0, earlier: earlier.length, current: !!image, instruction, previous, length, ownRelated, stance, stanceTopic, overused }), refs].filter(Boolean).join("\n\n");
+      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image || earlier.length > 0, earlier: earlier.length, current: !!image, instruction, previous, length, ownRelated, stance, stanceTopic, side, overused }), refs].filter(Boolean).join("\n\n");
       const raw = await ai.generateReplies({ memory, requestText, image, earlier });
       // Safety net: a reply that still uses a stock or overused phrase the user never says is rewritten once.
       const ownText = [...own, ...shown].join("\n");

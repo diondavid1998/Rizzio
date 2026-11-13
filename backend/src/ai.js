@@ -26,8 +26,21 @@ const REPLY_SCHEMA = {
         needs: { type: "string", description: "One line: what a good reply has to do here." },
         as_user: { type: "string", description: "One line: what the user would notice first and how they'd react, judging from their own messages." },
         side_topic: { type: "string", description: "The take the user could agree or disagree with, in 2-6 words. For a dating-profile prompt, always fill it with the claim, preference or choice in their answer (e.g. 'pineapple on pizza', '11am church over 9am', 'naps after the market'). In a chat, only when they state an opinion or preference; otherwise empty." },
+        sides: {
+          type: "array",
+          description: "When side_topic is set: 2-4 ways the user could come at it, labelled to fit this exact take (e.g. 'Team 11am' / 'Team 9am' / 'Church on a Sunday?', 'Agree' / 'Disagree', 'Defend naps' / 'Attack naps', 'Yes, I'll bring coffee' / 'Make your own coffee'). Empty when side_topic is empty.",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string", description: "1-4 words, specific to this take." },
+              how: { type: "string", description: "One line: how replies taking this side should come at it." },
+            },
+            required: ["label", "how"],
+            additionalProperties: false,
+          },
+        },
       },
-      required: ["person", "hook", "kind", "questions", "needs", "as_user", "side_topic"],
+      required: ["person", "hook", "kind", "questions", "needs", "as_user", "side_topic", "sides"],
       additionalProperties: false,
     },
     context: { type: "string", description: "One short line naming what you replied to." },

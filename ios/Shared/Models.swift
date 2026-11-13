@@ -69,6 +69,15 @@ struct SuggestionBatch: Codable {
     var sideTopic: String? = nil
     /// The side already picked for this topic (for / against / neutral / both), e.g. in the Back Tap popup.
     var stance: String? = nil
+    /// Sides offered for this take, labelled to fit it ("Team 11am", "Defend naps"), and the one picked.
+    var sideOptions: [SideChoice]? = nil
+    var sideLabel: String? = nil
+}
+
+/// One way to come at their take, offered by the AI: a short label and how replies should approach it.
+struct SideChoice: Codable, Hashable {
+    let label: String
+    let how: String
 }
 
 /// What the server found in an exported chat file, before you say which sender is you.

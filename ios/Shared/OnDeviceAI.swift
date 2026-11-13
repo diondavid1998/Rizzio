@@ -147,14 +147,17 @@ enum OnDeviceAI {
     struct Result {
         let context: String
         let replies: [Reply]
-        var sideTopic: String? = nil
+        var sideTopic: String
+    @Guide(description: "If sideTopic is set: 2 to 4 ways to come at it, labelled to fit this exact take (like Team 11am, Defend naps, Agree, Disagree); otherwise empty")
+    var sides: [GeneratedSide]? = nil
+        var sideOptions: [SideChoice]? = nil
     }
 
     static func replies(mode: RizzMode, tone: Tone, jpeg: Data?, text: String?, draft: String?,
                         persona: Persona, me: MeResponse?,
                         instruction: String? = nil, previous: [String] = [],
                         length: ReplyLength = .auto, earlier: [Data] = [],
-                        stance: String? = nil, stanceTopic: String? = nil) async throws -> Result {
+                        stance: String? = nil, stanceTopic: String? = nil, side: SideChoice? = nil) async throws -> Result {
         if let reason = unavailableReason { throw RizzError.server(reason) }
         var content: [String] = []
         for (i, screen) in earlier.enumerated() {
@@ -165,7 +168,9 @@ enum OnDeviceAI {
         if let draft, !draft.isEmpty { content.append("The user's draft:\n\(draft.prefix(600))") }
         if !previous.isEmpty { content.append("Earlier suggestions (write new ones):\n" + previous.prefix(5).map { "- \($0)" }.joined(separator: "\n")) }
         if let hint = length.hint { content.append("Length: every message must be \(hint). This overrides the usual 6 to 25 words.") }
-        if let stance {
+        if let side {
+            content.append("The user picked a side on \(stanceTopic ?? "this"): \(side.label) (\(side.how)). Every message must come at it that way.")
+        } else if let stance {
             let how = ["for": "agree with it and back it up", "against": "playfully disagree and argue the other side", "neutral": "stay playfully in the middle", "both": "split across the 5: some for, some against"][stance] ?? stance
             content.append("The user picked a side on \(stanceTopic ?? "this"): \(stance). Every message must \(how).")
         }
@@ -190,7 +195,9 @@ enum OnDeviceAI {
             let replies = persona.enforce(response.content.replies.map { Reply(text: $0.text, angle: $0.angle) })
             guard !replies.isEmpty else { throw RizzError.server("Apple Intelligence didn't write anything. Try again.") }
             let topic = response.content.sideTopic.trimmingCharacters(in: .whitespacesAndNewlines)
-            return Result(context: response.content.context, replies: Array(replies.prefix(5)), sideTopic: topic.isEmpty ? nil : topic)
+            let sides = response.content.sides.map { SideChoice(label: $0.label, how: $0.how) }.filter { !$0.label.isEmpty }
+            return Result(context: response.content.context, replies: Array(replies.prefix(5)),
+                          sideTopic: topic.isEmpty ? nil : topic, sideOptions: sides.isEmpty ? nil : sides)
         }
         #endif
         throw RizzError.server(unavailableReason ?? "Free mode isn't available.")
@@ -282,6 +289,15 @@ struct GeneratedReplies {
     var sideTopic: String
     @Guide(description: "Exactly five different messages, best first")
     var replies: [GeneratedReply]
+}
+
+@available(iOS 26.0, *)
+@Generable
+struct GeneratedSide {
+    @Guide(description: "1 to 4 words, specific to the take")
+    var label: String
+    @Guide(description: "One line: how replies taking this side come at it")
+    var how: String
 }
 
 @available(iOS 26.0, *)

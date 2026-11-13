@@ -88,6 +88,7 @@ test("replies: the model reads the message first and labels each reply's form", 
   assert.match(system, /Never borrow their wording, tone or opinions/);
   assert.ok(schema.properties.read.required.includes("as_user"), "the model thinks as the user before writing");
   assert.ok(schema.properties.read.required.includes("side_topic"), "it spots prompts that invite taking a side");
+  assert.equal(schema.properties.read.properties.sides.items.properties.label.type, "string", "and offers sides labelled for the take");
 });
 
 test("profile screenshots: earlier screens come first, the current one last, with more effort", async () => {

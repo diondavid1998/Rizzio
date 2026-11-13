@@ -392,6 +392,15 @@ describe("persona", () => {
     assert.deepEqual(ai.calls.rewrite.at(-1).phrases, ["lol"]);
   });
 
+  test("a side the model offered (e.g. 'Team 11am') steers all 5 replies", async () => {
+    await call("POST", "/v1/replies", {
+      mode: "prompt", text: "Typical Sunday: church, but the 11am service because 9am is too early",
+      side: { label: "Team 9am", how: "playfully defend the early service" }, stanceTopic: "11am church over 9am",
+    });
+    const sent = ai.calls.replies.at(-1).requestText;
+    assert.match(sent, /picked a side on "11am church over 9am": "Team 9am" \(playfully defend the early service\)/);
+  });
+
   test("keyboard length meter sets how long replies are", async () => {
     await call("POST", "/v1/replies", { mode: "prompt", text: "I love hiking", length: "phrase" });
     assert.match(ai.calls.replies.at(-1).requestText, /Length for this request: a phrase: 1-5 words/);

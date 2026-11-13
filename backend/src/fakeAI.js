@@ -11,7 +11,7 @@ export class FakeAI {
         form: ["tease_back", "answer_and_ask", "comeback", "callback", "make_plans"][n - 1],
         angle: ["playful tease", "curious", "bold", "callback", "date ask"][n - 1],
       })),
-      read: { kind: "profile_prompt", questions: [], needs: "riff on their answer", as_user: "they'd tease first", side_topic: "" },
+      read: { kind: "profile_prompt", questions: [], needs: "riff on their answer", as_user: "they'd tease first", side_topic: "", sides: [] },
     };
   }
 

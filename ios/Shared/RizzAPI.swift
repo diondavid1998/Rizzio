@@ -19,7 +19,10 @@ struct RizzResult: Decodable {
     let context: String
     let replies: [Reply]
     /// What the model read; side_topic is set when the prompt invites taking a side ("pineapple on pizza").
-    struct ReadInfo: Decodable { let side_topic: String? }
+    struct ReadInfo: Decodable {
+        let side_topic: String?
+        var sides: [SideChoice]? = nil
+    }
     var read: ReadInfo? = nil
 }
 
@@ -43,11 +46,13 @@ enum RizzAPI {
         var earlierImages: [ImagePayload]? = nil
         var stance: String? = nil
         var stanceTopic: String? = nil
+        var side: SideChoice? = nil
     }
 
     static func generate(mode: RizzMode, tone: Tone? = nil, jpeg: Data? = nil, text: String? = nil, draft: String? = nil,
                          instruction: String? = nil, previous: [String] = [], length: ReplyLength? = nil,
-                         earlier: [Data] = [], stance: String? = nil, stanceTopic: String? = nil) async throws -> RizzResult {
+                         earlier: [Data] = [], stance: String? = nil, stanceTopic: String? = nil,
+                         side: SideChoice? = nil) async throws -> RizzResult {
         let payload = ReplyPayload(
             mode: mode,
             tone: (tone ?? SharedStore.shared.tone).rawValue,
@@ -59,7 +64,8 @@ enum RizzAPI {
             length: (length ?? SharedStore.shared.replyLength).rawValue,
             earlierImages: earlier.isEmpty ? nil : earlier.map { ImagePayload(data: $0.base64EncodedString(), mediaType: "image/jpeg") },
             stance: stance,
-            stanceTopic: stanceTopic
+            stanceTopic: stanceTopic,
+            side: side
         )
         return try await send("POST", "v1/replies", body: payload, timeout: 60)
     }
@@ -77,7 +83,9 @@ enum RizzAPI {
         previous: [String] = [],
         earlier: [Data] = [],
         stance: String? = nil,
-        stanceTopic: String? = nil
+        stanceTopic: String? = nil,
+        side: SideChoice? = nil,
+        sideOptions: [SideChoice]? = nil
     ) async throws -> SuggestionBatch {
         let store = SharedStore.shared
         let result: RizzResult
@@ -88,14 +96,14 @@ enum RizzAPI {
                                                      draft: draft, persona: store.persona, me: me,
                                                      instruction: instruction, previous: previous,
                                                      length: store.replyLength, earlier: earlier,
-                                                     stance: stance, stanceTopic: stanceTopic)
+                                                     stance: stance, stanceTopic: stanceTopic, side: side)
             let saved = try? await saveGeneration(mode: mode, tone: tone ?? store.tone, context: local.context, replies: local.replies)
             result = RizzResult(generationId: saved ?? "", context: local.context, replies: local.replies,
-                                read: .init(side_topic: local.sideTopic))
+                                read: .init(side_topic: local.sideTopic, sides: local.sideOptions))
         } else {
             result = try await generate(mode: mode, tone: tone, jpeg: jpeg, text: text, draft: draft,
                                         instruction: instruction, previous: previous, earlier: earlier,
-                                        stance: stance, stanceTopic: stanceTopic)
+                                        stance: stance, stanceTopic: stanceTopic, side: side)
         }
         if jpeg != nil, keepScreenshot { store.saveScreenshot(jpeg) }
         let batch = SuggestionBatch(
@@ -108,7 +116,9 @@ enum RizzAPI {
             sourceText: text,
             sourceDraft: draft,
             sideTopic: [stanceTopic, result.read?.side_topic].compactMap { $0 }.first { !$0.isEmpty },
-            stance: stance
+            stance: stance,
+            sideOptions: sideOptions ?? result.read?.sides,
+            sideLabel: side?.label
         )
         store.latestBatch = batch
         return batch
