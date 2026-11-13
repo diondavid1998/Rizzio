@@ -206,6 +206,25 @@ export class ClaudeAI {
     return { context: out.context, read: out.read, replies: out.replies.slice(0, 5) };
   }
 
+  /** Rewrites a few replies so they no longer use the given phrases, keeping everything else. */
+  async rewriteWithout({ memory, texts, phrases }) {
+    const out = await this.#call({
+      system: [
+        { type: "text", text: REPLY_SYSTEM, cache_control: { type: "ephemeral" } },
+        { type: "text", text: memory, cache_control: { type: "ephemeral" } },
+      ],
+      content: [{
+        type: "text",
+        text: `Rewrite each of these messages so it doesn't use any of these phrases: ${phrases.map((p) => `"${p}"`).join(", ")}. ` +
+          "Keep the same idea, length, voice and punctuation; change only what's needed. Return them in the same order.\n" +
+          texts.map((t, i) => `${i + 1}. ${t}`).join("\n"),
+      }],
+      schema: { type: "object", properties: { texts: { type: "array", items: { type: "string" } } }, required: ["texts"], additionalProperties: false },
+      effort: "low",
+    });
+    return out.texts;
+  }
+
   /** Drafts the About you note from what the user's own messages say about them. */
   async suggestAbout({ evidence }) {
     const out = await this.#call({

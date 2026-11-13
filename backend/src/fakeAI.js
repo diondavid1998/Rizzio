@@ -15,6 +15,10 @@ export class FakeAI {
     };
   }
 
+  async rewriteWithout({ texts, phrases }) {
+    return texts.map((t) => phrases.reduce((s, p) => s.replace(new RegExp(p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), "").trim(), t));
+  }
+
   async suggestAbout() {
     return "27, Chicago, nurse, into climbing and tacos, dry humor";
   }

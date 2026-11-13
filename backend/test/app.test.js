@@ -18,6 +18,10 @@ class FakeAI {
       replies: this.replyTexts?.map((text) => ({ text, angle: "x" })) ?? Array.from({ length: 5 }, (_, i) => ({ text: `reply ${i}`, angle: `angle ${i}` })),
     };
   }
+  async rewriteWithout(args) {
+    this.calls.rewrite = [...(this.calls.rewrite ?? []), args];
+    return args.texts.map((t) => t.replace(/that's a bold pick,? ?/i, "").replace(/hostage situation/i, "problem"));
+  }
   async suggestAbout(args) {
     this.calls.about = [...(this.calls.about ?? []), args];
     return "27, Chicago, nurse, into climbing";
@@ -343,15 +347,28 @@ describe("persona", () => {
   });
 
   test("catchphrases Rizzio keeps repeating (that the user never says) are steered away from", async () => {
-    ai.replyTexts = ["that's a bold pick honestly", "ok but why", "tacos tonight?", "lol fair", "say more"];
+    ai.replyTexts = ["ok that slaps fr honestly", "ok but why", "tacos tonight?", "lol fair", "say more"];
     for (let i = 0; i < 3; i++) await call("POST", "/v1/replies", { mode: "prompt", text: `prompt number ${i}` });
     await call("POST", "/v1/replies", { mode: "prompt", text: "another prompt" });
     const sent = ai.calls.replies.at(-1).requestText;
-    assert.match(sent, /overusing for this user[^\n]*"that's a bold pick/);
+    assert.match(sent, /overusing for this user[^\n]*"slaps fr honestly"/);
     // a phrase the user really says is never flagged
-    store.addExamplesBulk(USER, ["haha that's a bold pick honestly"], "imported");
+    store.addExamplesBulk(USER, ["ok that slaps fr honestly"], "imported");
     await call("POST", "/v1/replies", { mode: "prompt", text: "one more prompt" });
-    assert.doesNotMatch(ai.calls.replies.at(-1).requestText, /bold pick/);
+    assert.doesNotMatch(ai.calls.replies.at(-1).requestText, /slaps fr/);
+  });
+
+  test("a reply that still uses a stock phrase is rewritten; ones the user says are left alone", async () => {
+    ai.replyTexts = ["that's a bold pick, why pineapple", "ok but why", "this is a hostage situation", "lol fair", "say more"];
+    const r = await call("POST", "/v1/replies", { mode: "prompt", text: "pineapple pizza" });
+    assert.deepEqual(ai.calls.rewrite.at(-1).texts, ["that's a bold pick, why pineapple", "this is a hostage situation"]);
+    assert.equal(r.body.replies[0].text, "why pineapple");
+    assert.equal(r.body.replies[2].text, "this is a problem");
+    assert.equal(r.body.replies[1].text, "ok but why");
+    store.addExamplesBulk(USER, ["9am is a hostage situation", "that's a bold pick"], "imported");
+    const before = ai.calls.rewrite.length;
+    await call("POST", "/v1/replies", { mode: "prompt", text: "pineapple pizza again" });
+    assert.equal(ai.calls.rewrite.length, before, "the user's own phrases are fine");
   });
 
   test("keyboard length meter sets how long replies are", async () => {

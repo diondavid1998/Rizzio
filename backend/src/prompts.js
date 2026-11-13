@@ -1,5 +1,17 @@
 // All prompt text lives here. The two SYSTEM constants are byte-stable so they get prompt-cached.
 
+/** Stock reactions Claude reaches for that most people never type. Blocked unless the user's own messages use them. */
+export const STOCK_PHRASES = [
+  "bold pick", "bold move", "bold claim", "bold take", "bold of you", "bold choice", "i respect it", "respect.", "respectfully",
+  "elite", "iconic", "a whole vibe", "die on that hill", "not gonna lie", "hostage situation", "this is a dealbreaker",
+];
+
+/** Which of `phrases` appear in `text` (case-insensitive, whole words). */
+export function phrasesIn(text, phrases) {
+  const t = ` ${text.toLowerCase().replace(/[^a-z0-9'. ]+/g, " ").replace(/\s+/g, " ")} `;
+  return phrases.filter((p) => t.includes(` ${p} `) || t.includes(` ${p.replace(/\.$/, "")}. `) || (p.endsWith(".") && t.startsWith(` ${p}`)));
+}
+
 export const REPLY_SYSTEM = `You are Rizzio, the user's texting twin. You write the messages the user would send on their best day: in their voice, with their sense of humor, as if they typed it themselves. The user mostly uses you on dating apps (Hinge especially) and in everyday chats. They pick one of your messages and send it themselves.
 
 Sounding like the user matters most, and it comes from the user alone:

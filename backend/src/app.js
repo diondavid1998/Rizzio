@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { ImportError, parseExport, summarizeSenders } from "./importers.js";
 import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, enforcePersona, renderPersona, sanitizePersona } from "./persona.js";
 import { inspiration, related, renderInspiration } from "./corpus.js";
-import { overusedPhrases, renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
+import { STOCK_PHRASES, overusedPhrases, phrasesIn, renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
 const MODES = ["auto", "prompt", "chat", "draft"];
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -125,6 +125,18 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const refs = renderInspiration(inspiration([text, draft, instruction].filter(Boolean).join("\n"), { mode: b.mode, limit: b.mode === "draft" ? 3 : 6 }));
       const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image || earlier.length > 0, earlier: earlier.length, current: !!image, instruction, previous, length, ownRelated, stance, stanceTopic, overused }), refs].filter(Boolean).join("\n\n");
       const raw = await ai.generateReplies({ memory, requestText, image, earlier });
+      // Safety net: a reply that still uses a stock or overused phrase the user never says is rewritten once.
+      const ownText = [...own, ...shown].join("\n");
+      const banned = [...STOCK_PHRASES, ...overused].filter((p) => phrasesIn(ownText, [p]).length === 0);
+      const bad = raw.replies.map((r, i) => [i, phrasesIn(r.text, banned)]).filter(([, found]) => found.length);
+      if (bad.length && ai.rewriteWithout) {
+        try {
+          const fixed = await ai.rewriteWithout({ memory, texts: bad.map(([i]) => raw.replies[i].text), phrases: [...new Set(bad.flatMap(([, f]) => f))] });
+          bad.forEach(([i], k) => { if (typeof fixed[k] === "string" && fixed[k].trim()) raw.replies[i] = { ...raw.replies[i], text: fixed[k].trim() }; });
+        } catch (err) {
+          log.error?.(`rewrite without stock phrases failed: ${err.message}`); // keep the originals
+        }
+      }
       const result = { ...raw, replies: enforcePersona(persona, raw.replies) };
       const generationId = preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, ...result });
       res.json({ generationId, ...result });
