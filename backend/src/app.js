@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { ImportError, parseExport, summarizeSenders } from "./importers.js";
 import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, enforcePersona, renderPersona, sanitizePersona } from "./persona.js";
 import { inspiration, related, renderInspiration } from "./corpus.js";
-import { STOCK_PHRASES, openerUsage, overusedPhrases, phrasesIn, renderOpenerUsage, renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
+import { OPENERS, STOCK_PHRASES, openerUsage, overusedPhrases, phrasesIn, renderOpenerUsage, renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
 const MODES = ["auto", "prompt", "chat", "draft"];
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -131,7 +131,13 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // Safety net: a reply that still uses a stock or overused phrase the user never says is rewritten once.
       const ownText = [...own, ...shown].join("\n");
       const banned = [...STOCK_PHRASES, ...overused, ...openers.never].filter((p) => phrasesIn(ownText, [p]).length === 0);
-      const bad = raw.replies.map((r, i) => [i, phrasesIn(r.text, banned)]).filter(([, found]) => found.length);
+      const flagged = raw.replies.map((r) => phrasesIn(r.text, banned));
+      // An opener ("lol", "wait", "ok but"...) in more than 2 of the 5 reads like a tic: drop it from the extra ones.
+      for (const o of OPENERS) {
+        const withIt = raw.replies.map((r, i) => (phrasesIn(r.text, [o]).length ? i : -1)).filter((i) => i >= 0);
+        for (const i of withIt.slice(2)) flagged[i].push(o);
+      }
+      const bad = flagged.map((found, i) => [i, [...new Set(found)]]).filter(([, found]) => found.length);
       if (bad.length && ai.rewriteWithout) {
         try {
           const fixed = await ai.rewriteWithout({ memory, texts: bad.map(([i]) => raw.replies[i].text), phrases: [...new Set(bad.flatMap(([, f]) => f))] });

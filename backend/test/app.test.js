@@ -385,6 +385,13 @@ describe("persona", () => {
     assert.ok(!ai.calls.rewrite.at(-1).texts.includes("wait you went alone?"), "their own openers are fine");
   });
 
+  test("an opener in more than 2 of the 5 replies is dropped from the extras", async () => {
+    ai.replyTexts = ["lol same", "lol rough one", "lol you get to rest now", "lol tired is right", "how was it"];
+    await call("POST", "/v1/replies", { mode: "chat", text: "Them: just got back from work" });
+    assert.deepEqual(ai.calls.rewrite.at(-1).texts, ["lol you get to rest now", "lol tired is right"]);
+    assert.deepEqual(ai.calls.rewrite.at(-1).phrases, ["lol"]);
+  });
+
   test("keyboard length meter sets how long replies are", async () => {
     await call("POST", "/v1/replies", { mode: "prompt", text: "I love hiking", length: "phrase" });
     assert.match(ai.calls.replies.at(-1).requestText, /Length for this request: a phrase: 1-5 words/);

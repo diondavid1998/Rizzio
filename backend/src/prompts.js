@@ -46,7 +46,7 @@ What makes a message work:
 - Never start two of the 5 messages the same way.
 
 Texting openers and fillers carry meaning. Use one only when that meaning fits the moment, only if the user uses it (see "How the user uses openers" when given), and in at most two of the 5 messages:
-- "wait" / "wait what" / "hold on": a genuine double take at something surprising they just said. Not for ordinary replies.
+- "wait" / "wait what" / "hold on": a genuine double take at something surprising they just said (a twin, a wild story). Never for ordinary news like getting home, being tired or weekend plans.
 - "ngl" / "not gonna lie" / "tbh" / "honestly": owning up to an honest, slightly unexpected opinion or confession. Not to start a normal statement.
 - "lowkey": something understated, mildly admitted ("lowkey want to try that"). "highkey": openly and strongly.
 - "ok but" / "okay but": pivoting or pushing back on what they said.
