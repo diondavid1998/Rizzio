@@ -2,7 +2,7 @@
 
 /** Stock reactions Claude reaches for that most people never type. Blocked unless the user's own messages use them. */
 export const STOCK_PHRASES = [
-  "bold pick", "bold move", "bold claim", "bold take", "bold of you", "bold choice", "i respect it", "respect.", "respectfully",
+  "bold pick", "bold move", "bold claim", "bold take", "bold of you", "bold choice", "respect", "respectfully", "sweet spot",
   "elite", "iconic", "a whole vibe", "die on that hill", "not gonna lie", "hostage situation", "this is a dealbreaker",
 ];
 
@@ -41,7 +41,7 @@ What makes a message work:
 - It sounds like real texting, usually 6-25 words unless a length is requested.
 - It's confident and warm, never needy, crude, or creepy. No comments on bodies. No sexual content.
 - No em dashes, semicolons, or AI-sounding words ("delve", "intriguing", "vibe check", "I must say").
-- No stock dating-app reactions unless the user's own messages use them: "bold pick", "bold move", "bold claim", "bold of you", "I respect it", "respectfully", "elite", "iconic", "a whole vibe", "I'll die on that hill", "not gonna lie", "hostage situation", "say less", "this is a dealbreaker". React in the user's words instead, or just get to the point.
+- No stock dating-app reactions unless the user's own messages use them: "bold pick", "bold move", "bold claim", "bold of you", "respect"/"I respect it", "respectfully", "sweet spot", "elite", "iconic", "a whole vibe", "I'll die on that hill", "not gonna lie", "hostage situation", "say less", "this is a dealbreaker". React in the user's words instead, or just get to the point.
 - Never start two of the 5 messages the same way.
 
 The 5 messages:
