@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import { createApp, REBUILD_EVERY } from "../src/app.js";
-import { openDb } from "../src/db.js";
+import { openDb, PROFILE_RULES } from "../src/db.js";
 
 const TOKEN = "test-token";
 const USER = "user-1234-abcd";
@@ -188,7 +188,7 @@ describe("learning loop", () => {
     await settle();
     const after = store.getUser(u);
     assert.notEqual(after.voice_profile, "About them: does road trips");
-    assert.equal(after.profile_rules, 1);
+    assert.equal(after.profile_rules, PROFILE_RULES);
   });
 
   test("reset forgets learning but keeps hand-written examples", async () => {

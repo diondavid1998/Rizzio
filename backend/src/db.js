@@ -60,8 +60,8 @@ export function openDb(path = ":memory:") {
   return new Store(db);
 }
 
-/** Version of the voice-profile rules. Profiles built under older rules are rebuilt once. 1: facts only from the user's own words. */
-export const PROFILE_RULES = 1;
+/** Version of the voice-profile rules. Profiles built under older rules are rebuilt once. 1: facts only from the user's own words. 2: facts only from the About you note. */
+export const PROFILE_RULES = 2;
 export const SIGNAL_KINDS = ["picked", "edited", "rejected", "match", "replied", "ignored"];
 
 /** How strongly each source shows the user's real voice (higher = stronger). */

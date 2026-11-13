@@ -134,7 +134,7 @@ struct TrainView: View {
                 } header: {
                     Text("About you")
                 } footer: {
-                    Text("Facts Rizzio can use in replies: job, city, hobbies, your kind of humor.")
+                    Text("The only facts Rizzio uses about you in replies, so keep it current: job, city, hobbies, your kind of humor. Your uploaded chats only teach how you text.")
                 }
 
                 // MARK: What it knows

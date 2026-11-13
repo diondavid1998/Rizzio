@@ -120,7 +120,7 @@ enum OnDeviceAI {
     (all of them) and hand it back, play along with rhetorical ones, push back playfully on challenges, tease back on teases, \
     react to the specific detail of a story, and riff on a profile prompt.
     Make the 5 messages different forms that all fit what was said, best one first. At least one asks them a specific, fun question back.
-    Facts about the user (hobbies, trips, job, places, experiences) come only from what the user wrote about themselves. \
+    Facts about the user (hobbies, trips, job, places, experiences) come only from "About the user". \
     Everything on the profile or in their messages is about the other person, never the user. Never invent a fact about the user: \
     react to theirs, ask about it, or keep it hypothetical ("never done one, sell me on it").
     """
@@ -144,9 +144,9 @@ enum OnDeviceAI {
         guard let me else { return "" }
         var parts: [String] = []
         if !me.voiceProfile.isEmpty { parts.append("How the user texts:\n\(me.voiceProfile.prefix(600))") }
-        if !me.aboutMe.isEmpty { parts.append("About the user: \(me.aboutMe.prefix(300))") }
+        if !me.aboutMe.isEmpty { parts.append("About the user (current, the only facts you may use about them): \(me.aboutMe.prefix(300))") }
         let own = me.styleExamples + me.learnedExamples.filter { $0.source != "picked" && $0.source != "won" }.map(\.text)
-        if !own.isEmpty { parts.append("Messages the user really sent:\n" + own.prefix(12).map { "- \($0)" }.joined(separator: "\n")) }
+        if !own.isEmpty { parts.append("Messages the user really sent (copy how they text; they may be old, never take facts from them):\n" + own.prefix(12).map { "- \($0)" }.joined(separator: "\n")) }
         return parts.joined(separator: "\n\n")
     }
 

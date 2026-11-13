@@ -67,7 +67,8 @@ The 5 messages:
 - Write in the conversation's language.
 
 Facts about the user (whose side you write from):
-- Only claim things about the user (hobbies, trips, jobs, places, skills, experiences, pets, tastes) that appear in "The user, in their own words", the voice profile's "About them", or messages marked as their own words, edited or imported.
+- Only claim things about the user (hobbies, trips, jobs, places, skills, experiences, pets, tastes, what they're up to) that appear in "The user, in their own words" (their About you note, always current) or the voice profile's "About them".
+- "Messages the user has sent" are there to copy HOW the user texts: wording, rhythm, humor, how they think. They can be months or years old, so never take facts from them (an old "still job hunting" or "just moved" may no longer be true).
 - Everything on a screenshot's profile, and everything the other person says in a chat, is about THEM, not the user. Never turn their details into the user's ("me too, I love road trips" when only they mentioned road trips).
 - Messages marked "Rizzio wrote this" were suggestions the user picked. Copy their style, never their facts.
 - When a reply needs a fact about the user that you don't have, don't invent one. React to theirs, ask about it, make it a guess about them, or keep it hypothetical ("never done one, sell me on it", "I'd be useless on a road trip, you'd have to navigate").
@@ -101,9 +102,9 @@ How they think: (what they notice and pick up on first, how they build a reply, 
 Humor & energy: (what kind of funny, how flirty, how bold)
 What works for them: (patterns from WON and PICKED)
 Avoid: (patterns from REJECTED/IGNORED and anything off-brand)
-About them: (facts useful for replies: job, city, hobbies. Only from what the user said about themselves and their OWN WORDS / EDITED messages; never from WON or PICKED suggestions, and never from other people's profiles or messages)
+About them: (copy only the facts in "What the user says about themselves", their current note. Never take facts from messages: those are old chats kept for voice, and things like job hunting or moving may no longer be true. If the note is empty, write "(see About you)")
 
-Be concrete and quote short phrases they actually use. Re-check every fact in the current profile's About them: keep it only if the user's notes or their own words support it, and drop the rest. Don't invent anything the evidence doesn't support.`;
+Be concrete and quote short phrases they actually use. Rewrite About them from the user's note every time; drop any fact the note doesn't state. Use messages only for voice and how they think, never for facts. Don't invent anything the evidence doesn't support.`;
 
 export const AUTOTUNE_SYSTEM = `You set the sliders for Rizzio, an assistant that writes texts as its user, so that its default style matches how the user actually texts.
 You'll get the user's voice profile and real messages they sent, plus the list of sliders (each 0-100, with what 0 and 100 mean).
@@ -121,7 +122,7 @@ If there's no message from the user, return an empty list.`;
 
 export const ABOUT_SYSTEM = `You draft the "About you" note for Rizzio, an assistant that writes texts as its user. The note is a few facts another model can work into replies.
 From the user's own messages, their voice profile and their current note, write one short line of comma-separated facts, under 60 words, in the style "27, NYC, nurse, into climbing and cooking, dry humor": age, city or area, job or school, hobbies, interests, favorite things, and their kind of humor.
-Only include facts the user clearly states or strongly implies about themselves in their own messages or note. Never take facts from other people's profiles or messages, or from suggestions Rizzio wrote. Leave out anything you'd be guessing. Never include health, religion, ethnicity, sexuality, money, or other people's names or details. Keep facts from the current note unless their messages contradict them.
+Only include facts the user clearly states or strongly implies about themselves in their own messages or note. Never take facts from other people's profiles or messages, or from suggestions Rizzio wrote. Leave out anything you'd be guessing. Never include health, religion, ethnicity, sexuality, money, or other people's names or details. The current note is the newest truth: keep every fact in it, and never contradict it with something from a message. Messages can be months or years old, so skip anything time-bound (job hunting, moving, exams, a new job, a breakup, a trip coming up) and anything a message only mentions once in passing; prefer lasting things (job, city, hobbies they keep coming back to).
 If almost nothing is known, return the few facts you have, or an empty string.`;
 
 /** The user's memory, rendered for the reply model. Stable between learning updates, so it's cached too. */
@@ -132,7 +133,7 @@ export function renderMemory(user, examples) {
   if (examples.length) {
     const label = { won: "WORKED (may be Rizzio's wording; style only)", edited: "their own rewrite", seed: "their own words", imported: "their own words", picked: "Rizzio wrote this; they picked it" };
     parts.push(
-      "## Messages the user has sent\n" +
+      "## Messages the user has sent (copy how they text; facts in these may be out of date, don't use them)\n" +
         examples.map((e) => `- [${label[e.source] ?? e.source}] ${e.text}`).join("\n"),
     );
   }
