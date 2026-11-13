@@ -20,7 +20,7 @@ Read what they sent before you write anything. Fill in "read" first: what kind o
 - A compliment: take it with some personality and send a little back.
 - Making plans: be concrete (a day, a place, an activity).
 - A low-effort message ("lol", "haha yeah"): give them an easy, fun hook so it isn't on them to carry it.
-- A dating-profile prompt: riff on their answer. Agree and raise it, disagree playfully, make a bold guess about them, or ask the question their answer begs.
+- A dating-profile prompt: riff on their answer. Agree and raise it, disagree playfully, make a guess about them, or ask the question their answer begs.
 When answering about the user's own life, use what the voice profile and their own words say. If a fact isn't known, still answer: a playful, vague-but-real answer ("somewhere with way better tacos than here", "a song I'd only reveal after one drink") beats skipping it. Never leave a question unanswered or promise to answer later, and don't invent big facts (job, city, kids).
 
 What makes a message work:
@@ -29,6 +29,8 @@ What makes a message work:
 - It sounds like real texting, usually 6-25 words unless a length is requested.
 - It's confident and warm, never needy, crude, or creepy. No comments on bodies. No sexual content.
 - No em dashes, semicolons, or AI-sounding words ("delve", "intriguing", "vibe check", "I must say").
+- No stock dating-app reactions unless the user's own messages use them: "bold pick", "bold move", "bold claim", "bold of you", "I respect it", "respectfully", "elite", "iconic", "a whole vibe", "I'll die on that hill", "not gonna lie", "hostage situation", "say less", "this is a dealbreaker". React in the user's words instead, or just get to the point.
+- Never start two of the 5 messages the same way.
 
 The 5 messages:
 - Give each one a "form" and use at least 4 different forms, all of them fitting what was said. A question gets answers in several styles, a challenge gets several comebacks, a profile gets several kinds of comments.
@@ -128,7 +130,32 @@ const SIDES = {
   both: "split them: some of the 5 take the for side and some take the against side, so the user can choose",
 };
 
-export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier = 0, current = true, instruction, previous, length, ownRelated, stance, stanceTopic }) {
+/**
+ * Phrases Rizzio keeps writing for this user that the user never says themselves (from recent replies).
+ * Shown to the model so it stops leaning on them.
+ */
+export function overusedPhrases(recentReplies, ownTexts, { minGenerations = 3, limit = 8 } = {}) {
+  const norm = (t) => t.toLowerCase().replace(/[^a-z0-9' ]+/g, " ").replace(/\s+/g, " ").trim();
+  const own = " " + ownTexts.map(norm).join(" | ") + " ";
+  const seenIn = new Map(); // phrase -> number of generations it appears in
+  for (const replies of recentReplies) {
+    const phrases = new Set();
+    for (const r of replies) {
+      const w = norm(r).split(" ");
+      for (let n = 2; n <= 4; n++) for (let i = 0; i + n <= w.length; i++) phrases.add(w.slice(i, i + n).join(" "));
+    }
+    for (const p of phrases) seenIn.set(p, (seenIn.get(p) ?? 0) + 1);
+  }
+  const STOP = /^(i|you|the|a|an|and|or|to|of|in|on|is|it|that|this|but|so|for|with|what|are|do|be|me|my|your|at|if|just|was|we)( |$)|( )(i|you|the|a|an|and|or|to|of|in|on|is|it|that|this|but|so|for|with|are|do|be|me|my|your|at|if|was|we)$/;
+  return [...seenIn.entries()]
+    .filter(([p, n]) => n >= minGenerations && !STOP.test(p) && !own.includes(" " + p + " "))
+    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
+    .filter(([p], i, all) => !all.slice(0, i).some(([q]) => q.includes(p))) // keep "that's a bold pick", drop "bold pick"
+    .slice(0, limit)
+    .map(([p]) => p);
+}
+
+export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier = 0, current = true, instruction, previous, length, ownRelated, stance, stanceTopic, overused }) {
   const parts = [];
   if (mode === "auto")
     parts.push(
@@ -146,6 +173,9 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier 
     parts.push(
       "Every one of the 5 messages must ask them a question and end with a question mark. This overrides the usual mix of forms: vary the kind of question instead (this-or-that, playful challenge, curious follow-up, a guess turned into a question, a hypothetical), each about a different detail. Ask them the way the user would: in their words, their humor and their persona settings (a flirty user asks flirty questions, a dry one asks dry ones).",
     );
+  }
+  if (overused?.length) {
+    parts.push(`Phrases Rizzio has been overusing for this user (they don't say these): ${overused.map((p) => `"${p}"`).join(", ")}. Don't use them.`);
   }
   if (ownRelated?.length) {
     parts.push(

@@ -5,7 +5,7 @@ import { ABOUT_SYSTEM, AUTOTUNE_SYSTEM, EXTRACT_SYSTEM, PROFILE_SYSTEM, REPLY_SY
 /** How a reply responds to what was said. The model picks one per reply and must use at least 4 different ones. */
 export const REPLY_FORMS = [
   "answer", "answer_and_ask", "play_along", "comeback", "tease_back", "agree_and_raise", "playful_disagree",
-  "bold_guess", "follow_up_question", "callback", "story", "compliment_back", "make_plans", "hook",
+  "guess", "follow_up_question", "callback", "story", "compliment_back", "make_plans", "hook",
 ];
 export const MESSAGE_KINDS = [
   "profile_prompt", "photo", "question", "several_questions", "rhetorical_question", "challenge_or_hot_take",

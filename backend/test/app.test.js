@@ -342,6 +342,18 @@ describe("persona", () => {
     assert.doesNotMatch(ai.calls.replies.at(-1).requestText, /picked a side/);
   });
 
+  test("catchphrases Rizzio keeps repeating (that the user never says) are steered away from", async () => {
+    ai.replyTexts = ["that's a bold pick honestly", "ok but why", "tacos tonight?", "lol fair", "say more"];
+    for (let i = 0; i < 3; i++) await call("POST", "/v1/replies", { mode: "prompt", text: `prompt number ${i}` });
+    await call("POST", "/v1/replies", { mode: "prompt", text: "another prompt" });
+    const sent = ai.calls.replies.at(-1).requestText;
+    assert.match(sent, /overusing for this user[^\n]*"that's a bold pick/);
+    // a phrase the user really says is never flagged
+    store.addExamplesBulk(USER, ["haha that's a bold pick honestly"], "imported");
+    await call("POST", "/v1/replies", { mode: "prompt", text: "one more prompt" });
+    assert.doesNotMatch(ai.calls.replies.at(-1).requestText, /bold pick/);
+  });
+
   test("keyboard length meter sets how long replies are", async () => {
     await call("POST", "/v1/replies", { mode: "prompt", text: "I love hiking", length: "phrase" });
     assert.match(ai.calls.replies.at(-1).requestText, /Length for this request: a phrase: 1-5 words/);

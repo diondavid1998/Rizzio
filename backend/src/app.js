@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { ImportError, parseExport, summarizeSenders } from "./importers.js";
 import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, enforcePersona, renderPersona, sanitizePersona } from "./persona.js";
 import { inspiration, related, renderInspiration } from "./corpus.js";
-import { renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
+import { overusedPhrases, renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
 const MODES = ["auto", "prompt", "chat", "draft"];
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -119,9 +119,11 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const shown = new Set(best.map((e) => e.text));
       const own = store.listExamples(req.userId).filter((e) => e.source !== "picked" && !shown.has(e.text)).map((e) => e.text);
       const ownRelated = related([text, draft].filter(Boolean).join("\n"), own, 8);
+      // Catchphrases Rizzio keeps writing that the user never says ("that's a bold pick"): steer away from them.
+      const overused = overusedPhrases(store.history(req.userId, 20).map((g) => g.replies.map((r) => r.text)), [...own, ...shown]);
       // A few relevant exchanges from the built-in library, as ideas for angle and flow (not voice).
       const refs = renderInspiration(inspiration([text, draft, instruction].filter(Boolean).join("\n"), { mode: b.mode, limit: b.mode === "draft" ? 3 : 6 }));
-      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image || earlier.length > 0, earlier: earlier.length, current: !!image, instruction, previous, length, ownRelated, stance, stanceTopic }), refs].filter(Boolean).join("\n\n");
+      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image || earlier.length > 0, earlier: earlier.length, current: !!image, instruction, previous, length, ownRelated, stance, stanceTopic, overused }), refs].filter(Boolean).join("\n\n");
       const raw = await ai.generateReplies({ memory, requestText, image, earlier });
       const result = { ...raw, replies: enforcePersona(persona, raw.replies) };
       const generationId = preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, ...result });
