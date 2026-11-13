@@ -107,7 +107,8 @@ enum RizzAPI {
             hasScreenshot: jpeg != nil,
             sourceText: text,
             sourceDraft: draft,
-            sideTopic: [stanceTopic, result.read?.side_topic].compactMap { $0 }.first { !$0.isEmpty }
+            sideTopic: [stanceTopic, result.read?.side_topic].compactMap { $0 }.first { !$0.isEmpty },
+            stance: stance
         )
         store.latestBatch = batch
         return batch

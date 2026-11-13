@@ -133,7 +133,7 @@ final class KeyboardModel: ObservableObject {
             rejected = []
             thread = [] // a new screenshot starts a new conversation
             asks = []
-            side = nil
+            side = latest.stance // a side picked in the Back Tap popup shows as selected
         }
     }
 
