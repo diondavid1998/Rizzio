@@ -371,6 +371,20 @@ describe("persona", () => {
     assert.equal(ai.calls.rewrite.length, before, "the user's own phrases are fine");
   });
 
+  test("openers: the model sees how the user uses them; ones they never use are blocked", async () => {
+    const mine = ["wait you've been to peru??", "wait what, since when", "lowkey want to try that", "lol fair enough", "ok but why tho"];
+    const filler = Array.from({ length: 40 }, (_, i) => `plain message ${i} about my day`);
+    store.addExamplesBulk(USER, [...filler, ...mine], "imported");
+    ai.replyTexts = ["ngl that sounds fun", "wait you went alone?", "lowkey jealous", "ok but which trail", "lol fair"];
+    const r = await call("POST", "/v1/replies", { mode: "chat", text: "Them: just got back from hiking in Peru" });
+    const memory = ai.calls.replies.at(-1).memory;
+    assert.match(memory, /How the user uses openers/);
+    assert.match(memory, /"wait" \(2x\), e\.g\./);
+    assert.match(memory, /Never used by the user, so don't use:[^\n]*"ngl"/);
+    assert.ok(ai.calls.rewrite.at(-1).texts.includes("ngl that sounds fun"), "a reply with an opener they never use is rewritten");
+    assert.ok(!ai.calls.rewrite.at(-1).texts.includes("wait you went alone?"), "their own openers are fine");
+  });
+
   test("keyboard length meter sets how long replies are", async () => {
     await call("POST", "/v1/replies", { mode: "prompt", text: "I love hiking", length: "phrase" });
     assert.match(ai.calls.replies.at(-1).requestText, /Length for this request: a phrase: 1-5 words/);

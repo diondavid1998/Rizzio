@@ -44,6 +44,16 @@ What makes a message work:
 - No stock dating-app reactions unless the user's own messages use them: "bold pick", "bold move", "bold claim", "bold of you", "respect"/"I respect it", "respectfully", "sweet spot", "elite", "iconic", "a whole vibe", "I'll die on that hill", "not gonna lie", "hostage situation", "say less", "this is a dealbreaker". React in the user's words instead, or just get to the point.
 - Never start two of the 5 messages the same way.
 
+Texting openers and fillers carry meaning. Use one only when that meaning fits the moment, only if the user uses it (see "How the user uses openers" when given), and in at most two of the 5 messages:
+- "wait" / "wait what" / "hold on": a genuine double take at something surprising they just said. Not for ordinary replies.
+- "ngl" / "not gonna lie" / "tbh" / "honestly": owning up to an honest, slightly unexpected opinion or confession. Not to start a normal statement.
+- "lowkey": something understated, mildly admitted ("lowkey want to try that"). "highkey": openly and strongly.
+- "ok but" / "okay but": pivoting or pushing back on what they said.
+- "fr" / "for real": strong agreement or emphasis. "deadass": completely serious.
+- "nah": playful disagreement. "lol" / "haha": softening or reacting to something funny they said, not decoration.
+- "no way": surprised disbelief. "also": adding a second point. "so": moving to a question or next step.
+If the user's own messages use an opener differently, follow how they use it.
+
 The 5 messages:
 - Give each one a "form" and use at least 4 different forms, all of them fitting what was said. A question gets answers in several styles, a challenge gets several comebacks, a profile gets several kinds of comments.
 - At least one of the 5 is a question back to them that's easy and fun to answer and keeps the conversation going (form "follow_up_question" or "answer_and_ask"), tied to something specific they said or showed.
@@ -165,6 +175,38 @@ export function overusedPhrases(recentReplies, ownTexts, { minGenerations = 3, l
     .filter(([p], i, all) => !all.slice(0, i).some(([q]) => q.includes(p))) // keep "that's a bold pick", drop "bold pick"
     .slice(0, limit)
     .map(([p]) => p);
+}
+
+/** Openers and fillers whose use the model should copy from the user (and skip if they never use them). */
+export const OPENERS = [
+  "wait", "hold on", "ngl", "not gonna lie", "tbh", "honestly", "lowkey", "highkey", "ok but", "okay but", "fr", "for real",
+  "deadass", "nah", "lol", "lmao", "haha", "no way", "bro", "bruh", "istg", "idk", "omg", "yo", "ayy", "also", "literally",
+];
+
+const openerRegex = (o) => new RegExp(`(^|[^a-z'])${o.replace(/ /g, "\\s+")}([^a-z']|$)`, "i");
+
+/**
+ * How the user really uses common openers: which ones, how often, with a couple of their own examples,
+ * and (once there's enough of their writing) which ones they never use.
+ */
+export function openerUsage(ownTexts) {
+  const used = [];
+  for (const o of OPENERS) {
+    const hits = ownTexts.filter((t) => openerRegex(o).test(t));
+    if (hits.length) used.push({ opener: o, count: hits.length, examples: [...hits].sort((a, b) => a.length - b.length).slice(0, 2) });
+  }
+  used.sort((a, b) => b.count - a.count);
+  const enough = ownTexts.length >= 40;
+  const never = enough ? OPENERS.filter((o) => !used.some((u) => u.opener === o)) : [];
+  return { used, never, enough };
+}
+
+export function renderOpenerUsage({ used, never }) {
+  if (!used.length && !never.length) return "";
+  const lines = ["## How the user uses openers (copy this, don't invent new ones)"];
+  for (const u of used.slice(0, 10)) lines.push(`- "${u.opener}" (${u.count}x), e.g. ${u.examples.map((e) => `"${e.slice(0, 120)}"`).join(" / ")}`);
+  if (never.length) lines.push(`Never used by the user, so don't use: ${never.map((o) => `"${o}"`).join(", ")}.`);
+  return lines.join("\n");
 }
 
 export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier = 0, current = true, instruction, previous, length, ownRelated, stance, stanceTopic, overused }) {

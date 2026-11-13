@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { ImportError, parseExport, summarizeSenders } from "./importers.js";
 import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, enforcePersona, renderPersona, sanitizePersona } from "./persona.js";
 import { inspiration, related, renderInspiration } from "./corpus.js";
-import { STOCK_PHRASES, overusedPhrases, phrasesIn, renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
+import { STOCK_PHRASES, openerUsage, overusedPhrases, phrasesIn, renderOpenerUsage, renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
 const MODES = ["auto", "prompt", "chat", "draft"];
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -114,7 +114,10 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const preview = b.preview === true;
       const persona = preview && b.persona ? sanitizePersona(b.persona) : sanitizePersona(store.getPersona(req.userId));
       const best = store.bestExamples(req.userId, 25, { ownWordsOnly: true });
-      const memory = renderMemory(user, best) + "\n\n" + renderPersona(persona);
+      // How the user really uses "wait", "ngl", "lowkey"... from all of their own messages.
+      const ownAll = store.listExamples(req.userId).filter((e) => e.source !== "picked").map((e) => e.text);
+      const openers = openerUsage(ownAll);
+      const memory = [renderMemory(user, best), renderOpenerUsage(openers), renderPersona(persona)].filter(Boolean).join("\n\n");
       // The user's own messages most related to this one (beyond the 25 always shown), so wording follows how they talk about it.
       const shown = new Set(best.map((e) => e.text));
       const own = store.listExamples(req.userId).filter((e) => e.source !== "picked" && !shown.has(e.text)).map((e) => e.text);
@@ -127,7 +130,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const raw = await ai.generateReplies({ memory, requestText, image, earlier });
       // Safety net: a reply that still uses a stock or overused phrase the user never says is rewritten once.
       const ownText = [...own, ...shown].join("\n");
-      const banned = [...STOCK_PHRASES, ...overused].filter((p) => phrasesIn(ownText, [p]).length === 0);
+      const banned = [...STOCK_PHRASES, ...overused, ...openers.never].filter((p) => phrasesIn(ownText, [p]).length === 0);
       const bad = raw.replies.map((r, i) => [i, phrasesIn(r.text, banned)]).filter(([, found]) => found.length);
       if (bad.length && ai.rewriteWithout) {
         try {
