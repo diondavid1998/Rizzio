@@ -237,7 +237,7 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier 
     );
   }
   if (hook?.trim()) {
-    parts.push(`The user chose what to reply to: "${hook.trim()}". All 5 messages reply to that, not to anything else on the profile.`);
+    parts.push(`The user chose what to reply to: "${hook.trim()}". All 5 messages reply to that one item only. Don't mention, guess at or answer any other prompt or photo on the screen, even in passing (no "the lie is..." for a different prompt, no comment on another photo). Use other profile details only if they are part of the chosen item.`);
   }
   if (overused?.length) {
     parts.push(`Phrases Rizzio has been overusing for this user (they don't say these): ${overused.map((p) => `"${p}"`).join(", ")}. Don't use them.`);
