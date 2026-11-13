@@ -1,0 +1,128 @@
+{
+  "source": "Written for Rizzio (original)",
+  "note": "Chat moves that work: answering and handing it back, reviving a chat, handling dry replies, and moving to a date.",
+  "license": "Part of Rizzio's source code.",
+  "kind": "chat",
+  "pairs": [
+    [
+      "haha yeah",
+      "ok I'm going to need more than a haha. best thing that happened to you this week, go"
+    ],
+    [
+      "lol",
+      "that lol is doing a lot of work. what are you up to tonight"
+    ],
+    [
+      "yeah I'm good",
+      "good, now tell me something interesting about your week"
+    ],
+    [
+      "sorry I've been busy",
+      "no stress. how did the busy week go, did you survive it"
+    ],
+    [
+      "what do you do for fun",
+      "climbing, cooking, and losing at trivia with friends. you?"
+    ],
+    [
+      "where are you from originally",
+      "grew up just outside the city, so I have strong opinions about the bagels. you?"
+    ],
+    [
+      "what are you looking for on here",
+      "someone fun to get drinks with and see where it goes. what about you"
+    ],
+    [
+      "we should hang out sometime",
+      "let's do it. thursday or saturday?"
+    ],
+    [
+      "we should get drinks sometime",
+      "I'm free thursday. you pick the bar, I'll pick the first round"
+    ],
+    [
+      "I love that place",
+      "then that's where we're going. this week or next?"
+    ],
+    [
+      "I've never had Ethiopian food",
+      "that has to be fixed. I know a place, are you free this weekend"
+    ],
+    [
+      "I'm terrible at bowling",
+      "perfect, me too. loser buys the fries, saturday?"
+    ],
+    [
+      "I'm free this weekend actually",
+      "great, saturday afternoon? I'll send you the address"
+    ],
+    [
+      "what's your number",
+      "here you go, text me so I have yours"
+    ],
+    [
+      "I just got back from Japan",
+      "how was it? what's the one food you can't stop thinking about"
+    ],
+    [
+      "I had the worst day",
+      "oh no, what happened? want to vent or want a distraction"
+    ],
+    [
+      "I got the job!!",
+      "congrats!! that's huge. how are you celebrating"
+    ],
+    [
+      "I'm so tired",
+      "long day or long week? either way you deserve a nap"
+    ],
+    [
+      "I have a dog",
+      "important question, what's their name and can I meet them"
+    ],
+    [
+      "I'm a nurse",
+      "the long shifts must be wild. day or night, and how do you stay awake"
+    ],
+    [
+      "I just moved here",
+      "welcome. what's been the best spot you've found so far"
+    ],
+    [
+      "guess",
+      "hmm, you seem like you'd say yes to a spontaneous trip. am I close"
+    ],
+    [
+      "you seem fun",
+      "I'm a lot of fun. I'm also really bad at mini golf, just so you know"
+    ],
+    [
+      "that's so random",
+      "random is my best quality. what's the most random thing you've done lately"
+    ],
+    [
+      "hey",
+      "hey! ok, quick question to make this interesting: beach or mountains"
+    ],
+    [
+      "how was your weekend",
+      "really good, went to a friend's barbecue and ate too much. how was yours"
+    ],
+    [
+      "what are you up to",
+      "just finished cooking dinner, feeling very accomplished. you?"
+    ],
+    [
+      "I can't decide what to watch",
+      "what are the finalists? I'll be the tiebreaker"
+    ],
+    [
+      "are you always this funny",
+      "only on days ending in y. are you always this easy to make laugh"
+    ],
+    [
+      "I've been meaning to reply",
+      "I'll allow it. tell me the best part of your week to make up for it"
+    ]
+  ]
+}

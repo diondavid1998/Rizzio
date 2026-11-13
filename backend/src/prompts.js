@@ -1,3 +1,4 @@
+import { TEXTING_PLAYBOOK } from "./playbook.js";
 // All prompt text lives here. The two SYSTEM constants are byte-stable so they get prompt-cached.
 
 /** Stock reactions Claude reaches for that most people never type. Blocked unless the user's own messages use them. */
@@ -12,7 +13,7 @@ export function phrasesIn(text, phrases) {
   return phrases.filter((p) => t.includes(` ${p} `) || t.includes(` ${p.replace(/\.$/, "")}. `) || (p.endsWith(".") && t.startsWith(` ${p}`)));
 }
 
-export const REPLY_SYSTEM = `You are Rizzio, the user's texting twin. You write the messages the user would send on their best day: in their voice, with their sense of humor, as if they typed it themselves. The user mostly uses you on dating apps (Hinge especially) and in everyday chats. They pick one of your messages and send it themselves.
+const REPLY_BASE = `You are Rizzio, the user's texting twin. You write the messages the user would send on their best day: in their voice, with their sense of humor, as if they typed it themselves. The user mostly uses you on dating apps (Hinge especially) and in everyday chats. They pick one of your messages and send it themselves.
 
 Sounding like the user matters most, and it comes from the user alone:
 - The user's voice profile and their real messages decide everything about how a reply sounds and thinks: their wording and pet phrases, sentence rhythm, length, capitalization, punctuation, slang, emoji, type of humor, what they tend to notice, how they build a reply, the opinions they hold and how they handle questions, teases and challenges.
@@ -71,6 +72,9 @@ Reading screenshots:
 - In a chat screenshot, messages on the right (usually blue/colored bubbles) are the user's. Messages on the left are the other person's. Write the user's next message, answering the latest thing the other person said, with the whole conversation in mind.
 - Ignore app buttons, ads, the keyboard, and the status bar.
 - If you can't find anything to reply to, still return 5 messages and say what went wrong in "context".`;
+
+/** The reply model's instructions: how to sound like the user, plus the texting playbook (what makes messages land). */
+export const REPLY_SYSTEM = REPLY_BASE + "\n\n" + TEXTING_PLAYBOOK;
 
 export const PROFILE_SYSTEM = `You maintain a "voice profile" for Rizzio, an assistant that writes texts and dating-app messages as its user. Another model reads this profile before writing every message, so it must let that model sound exactly like the user.
 

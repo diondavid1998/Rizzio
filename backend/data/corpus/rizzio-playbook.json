@@ -4,45 +4,401 @@
   "license": "Part of Rizzio's source code.",
   "kind": "prompt",
   "pairs": [
-    ["My simple pleasures: a good coffee and the Sunday crossword", "ok but do you do it in pen or are you a pencil coward"],
-    ["My simple pleasures: long walks with my dog", "important question: does the dog approve of your dates or do I need to bring treats"],
-    ["I'm looking for: someone who can make me laugh", "a horse walks into a bar. that's it, that's my audition. how'd I do"],
-    ["Typical Sunday: farmers market then a nap", "farmers market then a nap is elite. what's your must-buy, I'm guessing peaches"],
-    ["I go crazy for: tacos", "corn or flour tortilla. choose carefully, this decides everything"],
-    ["Two truths and a lie: I've been skydiving, I can juggle, I've never seen Star Wars", "the lie is skydiving. nobody who skydives forgets to mention it in every prompt"],
-    ["The way to win me over is: cook me dinner", "I make a pasta that's gotten two people engaged. not to me, but still"],
-    ["I'm weirdly attracted to: people who know a lot about bugs", "I know exactly one bug fact and I've been saving it for this moment"],
-    ["My most irrational fear: geese", "geese are not irrational. geese have chosen violence. you're just observant"],
-    ["Together we could: find the best pizza in the city", "I accept this mission. what's your current number one so I know who to beat"],
-    ["A shower thought I recently had: is a hot dog a sandwich", "it's a taco. I'll defend this over drinks if you're brave enough"],
-    ["I'll fall for you if: you send me memes at 2am", "risky, my 2am memes are unhinged. is there a quality bar or just volume"],
-    ["My greatest strength: I give amazing gifts", "big claim. what's the best gift you've ever given, I need evidence"],
-    ["Dating me is like: a road trip with good snacks", "what's the snack lineup, because this is a dealbreaker conversation"],
-    ["I want someone who: will hike with me", "I hike. mostly to the view and then complain on the way down. still in?"],
-    ["Green flags I look for: someone who's nice to waiters", "I tip like it's a love language. what's a red flag that ends it for you instantly"],
-    ["Unusual skills: I can name any song in 3 seconds", "challenge accepted. loser buys the first round"],
-    ["My love language: quality time", "perfect, I'm free most evenings and very good at showing up with snacks"],
-    ["I bet you can't: beat me at Mario Kart", "rainbow road, best of three, loser plans the next date"],
-    ["The key to my heart is: really good bread", "sourdough or are you a croissant person. this matters"],
-    ["Photo: hiking at the top of a mountain", "that view is unreal. did you make it up there or is this a really good green screen"],
-    ["Photo: holding a huge fish", "ok the fish is impressive but I need to know its name"],
-    ["Photo: dog in a sweater", "who's the model and are they single"],
-    ["My most controversial opinion: pineapple belongs on pizza", "I respect a person who'll die on a hill. even a sticky one"],
-    ["Let's debate this topic: cats vs dogs", "dogs, but I'd let a cat win the argument because they'd be smug about it anyway"],
-    ["Biggest risk I've taken: moved across the country alone", "that's brave. what's the thing you miss most from back home"],
-    ["Ideal first date: cocktails at a speakeasy", "I know a place with a password. you'll have to earn it though"],
-    ["A life goal of mine: visit every national park", "how many are you at? I need to know if I'm talking to an amateur or a legend"],
-    ["The hallmark of a good relationship: inside jokes", "we should start one immediately. any ideas or should I go first"],
-    ["My go-to karaoke song: Mr. Brightside", "a classic. do you peak at the first chorus or save it for the end"],
-    ["I'm convinced that: breakfast for dinner is the best dinner", "pancakes at 8pm is the move. syrup or are you a butter purist"],
-    ["Don't hate me if I: talk to strangers' dogs before the strangers", "honestly the correct order of operations"],
-    ["We'll get along if: you like trivia nights", "my team name ideas are unbeatable. our trivia skills, less so"],
-    ["Best travel story: got lost in Tokyo for a whole day", "best way to see a city honestly. what's the best thing you found while lost"],
-    ["I recently discovered that: I love pottery", "are your bowls actually bowls yet or still abstract art"],
-    ["This year, I really want to: run a half marathon", "that's awesome. how's training going, are we in the hating it or loving it phase"],
-    ["Worst idea I've ever had: bangs", "everyone gets one bangs era. it builds character"],
-    ["My happy place: the beach at sunset", "sunset swim or sunset with a drink in the sand"],
-    ["You should not go out with me if: you hate spontaneous plans", "I once got a burrito in another state on a whim. we'll be fine"],
-    ["I'm overly competitive about: board games", "Catan or Monopoly. one of these answers ends friendships"]
+    [
+      "My simple pleasures: a good coffee and the Sunday crossword",
+      "ok but do you do it in pen or are you a pencil coward"
+    ],
+    [
+      "My simple pleasures: long walks with my dog",
+      "important question: does the dog approve of your dates or do I need to bring treats"
+    ],
+    [
+      "I'm looking for: someone who can make me laugh",
+      "a horse walks into a bar. that's it, that's my audition. how'd I do"
+    ],
+    [
+      "Typical Sunday: farmers market then a nap",
+      "farmers market then a nap is a perfect sunday. what's your must-buy, I'm guessing peaches"
+    ],
+    [
+      "I go crazy for: tacos",
+      "corn or flour tortilla. choose carefully, this decides everything"
+    ],
+    [
+      "Two truths and a lie: I've been skydiving, I can juggle, I've never seen Star Wars",
+      "the lie is skydiving. nobody who skydives forgets to mention it in every prompt"
+    ],
+    [
+      "The way to win me over is: cook me dinner",
+      "I make a pasta that's gotten two people engaged. not to me, but still"
+    ],
+    [
+      "I'm weirdly attracted to: people who know a lot about bugs",
+      "I know exactly one bug fact and I've been saving it for this moment"
+    ],
+    [
+      "My most irrational fear: geese",
+      "geese are not irrational. geese have chosen violence. you're just observant"
+    ],
+    [
+      "Together we could: find the best pizza in the city",
+      "I accept this mission. what's your current number one so I know who to beat"
+    ],
+    [
+      "A shower thought I recently had: is a hot dog a sandwich",
+      "it's a taco. I'll defend this over drinks if you're brave enough"
+    ],
+    [
+      "I'll fall for you if: you send me memes at 2am",
+      "risky, my 2am memes are unhinged. is there a quality bar or just volume"
+    ],
+    [
+      "My greatest strength: I give amazing gifts",
+      "big claim. what's the best gift you've ever given, I need evidence"
+    ],
+    [
+      "Dating me is like: a road trip with good snacks",
+      "what's the snack lineup? this decides whether I'm in the passenger seat"
+    ],
+    [
+      "I want someone who: will hike with me",
+      "I hike. mostly to the view and then complain on the way down. still in?"
+    ],
+    [
+      "Green flags I look for: someone who's nice to waiters",
+      "I tip like it's a love language. what's a red flag that ends it for you instantly"
+    ],
+    [
+      "Unusual skills: I can name any song in 3 seconds",
+      "challenge accepted. loser buys the first round"
+    ],
+    [
+      "My love language: quality time",
+      "perfect, I'm free most evenings and very good at showing up with snacks"
+    ],
+    [
+      "I bet you can't: beat me at Mario Kart",
+      "rainbow road, best of three, loser plans the next date"
+    ],
+    [
+      "The key to my heart is: really good bread",
+      "sourdough or are you a croissant person. this matters"
+    ],
+    [
+      "Photo: hiking at the top of a mountain",
+      "that view is unreal. did you make it up there or is this a really good green screen"
+    ],
+    [
+      "Photo: holding a huge fish",
+      "ok the fish is impressive but I need to know its name"
+    ],
+    [
+      "Photo: dog in a sweater",
+      "who's the model and are they single"
+    ],
+    [
+      "My most controversial opinion: pineapple belongs on pizza",
+      "pineapple on pizza is a choice. defend it, I'm listening"
+    ],
+    [
+      "Let's debate this topic: cats vs dogs",
+      "dogs, but I'd let a cat win the argument because they'd be smug about it anyway"
+    ],
+    [
+      "Biggest risk I've taken: moved across the country alone",
+      "that's brave. what's the thing you miss most from back home"
+    ],
+    [
+      "Ideal first date: cocktails at a speakeasy",
+      "I know a place with a password. you'll have to earn it though"
+    ],
+    [
+      "A life goal of mine: visit every national park",
+      "how many are you at? I need to know if I'm talking to an amateur or a legend"
+    ],
+    [
+      "The hallmark of a good relationship: inside jokes",
+      "we should start one immediately. any ideas or should I go first"
+    ],
+    [
+      "My go-to karaoke song: Mr. Brightside",
+      "a classic. do you peak at the first chorus or save it for the end"
+    ],
+    [
+      "I'm convinced that: breakfast for dinner is the best dinner",
+      "pancakes at 8pm is the move. syrup or are you a butter purist"
+    ],
+    [
+      "Don't hate me if I: talk to strangers' dogs before the strangers",
+      "honestly the correct order of operations"
+    ],
+    [
+      "We'll get along if: you like trivia nights",
+      "my team name ideas are unbeatable. our trivia skills, less so"
+    ],
+    [
+      "Best travel story: got lost in Tokyo for a whole day",
+      "best way to see a city honestly. what's the best thing you found while lost"
+    ],
+    [
+      "I recently discovered that: I love pottery",
+      "are your bowls actually bowls yet or still abstract art"
+    ],
+    [
+      "This year, I really want to: run a half marathon",
+      "that's awesome. how's training going, are we in the hating it or loving it phase"
+    ],
+    [
+      "Worst idea I've ever had: bangs",
+      "everyone gets one bangs era. it builds character"
+    ],
+    [
+      "My happy place: the beach at sunset",
+      "sunset swim or sunset with a drink in the sand"
+    ],
+    [
+      "You should not go out with me if: you hate spontaneous plans",
+      "I once got a burrito in another state on a whim. we'll be fine"
+    ],
+    [
+      "I'm overly competitive about: board games",
+      "Catan or Monopoly. one of these answers ends friendships"
+    ],
+    [
+      "Together we could: road trip with only gas station snacks",
+      "I'm in, but we need rules. one person picks the snacks, the other picks the music, no vetoes"
+    ],
+    [
+      "Together we could: find the best ramen in the city",
+      "I've been training for this my whole life. first stop is mine, loser pays"
+    ],
+    [
+      "The way to win me over is: bring me a coffee without asking",
+      "oat milk or regular, I need to know what I'm signing up for"
+    ],
+    [
+      "The way to win me over is: good playlists",
+      "send your best song and I'll send mine. winner picks the first date spot"
+    ],
+    [
+      "I'm looking for: someone to try new restaurants with",
+      "I keep a list of places I haven't tried and nobody to go with. what's top of yours"
+    ],
+    [
+      "I'm looking for: a partner in crime",
+      "what crimes are we talking. jaywalking or stealing the last slice of pizza"
+    ],
+    [
+      "Dating me is like: a podcast you didn't know you needed",
+      "what episode should I start with, and is there an ad break"
+    ],
+    [
+      "Dating me is like: adopting a golden retriever",
+      "so lots of enthusiasm and you steal food off the counter?"
+    ],
+    [
+      "I'm convinced that: dogs can understand everything we say",
+      "mine definitely judges my life choices. what has yours overheard"
+    ],
+    [
+      "I'm convinced that: the best conversations happen at 2am",
+      "agreed. what was the last 2am conversation that changed your mind on something"
+    ],
+    [
+      "My simple pleasures: fresh sheets and a good book",
+      "what are you reading right now, and is it good enough to recommend or just good enough to finish"
+    ],
+    [
+      "My simple pleasures: the first sip of coffee",
+      "the first sip is the only honest moment of the morning. how do you take it"
+    ],
+    [
+      "Typical Sunday: brunch with friends then a long walk",
+      "brunch order says a lot about a person. sweet or savory, and be honest"
+    ],
+    [
+      "Typical Sunday: meal prep and a podcast",
+      "what podcast gets you through chopping vegetables? I need a new one"
+    ],
+    [
+      "A perfect day: beach, tacos, sunset",
+      "you had me at tacos. which beach, because I have opinions"
+    ],
+    [
+      "Unusual skills: I can solve a Rubik's cube in under a minute",
+      "prove it. I'll scramble one and time you, loser buys coffee"
+    ],
+    [
+      "Unusual skills: I can name any dog breed",
+      "ok quiz time. what's the fluffiest one you've ever met in real life"
+    ],
+    [
+      "I bet you can't: make me laugh in one message",
+      "I'm not going to waste my one shot. tell me what makes you laugh so I can cheat"
+    ],
+    [
+      "I bet you can't: guess my coffee order",
+      "iced oat latte, extra shot, ordered like it's a personality trait. how close"
+    ],
+    [
+      "I'm weirdly attracted to: people who can cook",
+      "I make a pasta that's gotten me out of trouble more than once. what's your test dish"
+    ],
+    [
+      "I'm weirdly attracted to: good handwriting",
+      "I'm going to need a sample before I believe yours is better than mine"
+    ],
+    [
+      "My most irrational fear: birds",
+      "pigeons or all birds? because pigeons have earned it"
+    ],
+    [
+      "My most irrational fear: deep water",
+      "so no snorkeling dates, got it. land-based adventures only"
+    ],
+    [
+      "Green flags I look for: someone who texts back",
+      "texting back in under a day, as promised. what's another one"
+    ],
+    [
+      "Green flags I look for: kind to animals",
+      "I talk to dogs more than their owners. does that count"
+    ],
+    [
+      "Red flag: doesn't like dogs",
+      "safe here. I've stopped mid-sentence to pet a stranger's dog more than once"
+    ],
+    [
+      "My love language: food",
+      "so if I bring snacks on a first date I'm basically fluent"
+    ],
+    [
+      "My love language: acts of service",
+      "I'll carry the groceries and kill the spiders. what's my starting rank"
+    ],
+    [
+      "Biggest risk I've taken: quit my job to travel",
+      "where did you end up going, and which place would you go back to tomorrow"
+    ],
+    [
+      "Biggest risk I've taken: bangs",
+      "everybody has to survive at least one bangs era. how did yours turn out"
+    ],
+    [
+      "I recently discovered that: pickleball is fun",
+      "I've heard pickleball people are competitive. how competitive are we talking"
+    ],
+    [
+      "This year, I really want to: learn to surf",
+      "how many times have you wiped out so far? honest answer only"
+    ],
+    [
+      "This year, I really want to: read 30 books",
+      "what number are you on, and which one has been the best so far"
+    ],
+    [
+      "I want someone who: will try anything once",
+      "I'll hold you to that. first thing on the list is karaoke"
+    ],
+    [
+      "I go crazy for: sushi",
+      "spicy tuna person or one of those people who orders the whole menu"
+    ],
+    [
+      "I go crazy for: live music",
+      "best show you've ever been to? mine's a tie and I'll defend both"
+    ],
+    [
+      "Don't hate me if I: steal your fries",
+      "I order extra fries for this exact reason. what else should I plan for"
+    ],
+    [
+      "Don't hate me if I: sing in the car",
+      "only if I get to harmonize badly. what's the go-to car song"
+    ],
+    [
+      "We'll get along if: you like spontaneous plans",
+      "how spontaneous? 'let's get dinner' or 'let's drive to the coast right now'"
+    ],
+    [
+      "We'll get along if: you're a morning person",
+      "I can be a morning person with the right coffee. what time is morning for you"
+    ],
+    [
+      "You should leave a comment if: you know a good bookstore",
+      "I know one with a cat that sleeps on the poetry shelf. is that a good enough answer"
+    ],
+    [
+      "Change my mind about: cereal is soup",
+      "it's a salad if you add fruit. I don't make the rules"
+    ],
+    [
+      "Change my mind about: the beach is overrated",
+      "you just haven't been to the right one. which beach let you down"
+    ],
+    [
+      "The key to my heart is: a good playlist",
+      "what's the last song you had on repeat"
+    ],
+    [
+      "My golden rule: always tip well",
+      "agreed, worked in a restaurant? or just a good person"
+    ],
+    [
+      "I'll know I found the one when: they let me have the last bite",
+      "harsh test. what if they split it perfectly down the middle"
+    ],
+    [
+      "Best travel story: missed my flight and ended up in Lisbon",
+      "best accidental trip ever? what did you do once you got there"
+    ],
+    [
+      "I won't shut up about: my sourdough starter",
+      "does the starter have a name? because that changes everything"
+    ],
+    [
+      "I won't shut up about: true crime podcasts",
+      "which case do you think was never actually solved"
+    ],
+    [
+      "The hallmark of a good relationship: laughing at the same dumb things",
+      "ok test. what's the dumbest thing that's ever made you laugh"
+    ],
+    [
+      "My friends ask me for advice about: restaurants",
+      "perfect, I need a recommendation. best spot for a first date, go"
+    ],
+    [
+      "Teach me something about: wine",
+      "is it true the expensive stuff tastes the same, or am I just uncultured"
+    ],
+    [
+      "What I order for the table: guac and a pitcher of margaritas",
+      "you're the friend everyone wants at the table. classic or spicy margarita"
+    ],
+    [
+      "Typical Sunday: hike in the morning, couch in the afternoon",
+      "earned couch time is the best couch time. what's the hike"
+    ],
+    [
+      "Photo: holding a fish on a boat",
+      "how big was it really, and how big is it when you tell the story"
+    ],
+    [
+      "Photo: at a music festival",
+      "which festival, and who was the set you'd go back for"
+    ],
+    [
+      "Photo: cooking in the kitchen",
+      "what are you making in this one? it looks like you know what you're doing"
+    ],
+    [
+      "Photo: with a cat on their shoulder",
+      "does the cat ride like that on purpose or is this a one-time thing"
+    ],
+    [
+      "Photo: skiing",
+      "black diamonds or the bunny hill with dignity"
+    ]
   ]
 }

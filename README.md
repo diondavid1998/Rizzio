@@ -57,7 +57,10 @@ Every few signals it rewrites a short **style profile** of you, which you can re
 Rizzio ships with a library of good exchanges in `backend/data/corpus/`:
 
 - `the-rizz-corpus.json`: 5,000 short, on-topic, light exchanges picked from the [the-rizz corpus](https://huggingface.co/datasets/the-rizz/the-rizz-corpus) on Hugging Face (getting-to-know-you chats). Rebuild it with `node backend/scripts/build-corpus.mjs path/to/the-rizz-corpus.txt`. The dataset page states no license, so check that before any App Store release.
-- `rizzio-playbook.json`: Rizzio's own examples of Hinge prompt comments.
+- `rizzio-playbook.json`: Rizzio's own examples of comments on about 100 common Hinge prompts and photos.
+- `rizzio-chat-moves.json`: Rizzio's own examples of chat moves: answering and handing it back, handling dry replies, reviving a chat, and asking someone out.
+
+The reply model also gets a **texting playbook** (`backend/src/playbook.js`): reading interest, conversation stages, humor techniques, flirting, questions, what lands on common Hinge prompts, how texting reads, and what to avoid.
 - `empathetic-dialogues.json`: 6,000 replies to someone sharing a feeling, from Meta's [EmpatheticDialogues](https://huggingface.co/datasets/Estwld/empathetic_dialogues_llm), labelled with the feeling. **License CC BY-NC 4.0 (non-commercial):** fine for personal use; remove or replace it before selling Rizzio.
 
 - `synthetic-persona-chat.json`: 4,000 exchanges from Google's [Synthetic-Persona-Chat](https://huggingface.co/datasets/google/Synthetic-Persona-Chat) (CC BY 4.0): two people with short bios getting to know each other.
