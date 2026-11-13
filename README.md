@@ -9,14 +9,14 @@ AI reply suggestions for Hinge prompts and any text conversation, without leavin
 3. If several prompts or photos are on screen, Rizzio first asks which one to reply to. With Scan photos off, it then asks which side of their take you want, with options written for that prompt (like "Team 11am · Team 9am · Church on a Sunday?"), or let it decide. A few seconds later your 5 replies appear numbered 1-5, then a list to tap one and copy it, ready to paste.
 4. Tap the comment box, switch to the **Rizzio keyboard**, and tap a reply to insert it.
 
-**Scroll and tap again:** Hinge profiles are longer than one screen. Back Tap screenshots of the same person (the phone reads the name at the top of each Hinge screen; within 3 minutes, or 90 seconds when no name can be read) count as one profile (up to 4 screens), so Rizzio reads the whole person: name, job, every prompt and photo. Before writing it notes who they are and which prompt or photo it is replying to.
+**One screenshot at a time:** every Back Tap reads only the screenshot you just took, nothing from earlier ones. Before writing, Rizzio notes who they are and which prompt or photo it is replying to.
 
 The keyboard can also:
 - **Chat with Rizzio** (speech-bubble button): quick asks like Shorter, Funnier, Bolder, Ask them out, Other prompt, Use their photo, More like me, or type any request in the text box ("make it about her dog", "use the second prompt") and tap **Ask**. Requests stack, so "shorter" then "about the dog" means both.
 - **Pick a side**: when a prompt invites one (a hot take, a debate, a this-or-that), the keyboard shows **For <topic> · Against <topic> · Neutral · Both** (Both splits the 5 between the two sides). Tap one and the replies follow it, in your voice. Tap it again to let Rizzio decide.
 - **Length meter** (Auto · Phrase · Short · Medium · Long): how long replies are, from a 1-5 word reaction to a 25-50 word answer. Auto follows the Length slider in Persona. Each reply shows its word count, and the choice also applies to the next Back Tap.
 - **Switch tone** with one tap (Me, Witty, Humor, Question, Flirty, Chill, Bold, Sweet, Corny; Question makes all 5 a specific question about them): the replies are rewritten in that tone right away.
-- **Clipboard**: copy a profile prompt or someone's message, tap Clipboard, and get 5 replies (works in iMessage, Instagram, anything). Rizzio works out whether it's a prompt or a message, and uses your Back Tap screenshots from the last 10 minutes to know who the person is.
+- **Clipboard**: copy a profile prompt or someone's message, tap Clipboard, and get 5 replies (works in iMessage, Instagram, anything). Rizzio works out whether it's a prompt or a message,.
 - **Polish**: type a rough draft and get 5 better versions.
 - **↻**: 5 fresh replies for the same screenshot or text.
 

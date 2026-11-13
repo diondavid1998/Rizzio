@@ -233,7 +233,7 @@ final class KeyboardModel: ObservableObject {
         let ask = all.isEmpty ? nil : all.joined(separator: "; and also ")
         let jpeg = batch.hasScreenshot ? SharedStore.shared.loadScreenshot() : nil
         // The screens before this one (same profile): the newest saved screen is the current one.
-        let earlier = jpeg == nil ? [] : Array(SharedStore.shared.profileScreens(fromNow: false).dropLast()) // same name only
+        let earlier: [Data] = [] // every screenshot is read on its own
         guard jpeg != nil || batch.sourceText != nil || batch.sourceDraft != nil else {
             message = "Take a new screenshot (Back Tap) or use Clipboard."
             return
@@ -268,9 +268,8 @@ final class KeyboardModel: ObservableObject {
             return
         }
         // Auto, not chat: a copied Hinge prompt ("My simple pleasures: ...") should get profile comments,
-        // not a reply as if they had texted it. Recent screenshots of the profile add who they are.
-        let screens = SharedStore.shared.profileScreens(maxAge: 600)
-        run { try await RizzAPI.generateAndStore(mode: .auto, tone: self.tone, text: text, earlier: screens) }
+        // not a reply as if they had texted it. Only the copied text is used, nothing from earlier screenshots.
+        run { try await RizzAPI.generateAndStore(mode: .auto, tone: self.tone, text: text) }
     }
 
     /// Rewrites what you've typed so far.

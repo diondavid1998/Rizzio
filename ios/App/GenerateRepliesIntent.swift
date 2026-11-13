@@ -62,14 +62,13 @@ struct GenerateRepliesIntent: AppIntent {
         }
         // Screenshots from the last few minutes are usually the same profile, scrolled: send them too.
         let store = SharedStore.shared
-        // Link earlier screenshots only if they show the same name at the top (same person's profile).
-        let header = mode == .chat ? "" : OnDeviceAI.profileHeader(jpeg)
-        let earlier = mode == .chat ? [] : store.profileScreens(header: header)
+        // Every screenshot is read on its own: nothing from earlier Back Taps is mixed in.
+        let earlier: [Data] = []
         let pickedTone = tone.flatMap { Tone(rawValue: $0.rawValue) }
         var batch = try await RizzAPI.generateAndStore(
             mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, earlier: earlier
         )
-        store.addProfileScreen(jpeg, header: header)
+        store.clearProfileScreens() // drop anything older builds kept
 
         // Several prompts or photos on screen: ask which one to reply to.
         var chosenHook: String? = nil
