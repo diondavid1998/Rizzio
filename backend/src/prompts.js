@@ -251,7 +251,7 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier 
   }
   if (ownRelated?.length) {
     parts.push(
-      "Things the user has said before that relate to this (their real words: match how they talk and think about this topic):\n" +
+      "Things the user has said before on this topic, possibly long ago (copy how they talk and think about it, their wording and attitude; NOT facts: what was true then may not be now, so use only the About you note for facts):\n" +
         ownRelated.map((t) => `- ${t}`).join("\n"),
     );
   }
@@ -287,6 +287,7 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier 
           : "The screenshot is attached.",
     );
   }
+  parts.push("Before finalizing: every fact the messages claim about the user (job, career stage, plans, hobbies, places) must be in the About you note. Drop or rewrite anything taken from their old messages or from the other person.");
   return parts.join("\n\n");
 }
 

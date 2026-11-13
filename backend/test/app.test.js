@@ -312,7 +312,7 @@ describe("persona", () => {
     store.addExamplesBulk(USER, Array.from({ length: 30 }, (_, i) => `filler message number ${i} about nothing much`), "imported");
     await call("POST", "/v1/replies", { mode: "chat", text: "Them: ok what's your go-to taco order" });
     const sent = ai.calls.replies.at(-1);
-    assert.match(sent.requestText, /Things the user has said before that relate to this/);
+    assert.match(sent.requestText, /Things the user has said before on this topic, possibly long ago.*NOT facts/);
     assert.match(sent.requestText, /al pastor tacos or nothing/);
     assert.match(sent.requestText, /tacos are a personality trait/);
     assert.doesNotMatch(sent.requestText.split("Things the user has said")[1].split("\n\n")[0], /filler message/);
