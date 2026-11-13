@@ -25,7 +25,7 @@ const REPLY_SCHEMA = {
         questions: { type: "array", items: { type: "string" }, description: "Every question they asked that needs an answer (empty if none)." },
         needs: { type: "string", description: "One line: what a good reply has to do here." },
         as_user: { type: "string", description: "One line: what the user would notice first and how they'd react, judging from their own messages." },
-        side_topic: { type: "string", description: "If the hook invites taking a side (an opinion, hot take, debate, this-or-that), the topic in 2-6 words, like 'pineapple on pizza'. Otherwise empty." },
+        side_topic: { type: "string", description: "The take the user could agree or disagree with, in 2-6 words. For a dating-profile prompt, always fill it with the claim, preference or choice in their answer (e.g. 'pineapple on pizza', '11am church over 9am', 'naps after the market'). In a chat, only when they state an opinion or preference; otherwise empty." },
       },
       required: ["person", "hook", "kind", "questions", "needs", "as_user", "side_topic"],
       additionalProperties: false,

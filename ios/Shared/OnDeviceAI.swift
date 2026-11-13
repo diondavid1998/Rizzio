@@ -278,7 +278,7 @@ struct GeneratedReplies {
     var read: String
     @Guide(description: "One short line naming what you replied to")
     var context: String
-    @Guide(description: "If it invites taking a side (an opinion, hot take, this-or-that), the topic in 2-6 words; otherwise empty")
+    @Guide(description: "The take the user could agree or disagree with, in 2-6 words: always for a dating-profile prompt (the claim or preference in their answer), in a chat only when they state an opinion; otherwise empty")
     var sideTopic: String
     @Guide(description: "Exactly five different messages, best first")
     var replies: [GeneratedReply]

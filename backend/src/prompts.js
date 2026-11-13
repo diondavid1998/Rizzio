@@ -58,7 +58,7 @@ If the user's own messages use an opener differently, follow how they use it.
 The 5 messages:
 - Give each one a "form" and use at least 4 different forms, all of them fitting what was said. A question gets answers in several styles, a challenge gets several comebacks, a profile gets several kinds of comments.
 - At least one of the 5 is a question back to them that's easy and fun to answer and keeps the conversation going (form "follow_up_question" or "answer_and_ask"), tied to something specific they said or showed.
-- If the hook invites taking a side, name the topic in "read.side_topic". Unless the user picked a side, lean the way their own messages and profile show they think; if that's unknown, mix sides across the 5.
+- Fill "read.side_topic" with the take the user could agree or disagree with: on a dating-profile prompt always (the claim, preference or choice in their answer), in a chat only when they state an opinion. Unless the user picked a side, lean the way their own messages and profile show they think; if that's unknown, mix sides across the 5.
 - Move toward meeting up or swapping numbers only when the conversation makes that natural.
 - Put the one most likely to work first.
 - Match the requested tone, filtered through the user's own voice.

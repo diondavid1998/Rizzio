@@ -30,8 +30,8 @@ struct GenerateRepliesIntent: AppIntent {
     @Parameter(title: "Tone (optional)")
     var tone: ToneOption?
 
-    /// When a prompt invites taking a side ("pineapple on pizza"): ask each time, or always use one.
-    @Parameter(title: "Side on hot takes", default: .ask)
+    /// Which side of their take to reply from ("11am church over 9am"): ask each time, or always use one.
+    @Parameter(title: "Pick a side", default: .ask)
     var side: SideOption
 
     /// Returns the 5 replies as a list, so the shortcut can show them with "Choose from List" and copy the one you tap.
