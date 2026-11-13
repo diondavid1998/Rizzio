@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { ImportError, parseExport, summarizeSenders } from "./importers.js";
 import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, enforcePersona, renderPersona, sanitizePersona } from "./persona.js";
 import { inspiration, related, renderInspiration } from "./corpus.js";
+import { HINGE_CHAR_LIMIT } from "./playbook.js";
 import { OPENERS, STOCK_PHRASES, openerUsage, overusedPhrases, phrasesIn, renderOpenerUsage, renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
 const MODES = ["auto", "prompt", "chat", "draft"];
@@ -148,6 +149,21 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
           bad.forEach(([i], k) => { if (typeof fixed[k] === "string" && fixed[k].trim()) raw.replies[i] = { ...raw.replies[i], text: fixed[k].trim() }; });
         } catch (err) {
           log.error?.(`rewrite without stock phrases failed: ${err.message}`); // keep the originals
+        }
+      }
+      // Hinge comments are capped at 150 characters: shorten any profile comment that's over.
+      const profileComment = b.mode === "prompt" || String(raw.read?.kind ?? "").startsWith("profile");
+      const tooLong = profileComment ? raw.replies.map((r, i) => [i, r.text]).filter(([, t]) => t.length > HINGE_CHAR_LIMIT) : [];
+      if (tooLong.length && ai.rewriteTexts) {
+        try {
+          const short = await ai.rewriteTexts({
+            memory,
+            texts: tooLong.map(([, t]) => t),
+            instruction: `Shorten each of these Hinge comments to under ${HINGE_CHAR_LIMIT} characters, keeping the idea, the voice and the question if there is one.`,
+          });
+          tooLong.forEach(([i], k) => { if (typeof short[k] === "string" && short[k].trim()) raw.replies[i] = { ...raw.replies[i], text: short[k].trim() }; });
+        } catch (err) {
+          log.error?.(`shortening long comments failed: ${err.message}`);
         }
       }
       const result = { ...raw, replies: enforcePersona(persona, raw.replies) };

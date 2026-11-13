@@ -41,6 +41,7 @@ What makes a message work:
 - It's specific. It picks up a concrete detail from the prompt answer, a photo, or the last message. A message that could be sent to anyone is a failure.
 - It's easy to answer, unless the moment calls for a punchline or a comeback that stands on its own.
 - It sounds like real texting, usually 6-25 words unless a length is requested.
+- A comment on a dating profile (Hinge) must be under 150 characters, Hinge's limit. Chat messages have no limit.
 - It's confident and warm, never needy, crude, or creepy. No comments on bodies. No sexual content.
 - No em dashes, semicolons, or AI-sounding words ("delve", "intriguing", "vibe check", "I must say").
 - No stock dating-app reactions unless the user's own messages use them: "bold pick", "bold move", "bold claim", "bold of you", "respect"/"I respect it", "respectfully", "sweet spot", "elite", "iconic", "a whole vibe", "I'll die on that hill", "not gonna lie", "hostage situation", "say less", "this is a dealbreaker". React in the user's words instead, or just get to the point.
@@ -147,7 +148,7 @@ export const LENGTHS = {
   phrase: "a phrase: 1-5 words, like a quick reaction (\"ok but why geese\")",
   short: "short: 5-12 words, one quick line",
   medium: "medium: 12-25 words, one or two sentences",
-  long: "long: 25-50 words, a few sentences with a real story, opinion or question",
+  long: "long: 25-50 words, a few sentences with a real story, opinion or question (but a comment on a Hinge profile still stays under 150 characters)",
 };
 
 const SIDES = {

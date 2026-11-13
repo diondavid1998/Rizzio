@@ -18,6 +18,10 @@ class FakeAI {
       replies: this.replyTexts?.map((text) => ({ text, angle: "x" })) ?? Array.from({ length: 5 }, (_, i) => ({ text: `reply ${i}`, angle: `angle ${i}` })),
     };
   }
+  async rewriteTexts(args) {
+    this.calls.shorten = [...(this.calls.shorten ?? []), args];
+    return args.texts.map((t) => t.slice(0, 100));
+  }
   async rewriteWithout(args) {
     this.calls.rewrite = [...(this.calls.rewrite ?? []), args];
     return args.texts.map((t) => t.replace(/that's a bold pick,? ?/i, "").replace(/hostage situation/i, "problem"));
@@ -399,6 +403,24 @@ describe("persona", () => {
     });
     const sent = ai.calls.replies.at(-1).requestText;
     assert.match(sent, /picked a side on "11am church over 9am": "Team 9am" \(playfully defend the early service\)/);
+  });
+
+  test("Hinge comments over 150 characters are shortened; chat messages aren't", async () => {
+    const long = "x".repeat(200);
+    ai.replyTexts = [long, "short one", "another short", "fine", "ok then"];
+    const r = await call("POST", "/v1/replies", { mode: "prompt", text: "Typical Sunday: brunch" });
+    assert.match(ai.calls.shorten.at(-1).instruction, /under 150 characters/);
+    assert.equal(r.body.replies[0].text.length, 100);
+    const before = ai.calls.shorten.length;
+    await call("POST", "/v1/replies", { mode: "chat", text: "Them: tell me a story" });
+    assert.equal(ai.calls.shorten.length, before, "no limit in chats");
+  });
+
+  test("Hinge prompt list is part of the reply instructions", async () => {
+    const { REPLY_SYSTEM } = await import("../src/prompts.js");
+    assert.match(REPLY_SYSTEM, /"One thing I'd love to know about you is"/);
+    assert.match(REPLY_SYSTEM, /limited to 150 characters/);
+    assert.match(REPLY_SYSTEM, /Getting Personal/);
   });
 
   test("keyboard length meter sets how long replies are", async () => {

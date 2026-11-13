@@ -221,6 +221,15 @@ export class ClaudeAI {
 
   /** Rewrites a few replies so they no longer use the given phrases, keeping everything else. */
   async rewriteWithout({ memory, texts, phrases }) {
+    return this.rewriteTexts({
+      memory,
+      texts,
+      instruction: `Rewrite each of these messages so it doesn't use any of these phrases: ${phrases.map((p) => `"${p}"`).join(", ")}. Keep the same idea, length, voice and punctuation; change only what's needed.`,
+    });
+  }
+
+  /** Rewrites a few replies following one instruction (e.g. "make each under 150 characters"), same order back. */
+  async rewriteTexts({ memory, texts, instruction }) {
     const out = await this.#call({
       system: [
         { type: "text", text: REPLY_SYSTEM, cache_control: { type: "ephemeral" } },
@@ -228,9 +237,7 @@ export class ClaudeAI {
       ],
       content: [{
         type: "text",
-        text: `Rewrite each of these messages so it doesn't use any of these phrases: ${phrases.map((p) => `"${p}"`).join(", ")}. ` +
-          "Keep the same idea, length, voice and punctuation; change only what's needed. Return them in the same order.\n" +
-          texts.map((t, i) => `${i + 1}. ${t}`).join("\n"),
+        text: `${instruction} Return them in the same order.\n` + texts.map((t, i) => `${i + 1}. ${t}`).join("\n"),
       }],
       schema: { type: "object", properties: { texts: { type: "array", items: { type: "string" } } }, required: ["texts"], additionalProperties: false },
       effort: "low",

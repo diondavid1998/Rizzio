@@ -2,6 +2,19 @@
 // It's part of the (cached) reply system prompt, so it costs almost nothing per request.
 // The user's own voice still decides how every message sounds; this decides what makes a message land.
 
+import { readFileSync } from "node:fs";
+
+/** Hinge's prompt list (data/hinge-prompts.json), with how to reply to each category. */
+const hinge = JSON.parse(readFileSync(new URL("../data/hinge-prompts.json", import.meta.url), "utf8"));
+export const HINGE_CHAR_LIMIT = hinge.character_limit;
+const HINGE_PROMPTS = [
+  `## Hinge prompts and how to reply to each kind`,
+  `Hinge profiles show 3 written prompts (often also a voice prompt, video prompt or poll). Comments on Hinge are limited to ${hinge.character_limit} characters.`,
+  ...hinge.categories.map((c) => `- ${c.category}: ${c.prompts.map((p) => `"${p}"`).join(", ")}.\n  ${c.how}`),
+  `- Other prompts that ask the viewer something ("I want to know", "Teach me something about", "Give me travel tips for", "Ask me about", "Guess where this photo was taken", "You should leave a comment if"): answer as the user, then hand it back.`,
+  `If a prompt isn't listed, work out its kind from the wording: a question or "you" aimed at the viewer means answer it as the user.`,
+].join("\n");
+
 export const TEXTING_PLAYBOOK = `# Texting playbook (how good texters think; always filtered through the user's own voice)
 
 ## Read the other person first
@@ -48,14 +61,7 @@ export const TEXTING_PLAYBOOK = `# Texting playbook (how good texters think; alw
 - Two-sided prompts (cats or dogs, pineapple on pizza): pick a side with personality.
 - Photos: comment on something specific and interesting (an activity, a place, a pet, a detail in the background), never on looks alone.
 
-## Hinge prompts by type (know which kind you're looking at)
-Hinge profiles show 3 written prompts, often a voice prompt, sometimes a video prompt or a poll. Each prompt is one of these kinds:
-- About them (react to their answer): "Typical Sunday", "A life goal of mine", "My simple pleasures", "I geek out on", "My most irrational fear", "Unusual skills", "I recently discovered that", "I'm convinced that", "My greatest strength", "I won't shut up about", "The way to win me over is", "My love language is", "Biggest risk I've taken", "This year, I really want to", "I'm overly competitive about", "Worst idea I've ever had", "I go crazy for", "My cry-in-the-car song is", "My golden rule", "Dating me is like", "I'm weirdly attracted to", "Green flags I look for", "My happy place", "The dorkiest thing about me is", "My most controversial opinion is", "I bet you can't", "Don't hate me if I", "I take pride in", "A shower thought I recently had", "Never have I ever", "Two truths and a lie", "My best celebrity impression is", "Best travel story", "The hallmark of a good relationship is", "I'll fall for you if", "I want someone who", "We'll get along if", "I'm looking for", "The key to my heart is", "My friends ask me for advice about", "What I order for the table".
-- Questions for the user to answer (answer as the user, then hand it back): "One thing I'd like to know about you is", "I want to know", "Teach me something about", "Give me travel tips for", "Ask me about", "Change my mind about", "Let's debate this topic", "I'll pick the topic if you start the conversation", "Guess where this photo was taken", "Try to guess", "Do you agree or disagree that", "You should leave a comment if", "I'll know I found the one when", "The one thing you should know about me is" (a statement), "Let's make sure we're on the same page about".
-- Plans and invitations (say yes and make it specific): "Together, we could", "First round is on me if", "Let's go to", "We should hang out if", "I'm looking for someone to", "My ideal first date".
-- Two-sided or debatable (take a side with personality): "My most controversial opinion is", "Change my mind about", "Let's debate this topic", "Do you agree or disagree that", polls with options.
-- Voice and video prompts: reply to what they said or showed, the same way.
-If a prompt isn't listed, work out its kind from the wording: a question or "you" aimed at the viewer means answer it as the user.
+${HINGE_PROMPTS}
 
 ## How texting reads
 - Lowercase and no period reads casual; a full stop on a short reply can read cold or serious; "!!" reads excited; "..." reads hesitant or teasing.

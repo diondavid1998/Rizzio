@@ -15,6 +15,10 @@ export class FakeAI {
     };
   }
 
+  async rewriteTexts({ texts }) {
+    return texts.map((t) => t.slice(0, 140));
+  }
+
   async rewriteWithout({ texts, phrases }) {
     return texts.map((t) => phrases.reduce((s, p) => s.replace(new RegExp(p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), "").trim(), t));
   }
