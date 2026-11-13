@@ -12,7 +12,9 @@ const HINGE_PROMPTS = [
   `Hinge profiles show 3 written prompts (often also a voice prompt, video prompt or poll). Comments on Hinge are limited to ${hinge.character_limit} characters.`,
   ...hinge.categories.map((c) => `- ${c.category}: ${c.prompts.map((p) => `"${p}"`).join(", ")}.\n  ${c.how}`),
   `- Other prompts that ask the viewer something ("I want to know", "Teach me something about", "Give me travel tips for", "Ask me about", "Guess where this photo was taken", "You should leave a comment if"): answer as the user, then hand it back.`,
+  `Hinge also has ${hinge.other_categories.join(", ")} prompts; reply to those the same way, by their wording.`,
   `If a prompt isn't listed, work out its kind from the wording: a question or "you" aimed at the viewer means answer it as the user.`,
+  `What the data says: ${hinge.research.join(" ")}`,
 ].join("\n");
 
 export const TEXTING_PLAYBOOK = `# Texting playbook (how good texters think; always filtered through the user's own voice)

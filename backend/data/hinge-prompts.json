@@ -5,32 +5,115 @@
     {
       "category": "About Me",
       "how": "About them: react to their answer with something specific (relate with the user's own detail, tease, guess, or ask the question it begs).",
-      "prompts": ["A life goal of mine", "A random fact I love is", "I'm weirdly attracted to", "My greatest strength", "My most irrational fear", "My simple pleasures", "The one thing you should know about me is", "Typical Sunday", "Unusual skills"]
+      "prompts": [
+        "A life goal of mine",
+        "A random fact I love is",
+        "I'm weirdly attracted to",
+        "My greatest strength",
+        "My most irrational fear",
+        "My simple pleasures",
+        "The one thing you should know about me is",
+        "Typical Sunday",
+        "Unusual skills",
+        "I geek out on",
+        "The dorkiest thing about me is",
+        "Don't judge me",
+        "Believe it or not",
+        "Lowkey flex",
+        "Unusual skill"
+      ]
     },
     {
       "category": "My Type",
       "how": "What they want in a partner: show with humor that the user fits (or playfully might not), using the user's real details. Don't just say 'that's me'.",
-      "prompts": ["All I ask is that you", "I want someone who", "I'll fall for you if", "I'm looking for", "The key to my heart is", "The way to win me over is", "We'll get along if"]
+      "prompts": [
+        "All I ask is that you",
+        "I want someone who",
+        "I'll fall for you if",
+        "I'm looking for",
+        "The key to my heart is",
+        "The way to win me over is",
+        "We'll get along if"
+      ]
     },
     {
       "category": "Let's Chat About",
-      "how": "Conversation starters: take a side with personality on debates ('Change my mind about', 'Do you agree or disagree that', 'Let's debate this topic', 'I'm convinced that', 'What if I told you that'), accept or counter the challenge in 'I bet you can't', guess the lie in 'Two truths and a lie', and get them talking about what they 'won't shut up about'.",
-      "prompts": ["Change my mind about", "Do you agree or disagree that", "I bet you can't", "I won't shut up about", "I'm convinced that", "Let's debate this topic", "Two truths and a lie", "What if I told you that"]
+      "how": "Conversation starters: take a side with personality on debates ('Change my mind about', 'Do you agree or disagree that', 'Let's debate this topic', 'I'm convinced that', 'What if I told you that'), accept or counter the challenge in 'I bet you can't', guess the lie in 'Two truths and a lie', and get them talking about what they 'won't shut up about'. 'Give me travel tips for' and 'You should leave a comment if' are addressed to the user: answer as the user (or say why they qualify), then hand it back.",
+      "prompts": [
+        "Change my mind about",
+        "Do you agree or disagree that",
+        "I bet you can't",
+        "I won't shut up about",
+        "I'm convinced that",
+        "Let's debate this topic",
+        "Two truths and a lie",
+        "What if I told you that",
+        "My most controversial opinion is",
+        "Give me travel tips for",
+        "You should leave a comment if"
+      ]
     },
     {
       "category": "Date Vibes",
       "how": "Invitations: say yes and make it specific (a twist, a condition, a playful plan), so it reads like the first step to a date.",
-      "prompts": ["First round is on me if", "I know the best spot in town for", "Let's make sure to", "Together, we could"]
+      "prompts": [
+        "First round is on me if",
+        "I know the best spot in town for",
+        "Let's make sure to",
+        "Together, we could",
+        "Together we can be terrible at"
+      ]
     },
     {
       "category": "Storytime",
       "how": "Stories: react to the most interesting detail and ask for the part they left out, or match it with a short story of the user's.",
-      "prompts": ["Best travel story", "Biggest risk I've taken", "Dating me is like", "Most spontaneous thing I've done"]
+      "prompts": [
+        "Best travel story",
+        "Biggest risk I've taken",
+        "Dating me is like",
+        "Most spontaneous thing I've done",
+        "My biggest date fail",
+        "Worst fad I participated in"
+      ]
     },
     {
       "category": "Getting Personal",
       "how": "Personal: be warm and genuine. Respect a boundary (never tease or argue with it). 'One thing I'd love to know about you is' is a question for the user: answer it as the user, then hand it back.",
-      "prompts": ["A boundary of mine", "My love language is", "One thing I'd love to know about you is", "The hallmark of a good relationship is"]
+      "prompts": [
+        "A boundary of mine",
+        "My love language is",
+        "One thing I'd love to know about you is",
+        "The hallmark of a good relationship is"
+      ]
+    },
+    {
+      "category": "Photo prompts",
+      "how": "A caption or prompt on a photo: play along with it (write the caption, guess the backstory, pick who wore it better) and tie it to what's in the photo. With Scan photos off, work from the caption text only.",
+      "prompts": [
+        "Caption this photo",
+        "Guess the backstory",
+        "Who wore it better?",
+        "Together we can be terrible at",
+        "My simple pleasures",
+        "Don't judge me",
+        "Lowkey flex",
+        "Believe it or not"
+      ]
     }
+  ],
+  "other_categories": [
+    "Self-Care",
+    "Your World",
+    "LGBTQIA+",
+    "Voice-First"
+  ],
+  "sources": [
+    "List supplied by the Rizzio user",
+    "github.com/b1rdmania/hinge-profile-optimizer (MIT): skills/hinge-profile-optimizer/references/hinge-prompts-current.md and research-findings.md"
+  ],
+  "research": [
+    "Comments that reference something specific on the profile get 30-40% more replies than generic openers (OkCupid data).",
+    "Funny messages get 15-20% more replies than earnest ones (OkCupid data).",
+    "A like with a comment is much more likely to start a conversation than a bare like (Hinge data)."
   ]
 }
