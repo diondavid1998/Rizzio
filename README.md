@@ -6,10 +6,10 @@ AI reply suggestions for Hinge prompts and any text conversation, without leavin
 
 1. On a Hinge profile, **press the Action Button** (iPhone 15 Pro / 16 and newer) or **double-tap the back of your iPhone** (Back Tap).
 2. A Shortcut takes a screenshot and sends it to Rizzio in the background. Rizzio doesn't open.
-3. With Scan photos off, Rizzio first asks which side of their take you want, with options written for that prompt (like "Team 11am · Team 9am · Church on a Sunday?"), or let it decide. A few seconds later your 5 replies appear numbered 1-5, then a list to tap one and copy it, ready to paste.
+3. If several prompts or photos are on screen, Rizzio first asks which one to reply to. With Scan photos off, it then asks which side of their take you want, with options written for that prompt (like "Team 11am · Team 9am · Church on a Sunday?"), or let it decide. A few seconds later your 5 replies appear numbered 1-5, then a list to tap one and copy it, ready to paste.
 4. Tap the comment box, switch to the **Rizzio keyboard**, and tap a reply to insert it.
 
-**Scroll and tap again:** Hinge profiles are longer than one screen. Back Tap screenshots taken within 3 minutes of each other count as the same profile (up to 4 screens), so Rizzio reads the whole person: name, job, every prompt and photo. Before writing it notes who they are and which prompt or photo it is replying to.
+**Scroll and tap again:** Hinge profiles are longer than one screen. Back Tap screenshots of the same person (the phone reads the name at the top of each Hinge screen; within 3 minutes, or 90 seconds when no name can be read) count as one profile (up to 4 screens), so Rizzio reads the whole person: name, job, every prompt and photo. Before writing it notes who they are and which prompt or photo it is replying to.
 
 The keyboard can also:
 - **Chat with Rizzio** (speech-bubble button): quick asks like Shorter, Funnier, Bolder, Ask them out, Other prompt, Use their photo, More like me, or type any request in the text box ("make it about her dog", "use the second prompt") and tap **Ask**. Requests stack, so "shorter" then "about the dog" means both.

@@ -423,6 +423,11 @@ describe("persona", () => {
     assert.match(REPLY_SYSTEM, /Getting Personal/);
   });
 
+  test("the prompt the user picked to reply to steers all 5 replies", async () => {
+    await call("POST", "/v1/replies", { mode: "prompt", text: "two prompts on screen", hook: "Typical Sunday: church at 11" });
+    assert.match(ai.calls.replies.at(-1).requestText, /chose what to reply to: "Typical Sunday: church at 11"/);
+  });
+
   test("keyboard length meter sets how long replies are", async () => {
     await call("POST", "/v1/replies", { mode: "prompt", text: "I love hiking", length: "phrase" });
     assert.match(ai.calls.replies.at(-1).requestText, /Length for this request: a phrase: 1-5 words/);

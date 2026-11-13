@@ -39,6 +39,14 @@ struct GenerateRepliesIntent: AppIntent {
     @Parameter(title: "Picked side", default: "")
     var pickedSide: String
 
+    /// When several prompts or photos are on screen: ask which one to reply to, or let Rizzio pick.
+    @Parameter(title: "Pick what to reply to", default: true)
+    var askWhichPrompt: Bool
+
+    /// Holds the prompt or photo picked when it asks.
+    @Parameter(title: "Picked prompt", default: "")
+    var pickedHook: String
+
     /// Returns the 5 replies as a list, so the shortcut can show them with "Choose from List" and copy the one you tap.
     func perform() async throws -> some IntentResult & ReturnsValue<[String]> & ProvidesDialog & ShowsSnippetView {
         // The connected Screenshot, or else an image on the clipboard (when the shortcut copies it there).
@@ -54,12 +62,31 @@ struct GenerateRepliesIntent: AppIntent {
         }
         // Screenshots from the last few minutes are usually the same profile, scrolled: send them too.
         let store = SharedStore.shared
-        let earlier = mode == .chat ? [] : store.profileScreens()
+        // Link earlier screenshots only if they show the same name at the top (same person's profile).
+        let header = mode == .chat ? "" : OnDeviceAI.profileHeader(jpeg)
+        let earlier = mode == .chat ? [] : store.profileScreens(header: header)
         let pickedTone = tone.flatMap { Tone(rawValue: $0.rawValue) }
         var batch = try await RizzAPI.generateAndStore(
             mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, earlier: earlier
         )
-        store.addProfileScreen(jpeg)
+        store.addProfileScreen(jpeg, header: header)
+
+        // Several prompts or photos on screen: ask which one to reply to.
+        var chosenHook: String? = nil
+        let hooks = (batch.visibleHooks ?? []).filter { !$0.isEmpty }
+        if askWhichPrompt, hooks.count >= 2 {
+            let letRizzio = "Let Rizzio pick"
+            let picked = try await $pickedHook.requestDisambiguation(
+                among: hooks + [letRizzio],
+                dialog: IntentDialog(stringLiteral: "Which one should I reply to?")
+            )
+            if picked != letRizzio {
+                chosenHook = picked
+                batch = try await RizzAPI.generateAndStore(
+                    mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, earlier: earlier, hook: picked
+                )
+            }
+        }
 
         // Their prompt has a take: ask which side (with options written for this prompt), then write replies from it.
         // Only when Scan photos is off: with photos on, Rizzio picks its own hook.
@@ -75,13 +102,13 @@ struct GenerateRepliesIntent: AppIntent {
                 if let choice = options.first(where: { $0.label == picked }) {
                     batch = try await RizzAPI.generateAndStore(
                         mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, earlier: earlier,
-                        stanceTopic: topic, side: choice, sideOptions: options
+                        stanceTopic: topic, side: choice, sideOptions: options, hook: chosenHook
                     )
                 }
             } else if let stance = side.stance {
                 batch = try await RizzAPI.generateAndStore(
                     mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, earlier: earlier,
-                    stance: stance, stanceTopic: topic, sideOptions: options
+                    stance: stance, stanceTopic: topic, sideOptions: options, hook: chosenHook
                 )
             }
         }

@@ -40,6 +40,22 @@ enum OnDeviceAI {
         let side: Side
     }
 
+    /// The name at the top of a dating-profile screenshot (Hinge keeps it in the header while you scroll),
+    /// used to tell one person's profile from the next. Empty if nothing name-like is there.
+    static func profileHeader(_ imageData: Data) -> String {
+        guard let cgImage = UIImage(data: imageData)?.cgImage else { return "" }
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = false
+        request.regionOfInterest = CGRect(x: 0, y: 0.80, width: 1, height: 0.14) // below the status bar, top of the app
+        try? VNImageRequestHandler(cgImage: cgImage).perform([request])
+        let lines = (request.results ?? [])
+            .sorted { $0.boundingBox.maxY > $1.boundingBox.maxY }
+            .compactMap { $0.topCandidates(1).first?.string.trimmingCharacters(in: .whitespaces) }
+            .filter { line in line.count >= 2 && line.contains { $0.isLetter } && !line.contains(":") }
+        return lines.first ?? ""
+    }
+
     /// Reads a screenshot. In chats, text on the right is yours and text on the left is theirs.
     static func read(_ imageData: Data) throws -> [ChatLine] {
         guard let cgImage = UIImage(data: imageData)?.cgImage else { throw RizzError.server("Couldn't read that screenshot.") }

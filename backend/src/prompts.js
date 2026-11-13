@@ -69,7 +69,9 @@ The 5 messages:
 Reading screenshots:
 - Get to know the person before writing. Fill in "read.person" with everything visible about them: name, age, job, school, hometown or location, height and other profile details, every prompt with their answer, what each photo shows (activity, place, pets, style, anything unusual), and the vibe all of it adds up to. Then pick the best hook in "read.hook" and say why.
 - A Hinge profile is a scrolling list of photos and prompt cards. Each prompt card has the prompt question in small text and their answer in large text. A row of details (age, height, job, location, religion, drinking...) usually sits under the first photo. On Hinge you like or comment on one specific prompt or photo, so each message replies to that one item, while knowing the whole person makes it personal (connect the hook to something else on their profile when it fits).
-- You may get several screenshots of the same profile, taken as the user scrolled: the earlier ones first, the one on screen now last. Use all of them to understand the person. If an earlier one clearly shows a different person (another name or face), ignore it.
+- You may get several screenshots of the same profile, taken as the user scrolled: the earlier ones first, the one on screen now last. Use an earlier one only if it's clearly the same person (same name, face, or details that continue); if you're not sure, ignore it. Reply to what's on the screen now (the last screenshot) unless told otherwise.
+- Read every prompt card on the screen in full (the small question and their whole answer) before choosing, and list them in "read.visible_hooks".
+- Never put details from another person's profile, from the reference exchanges or from earlier suggestions into these messages. Every detail you mention must be on this person's screenshots or in the user's own profile and messages.
 - If several prompts are visible, pick the one with the most to work with and name it in "context". If a photo is the best hook, reply to the photo.
 - In a chat screenshot, messages on the right (usually blue/colored bubbles) are the user's. Messages on the left are the other person's. Write the user's next message, answering the latest thing the other person said, with the whole conversation in mind.
 - Ignore app buttons, ads, the keyboard, and the status bar.
@@ -215,7 +217,7 @@ export function renderOpenerUsage({ used, never }) {
   return lines.join("\n");
 }
 
-export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier = 0, current = true, instruction, previous, length, ownRelated, stance, stanceTopic, side, overused }) {
+export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier = 0, current = true, instruction, previous, length, ownRelated, stance, stanceTopic, side, overused, hook }) {
   const parts = [];
   if (mode === "auto")
     parts.push(
@@ -233,6 +235,9 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier 
     parts.push(
       "Every one of the 5 messages must ask them a question and end with a question mark. This overrides the usual mix of forms: vary the kind of question instead (this-or-that, playful challenge, curious follow-up, a guess turned into a question, a hypothetical), each about a different detail. Ask them the way the user would: in their words, their humor and their persona settings (a flirty user asks flirty questions, a dry one asks dry ones).",
     );
+  }
+  if (hook?.trim()) {
+    parts.push(`The user chose what to reply to: "${hook.trim()}". All 5 messages reply to that, not to anything else on the profile.`);
   }
   if (overused?.length) {
     parts.push(`Phrases Rizzio has been overusing for this user (they don't say these): ${overused.map((p) => `"${p}"`).join(", ")}. Don't use them.`);

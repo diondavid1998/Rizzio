@@ -72,6 +72,9 @@ struct SuggestionBatch: Codable {
     /// Sides offered for this take, labelled to fit it ("Team 11am", "Defend naps"), and the one picked.
     var sideOptions: [SideChoice]? = nil
     var sideLabel: String? = nil
+    /// Every prompt or photo on screen that could be replied to, and the one the user picked (if any).
+    var visibleHooks: [String]? = nil
+    var hook: String? = nil
 }
 
 /// One way to come at their take, offered by the AI: a short label and how replies should approach it.

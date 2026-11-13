@@ -21,6 +21,7 @@ const REPLY_SCHEMA = {
       properties: {
         person: { type: "string", description: "Everything known about the other person from the screenshots or chat: name, age, job, place, each prompt and answer, what the photos show, their vibe. Empty if nothing is known." },
         hook: { type: "string", description: "The prompt, photo or message you're replying to, and why it's the best hook." },
+        visible_hooks: { type: "array", items: { type: "string" }, description: "Every prompt or photo on the screen now (the last screenshot) that could be replied to, each as a short label like 'Typical Sunday: church at 11' or 'Photo: hiking at sunset'. Empty for chats." },
         kind: { type: "string", enum: MESSAGE_KINDS },
         questions: { type: "array", items: { type: "string" }, description: "Every question they asked that needs an answer (empty if none)." },
         needs: { type: "string", description: "One line: what a good reply has to do here." },
@@ -40,7 +41,7 @@ const REPLY_SCHEMA = {
           },
         },
       },
-      required: ["person", "hook", "kind", "questions", "needs", "as_user", "side_topic", "sides"],
+      required: ["person", "hook", "visible_hooks", "kind", "questions", "needs", "as_user", "side_topic", "sides"],
       additionalProperties: false,
     },
     context: { type: "string", description: "One short line naming what you replied to." },

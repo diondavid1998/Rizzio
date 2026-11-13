@@ -233,7 +233,7 @@ final class KeyboardModel: ObservableObject {
         let ask = all.isEmpty ? nil : all.joined(separator: "; and also ")
         let jpeg = batch.hasScreenshot ? SharedStore.shared.loadScreenshot() : nil
         // The screens before this one (same profile): the newest saved screen is the current one.
-        let earlier = jpeg == nil ? [] : Array(SharedStore.shared.profileScreens(fromNow: false).dropLast())
+        let earlier = jpeg == nil ? [] : Array(SharedStore.shared.profileScreens(fromNow: false).dropLast()) // same name only
         guard jpeg != nil || batch.sourceText != nil || batch.sourceDraft != nil else {
             message = "Take a new screenshot (Back Tap) or use Clipboard."
             return
@@ -246,7 +246,7 @@ final class KeyboardModel: ObservableObject {
             try await RizzAPI.generateAndStore(mode: mode, tone: tone, jpeg: jpeg, text: batch.sourceText,
                                                draft: batch.sourceDraft, instruction: ask, previous: previous, earlier: earlier,
                                                stance: self.side, stanceTopic: batch.sideTopic,
-                                               side: self.sideChoice, sideOptions: batch.sideOptions)
+                                               side: self.sideChoice, sideOptions: batch.sideOptions, hook: batch.hook)
         }
     }
 

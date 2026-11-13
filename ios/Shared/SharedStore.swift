@@ -97,35 +97,60 @@ final class SharedStore {
     /// lets Rizzio read the whole person (name, job, every prompt and photo), not just what's on screen now.
     private var profileScreensDir: URL? { containerURL?.appendingPathComponent("profile-screens", isDirectory: true) }
 
+    /// The name read from the top of the last profile screenshot (Hinge shows it while you scroll).
+    var lastProfileHeader: String {
+        get { defaults.string(forKey: "lastProfileHeader") ?? "" }
+        set { defaults.set(newValue, forKey: "lastProfileHeader") }
+    }
+
+    /// "Maya, 27" and "maya" match; empty when nothing usable was read.
+    static func headerKey(_ header: String) -> String {
+        let word = header.lowercased().split(whereSeparator: { !$0.isLetter }).first.map(String.init) ?? ""
+        return word.count >= 2 ? word : ""
+    }
+
     /// Screenshots of the current profile, oldest first, each within `maxAge` seconds of the next.
+    /// Only screens showing the same name at the top are linked; when a name can't be read either side,
+    /// only screens within 90 seconds are, so a different person's profile never gets mixed in.
     /// `fromNow`: the newest must also be recent (a new Back Tap); false measures from the newest screen (rewrites).
-    func profileScreens(maxAge: TimeInterval = 180, fromNow: Bool = true) -> [Data] {
+    func profileScreens(maxAge: TimeInterval = 180, fromNow: Bool = true, header: String? = nil) -> [Data] {
         guard let dir = profileScreensDir,
               let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.contentModificationDateKey])
         else { return [] }
-        let dated = files.compactMap { url -> (URL, Date)? in
+        let want = SharedStore.headerKey(header ?? lastProfileHeader)
+        let dated = files.filter { $0.pathExtension == "jpg" }.compactMap { url -> (URL, Date, String)? in
             guard let date = try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate else { return nil }
-            return (url, date)
+            let saved = (try? String(contentsOf: url.deletingPathExtension().appendingPathExtension("txt"), encoding: .utf8)) ?? ""
+            return (url, date, SharedStore.headerKey(saved))
         }.sorted { $0.1 < $1.1 }
-        // Walk back from the newest: stop at the first gap longer than maxAge (a different profile).
-        var kept: [(URL, Date)] = []
+        // Walk back from the newest: stop at a different name, or at a gap that's too long.
+        var kept: [URL] = []
         var newer = fromNow ? Date() : (dated.last?.1 ?? Date())
-        for item in dated.reversed() {
-            guard newer.timeIntervalSince(item.1) <= maxAge else { break }
-            kept.insert(item, at: 0)
-            newer = item.1
+        for (url, date, key) in dated.reversed() {
+            if !want.isEmpty, !key.isEmpty, key != want { break } // someone else's profile
+            let limit = (!want.isEmpty && key == want) ? maxAge : min(maxAge, 90)
+            guard newer.timeIntervalSince(date) <= limit else { break }
+            kept.insert(url, at: 0)
+            newer = date
         }
-        return kept.suffix(4).compactMap { try? Data(contentsOf: $0.0) }
+        return kept.suffix(4).compactMap { try? Data(contentsOf: $0) }
     }
 
-    /// Remembers a screenshot as part of the current profile (keeps the last 4).
-    func addProfileScreen(_ jpeg: Data) {
+    /// Remembers a screenshot as part of the current profile (keeps the last 4), with the name read from its top.
+    func addProfileScreen(_ jpeg: Data, header: String = "") {
         guard let dir = profileScreensDir else { return }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        try? jpeg.write(to: dir.appendingPathComponent("\(Int(Date().timeIntervalSince1970 * 1000)).jpg"), options: .atomic)
+        let stamp = "\(Int(Date().timeIntervalSince1970 * 1000))"
+        try? jpeg.write(to: dir.appendingPathComponent("\(stamp).jpg"), options: .atomic)
+        try? header.write(to: dir.appendingPathComponent("\(stamp).txt"), atomically: true, encoding: .utf8)
+        lastProfileHeader = header
         let files = ((try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? [])
+            .filter { $0.pathExtension == "jpg" }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
-        for old in files.dropLast(4) { try? FileManager.default.removeItem(at: old) }
+        for old in files.dropLast(4) {
+            try? FileManager.default.removeItem(at: old)
+            try? FileManager.default.removeItem(at: old.deletingPathExtension().appendingPathExtension("txt"))
+        }
     }
 
     /// Starts fresh, e.g. when the user moves on to a different profile.
