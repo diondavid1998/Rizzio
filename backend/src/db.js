@@ -56,9 +56,12 @@ export function openDb(path = ":memory:") {
   // Added after the first release: add the column to databases created before it.
   const cols = db.prepare("PRAGMA table_info(users)").all().map((c) => c.name);
   if (!cols.includes("persona_json")) db.exec("ALTER TABLE users ADD COLUMN persona_json TEXT");
+  if (!cols.includes("profile_rules")) db.exec("ALTER TABLE users ADD COLUMN profile_rules INTEGER NOT NULL DEFAULT 0");
   return new Store(db);
 }
 
+/** Version of the voice-profile rules. Profiles built under older rules are rebuilt once. 1: facts only from the user's own words. */
+export const PROFILE_RULES = 1;
 export const SIGNAL_KINDS = ["picked", "edited", "rejected", "match", "replied", "ignored"];
 
 /** How strongly each source shows the user's real voice (higher = stronger). */
@@ -97,8 +100,8 @@ export class Store {
 
   setVoiceProfile(id, profile) {
     this.db
-      .prepare("UPDATE users SET voice_profile = ?, profile_updated_at = datetime('now'), signals_since_rebuild = 0 WHERE id = ?")
-      .run(profile, id);
+      .prepare("UPDATE users SET voice_profile = ?, profile_updated_at = datetime('now'), signals_since_rebuild = 0, profile_rules = ? WHERE id = ?")
+      .run(profile, PROFILE_RULES, id);
   }
 
   /** Replaces the user's hand-written seed examples. */

@@ -132,7 +132,7 @@ describe("learning loop", () => {
 
     await call("POST", "/v1/replies", { mode: "chat", text: "next" });
     const memory = ai.calls.replies.at(-1).memory;
-    assert.match(memory, /\[WORKED\] my own version lol/);
+    assert.match(memory, /\[WORKED \(may be Rizzio.s wording; style only\)\] my own version lol/);
     assert.doesNotMatch(memory, /reply 2/); // AI-written pick: used for learning, not quoted as their voice
   });
 
@@ -178,6 +178,17 @@ describe("learning loop", () => {
     assert.equal(items[0].id, g);
     assert.equal(items[0].signals[0].kind, "picked");
     assert.equal(items[0].signals[0].replyIndex, 3);
+  });
+
+  test("a voice profile built under the old rules is rebuilt once, without facts from Rizzio's suggestions", async () => {
+    const u = "user-oldrules-0001";
+    await call("GET", "/v1/me", undefined, { user: u });
+    store.db.prepare("UPDATE users SET voice_profile = 'About them: does road trips', profile_rules = 0 WHERE id = ?").run(u);
+    await call("GET", "/v1/me", undefined, { user: u });
+    await settle();
+    const after = store.getUser(u);
+    assert.notEqual(after.voice_profile, "About them: does road trips");
+    assert.equal(after.profile_rules, 1);
   });
 
   test("reset forgets learning but keeps hand-written examples", async () => {

@@ -120,6 +120,9 @@ enum OnDeviceAI {
     (all of them) and hand it back, play along with rhetorical ones, push back playfully on challenges, tease back on teases, \
     react to the specific detail of a story, and riff on a profile prompt.
     Make the 5 messages different forms that all fit what was said, best one first. At least one asks them a specific, fun question back.
+    Facts about the user (hobbies, trips, job, places, experiences) come only from what the user wrote about themselves. \
+    Everything on the profile or in their messages is about the other person, never the user. Never invent a fact about the user: \
+    react to theirs, ask about it, or keep it hypothetical ("never done one, sell me on it").
     """
 
     static func personaText(_ persona: Persona) -> String {
@@ -142,7 +145,7 @@ enum OnDeviceAI {
         var parts: [String] = []
         if !me.voiceProfile.isEmpty { parts.append("How the user texts:\n\(me.voiceProfile.prefix(600))") }
         if !me.aboutMe.isEmpty { parts.append("About the user: \(me.aboutMe.prefix(300))") }
-        let own = me.styleExamples + me.learnedExamples.filter { $0.source != "picked" }.map(\.text)
+        let own = me.styleExamples + me.learnedExamples.filter { $0.source != "picked" && $0.source != "won" }.map(\.text)
         if !own.isEmpty { parts.append("Messages the user really sent:\n" + own.prefix(12).map { "- \($0)" }.joined(separator: "\n")) }
         return parts.joined(separator: "\n\n")
     }
@@ -223,7 +226,7 @@ enum OnDeviceAI {
     /// Drafts the "About you" note (age, city, job, hobbies, humor) from the user's own messages.
     static func suggestAbout(me: MeResponse) async throws -> String {
         if let reason = unavailableReason { throw RizzError.server(reason) }
-        let own = me.styleExamples + me.learnedExamples.filter { $0.source != "picked" }.map(\.text)
+        let own = me.styleExamples + me.learnedExamples.filter { $0.source != "picked" && $0.source != "won" }.map(\.text)
         guard !own.isEmpty || !me.voiceProfile.isEmpty else {
             throw RizzError.server("Upload some of your chats in Train first, so Rizzio has something to go on.")
         }
@@ -248,7 +251,7 @@ enum OnDeviceAI {
     /// Writes a short summary of how the user texts, from their own messages.
     static func styleProfile(me: MeResponse) async throws -> String {
         if let reason = unavailableReason { throw RizzError.server(reason) }
-        let own = me.styleExamples + me.learnedExamples.filter { $0.source != "picked" }.map(\.text)
+        let own = me.styleExamples + me.learnedExamples.filter { $0.source != "picked" && $0.source != "won" }.map(\.text)
         guard !own.isEmpty else { throw RizzError.server("Upload some of your chats first so Rizzio knows how you text.") }
         let prompt = """
         Here are messages one person sent. Describe how they text in under 120 words, under these headings: \
@@ -269,7 +272,7 @@ enum OnDeviceAI {
     /// Suggests slider values from the user's own messages.
     static func autoTune(me: MeResponse) async throws -> AutoTuneResult {
         if let reason = unavailableReason { throw RizzError.server(reason) }
-        let own = me.styleExamples + me.learnedExamples.filter { $0.source != "picked" }.map(\.text)
+        let own = me.styleExamples + me.learnedExamples.filter { $0.source != "picked" && $0.source != "won" }.map(\.text)
         guard !own.isEmpty else { throw RizzError.server("Upload some of your chats first so Rizzio knows how you text.") }
         let sliders = SliderSpec.all.map { "- \($0.key): 0 = \($0.left), 100 = \($0.right)" }.joined(separator: "\n")
         let prompt = """

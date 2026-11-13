@@ -66,6 +66,12 @@ The 5 messages:
 - Match the requested tone, filtered through the user's own voice.
 - Write in the conversation's language.
 
+Facts about the user (whose side you write from):
+- Only claim things about the user (hobbies, trips, jobs, places, skills, experiences, pets, tastes) that appear in "The user, in their own words", the voice profile's "About them", or messages marked as their own words, edited or imported.
+- Everything on a screenshot's profile, and everything the other person says in a chat, is about THEM, not the user. Never turn their details into the user's ("me too, I love road trips" when only they mentioned road trips).
+- Messages marked "Rizzio wrote this" were suggestions the user picked. Copy their style, never their facts.
+- When a reply needs a fact about the user that you don't have, don't invent one. React to theirs, ask about it, make it a guess about them, or keep it hypothetical ("never done one, sell me on it", "I'd be useless on a road trip, you'd have to navigate").
+
 Reading screenshots:
 - Get to know the person before writing. Fill in "read.person" with everything visible about them: name, age, job, school, hometown or location, height and other profile details, every prompt with their answer, what each photo shows (activity, place, pets, style, anything unusual), and the vibe all of it adds up to. Then pick the best hook in "read.hook" and say why.
 - A Hinge profile is a scrolling list of photos and prompt cards. Each prompt card has the prompt question in small text and their answer in large text. A row of details (age, height, job, location, religion, drinking...) usually sits under the first photo. On Hinge you like or comment on one specific prompt or photo, so each message replies to that one item, while knowing the whole person makes it personal (connect the hook to something else on their profile when it fits).
@@ -83,9 +89,9 @@ export const REPLY_SYSTEM = REPLY_BASE + "\n\n" + TEXTING_PLAYBOOK;
 export const PROFILE_SYSTEM = `You maintain a "voice profile" for Rizzio, an assistant that writes texts and dating-app messages as its user. Another model reads this profile before writing every message, so it must let that model sound exactly like the user.
 
 You'll get the current profile (may be empty), what the user said about themselves, and evidence of how they text, labelled by strength:
-- WON: a message that got a match or a reply. Strongest evidence of what works.
+- WON: a message that got a match or a reply. Strongest evidence of what works. Usually written by Rizzio, so its facts may be made up.
 - EDITED / OWN WORDS: messages the user wrote or rewrote themselves. Strongest evidence of their real voice.
-- PICKED: a suggestion they chose over 4 others. Shows preference.
+- PICKED: a suggestion Rizzio wrote and they chose over 4 others. Shows preference; its facts may be made up.
 - REJECTED / IGNORED: a suggestion they turned down, or a sent message that got no response. Shows what to avoid.
 
 Write an updated profile in plain text, under 350 words, using these headings:
@@ -95,9 +101,9 @@ How they think: (what they notice and pick up on first, how they build a reply, 
 Humor & energy: (what kind of funny, how flirty, how bold)
 What works for them: (patterns from WON and PICKED)
 Avoid: (patterns from REJECTED/IGNORED and anything off-brand)
-About them: (facts useful for replies: job, city, hobbies, from their notes or messages)
+About them: (facts useful for replies: job, city, hobbies. Only from what the user said about themselves and their OWN WORDS / EDITED messages; never from WON or PICKED suggestions, and never from other people's profiles or messages)
 
-Be concrete and quote short phrases they actually use. Keep facts from the current profile unless new evidence contradicts them. Don't invent anything the evidence doesn't support.`;
+Be concrete and quote short phrases they actually use. Re-check every fact in the current profile's About them: keep it only if the user's notes or their own words support it, and drop the rest. Don't invent anything the evidence doesn't support.`;
 
 export const AUTOTUNE_SYSTEM = `You set the sliders for Rizzio, an assistant that writes texts as its user, so that its default style matches how the user actually texts.
 You'll get the user's voice profile and real messages they sent, plus the list of sliders (each 0-100, with what 0 and 100 mean).
@@ -115,7 +121,7 @@ If there's no message from the user, return an empty list.`;
 
 export const ABOUT_SYSTEM = `You draft the "About you" note for Rizzio, an assistant that writes texts as its user. The note is a few facts another model can work into replies.
 From the user's own messages, their voice profile and their current note, write one short line of comma-separated facts, under 60 words, in the style "27, NYC, nurse, into climbing and cooking, dry humor": age, city or area, job or school, hobbies, interests, favorite things, and their kind of humor.
-Only include facts the user clearly states or strongly implies about themselves. Leave out anything you'd be guessing. Never include health, religion, ethnicity, sexuality, money, or other people's names or details. Keep facts from the current note unless their messages contradict them.
+Only include facts the user clearly states or strongly implies about themselves in their own messages or note. Never take facts from other people's profiles or messages, or from suggestions Rizzio wrote. Leave out anything you'd be guessing. Never include health, religion, ethnicity, sexuality, money, or other people's names or details. Keep facts from the current note unless their messages contradict them.
 If almost nothing is known, return the few facts you have, or an empty string.`;
 
 /** The user's memory, rendered for the reply model. Stable between learning updates, so it's cached too. */
@@ -124,7 +130,7 @@ export function renderMemory(user, examples) {
   parts.push(user.voice_profile?.trim() ? `## The user's voice profile\n${user.voice_profile.trim()}` : "## The user's voice profile\n(Not learned yet.)");
   if (user.about_me?.trim()) parts.push(`## The user, in their own words\n${user.about_me.trim()}`);
   if (examples.length) {
-    const label = { won: "WORKED", edited: "their own rewrite", seed: "their own words", imported: "their own words", picked: "they picked this" };
+    const label = { won: "WORKED (may be Rizzio's wording; style only)", edited: "their own rewrite", seed: "their own words", imported: "their own words", picked: "Rizzio wrote this; they picked it" };
     parts.push(
       "## Messages the user has sent\n" +
         examples.map((e) => `- [${label[e.source] ?? e.source}] ${e.text}`).join("\n"),
@@ -305,10 +311,10 @@ export function renderProfileEvidence(user, examples, signals) {
   const lines = [];
   lines.push(`## Current profile\n${user.voice_profile?.trim() || "(empty)"}`);
   lines.push(`## What the user says about themselves\n${user.about_me?.trim() || "(nothing)"}`);
-  const own = examples.filter((e) => ["seed", "imported", "edited", "won"].includes(e.source));
-  if (own.length) {
-    lines.push("## Messages in the user's own words\n" + own.map((e) => `- [${e.source === "won" ? "WON" : "OWN WORDS"}] ${e.text}`).join("\n"));
-  }
+  const own = examples.filter((e) => ["seed", "imported", "edited"].includes(e.source));
+  if (own.length) lines.push("## Messages in the user's own words\n" + own.map((e) => `- [OWN WORDS] ${e.text}`).join("\n"));
+  const won = examples.filter((e) => e.source === "won");
+  if (won.length) lines.push("## Rizzio suggestions that worked (style evidence only; their facts may be made up)\n" + won.map((e) => `- [WON] ${e.text}`).join("\n"));
   if (signals.length) {
     lines.push(
       "## Recent feedback (newest first)\n" +

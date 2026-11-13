@@ -1,7 +1,7 @@
 import express from "express";
 import { timingSafeEqual } from "node:crypto";
 import { AIError } from "./ai.js";
-import { SIGNAL_KINDS } from "./db.js";
+import { PROFILE_RULES, SIGNAL_KINDS } from "./db.js";
 import { randomUUID } from "node:crypto";
 import { ImportError, parseExport, summarizeSenders } from "./importers.js";
 import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, enforcePersona, renderPersona, sanitizePersona } from "./persona.js";
@@ -16,6 +16,8 @@ const USER_ID = /^[A-Za-z0-9-]{8,64}$/;
 /** After this many new signals, the agent re-learns the user's voice in the background. */
 export const REBUILD_EVERY = 6;
 
+/** Example sources written by Rizzio rather than the user: good for style, never for facts about the user. */
+const AI_WRITTEN = new Set(["picked", "won"]);
 const str = (v, max) => (typeof v === "string" ? v.slice(0, max) : undefined);
 
 function parseImage(raw) {
@@ -86,6 +88,8 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
     const userId = req.get("x-rizzio-user") ?? "";
     if (!USER_ID.test(userId)) return res.status(400).json({ error: "Missing or invalid X-Rizzio-User header." });
     store.ensureUser(userId);
+    const u = store.getUser(userId);
+    if (u.voice_profile?.trim() && (u.profile_rules ?? 0) < PROFILE_RULES) rebuildInBackground(userId);
     req.userId = userId;
     next();
   });
@@ -121,12 +125,12 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const persona = preview && b.persona ? sanitizePersona(b.persona) : sanitizePersona(store.getPersona(req.userId));
       const best = store.bestExamples(req.userId, 25, { ownWordsOnly: true });
       // How the user really uses "wait", "ngl", "lowkey"... from all of their own messages.
-      const ownAll = store.listExamples(req.userId).filter((e) => e.source !== "picked").map((e) => e.text);
+      const ownAll = store.listExamples(req.userId).filter((e) => !AI_WRITTEN.has(e.source)).map((e) => e.text);
       const openers = openerUsage(ownAll);
       const memory = [renderMemory(user, best), renderOpenerUsage(openers), renderPersona(persona)].filter(Boolean).join("\n\n");
       // The user's own messages most related to this one (beyond the 25 always shown), so wording follows how they talk about it.
       const shown = new Set(best.map((e) => e.text));
-      const own = store.listExamples(req.userId).filter((e) => e.source !== "picked" && !shown.has(e.text)).map((e) => e.text);
+      const own = store.listExamples(req.userId).filter((e) => !AI_WRITTEN.has(e.source) && !shown.has(e.text)).map((e) => e.text);
       const ownRelated = related([text, draft].filter(Boolean).join("\n"), own, 8);
       // Catchphrases Rizzio keeps writing that the user never says ("that's a bold pick"): steer away from them.
       const overused = overusedPhrases(store.history(req.userId, 20).map((g) => g.replies.map((r) => r.text)), [...own, ...shown]);
@@ -183,7 +187,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
     const mode = MODES.includes(b.mode) ? b.mode : "auto";
     const limit = Math.min(Math.max(Number(b.limit) || 4, 1), 10);
     const text = str(b.text, 4000) ?? "";
-    const own = store.listExamples(req.userId).filter((e) => e.source !== "picked").map((e) => e.text);
+    const own = store.listExamples(req.userId).filter((e) => !AI_WRITTEN.has(e.source)).map((e) => e.text);
     res.json({ items: inspiration(text, { mode, limit }), own: related(text, own, 6) });
   });
 
@@ -262,7 +266,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
   app.post("/v1/me/about/suggest", rateLimit, async (req, res, next) => {
     try {
       const user = store.getUser(req.userId);
-      const own = store.listExamples(req.userId).filter((e) => e.source !== "picked").slice(0, 150);
+      const own = store.listExamples(req.userId).filter((e) => !AI_WRITTEN.has(e.source)).slice(0, 150);
       if (!own.length && !user.voice_profile?.trim()) {
         return res.status(409).json({ error: "Upload some of your chats in Train first, so Rizzio has something to go on." });
       }
