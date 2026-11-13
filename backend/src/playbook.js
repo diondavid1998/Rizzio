@@ -38,6 +38,7 @@ export const TEXTING_PLAYBOOK = `# Texting playbook (how good texters think; alw
 - A good statement (an opinion, a guess, a tease) can carry the conversation as well as a question.
 
 ## Common Hinge prompts and what lands
+- Prompts that ask YOU something ("One thing I'd like to know about you is...", "I want to know your...", "Teach me something about...", "Give me travel tips for...", "Ask me about...", "Guess where this was taken"): answer it as the user, specifically and invitingly, then toss it back. These aren't about the other person.
 - Two truths and a lie: guess the lie with a funny reason.
 - Together we could / Let's make sure we're on the same page about: say yes and raise it, or make it a specific plan.
 - I'm looking for / The way to win me over is: show, with humor, that the user fits (or playfully that they might not).
