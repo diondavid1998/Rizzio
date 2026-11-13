@@ -8,7 +8,7 @@ export const REPLY_FORMS = [
   "guess", "follow_up_question", "callback", "story", "compliment_back", "make_plans", "hook",
 ];
 export const MESSAGE_KINDS = [
-  "profile_prompt", "profile_question_for_user", "photo", "question", "several_questions", "rhetorical_question", "challenge_or_hot_take",
+  "profile_prompt", "profile_question_for_user", "profile_wants_from_user", "photo", "question", "several_questions", "rhetorical_question", "challenge_or_hot_take",
   "tease", "story_or_statement", "compliment", "making_plans", "low_effort", "mixed",
 ];
 
@@ -26,10 +26,11 @@ const REPLY_SCHEMA = {
         questions: { type: "array", items: { type: "string" }, description: "Every question they asked that needs an answer (empty if none)." },
         needs: { type: "string", description: "One line: what a good reply has to do here." },
         as_user: { type: "string", description: "One line: what the user would notice first and how they'd react, judging from their own messages." },
+        play: { type: "string", description: "The one insight all 5 replies build on: who is asking whom for what, and the clever or charming angle on it. E.g. 'She wants a plan and someone calm: act calm while obviously having a plan.' Decide this before writing anything." },
         side_topic: { type: "string", description: "The take the user could agree or disagree with, in 2-6 words. For a dating-profile prompt that states something, fill it with the claim, preference or choice in their answer (e.g. 'pineapple on pizza', '11am church over 9am', 'naps after the market'). Empty when the prompt is a question for the user to answer. In a chat, only when they state an opinion or preference; otherwise empty." },
         sides: {
           type: "array",
-          description: "When side_topic is set: 2-4 ways the user could come at it, labelled to fit this exact take (e.g. 'Team 11am' / 'Team 9am' / 'Church on a Sunday?', 'Agree' / 'Disagree', 'Defend naps' / 'Attack naps', 'Yes, I'll bring coffee' / 'Make your own coffee'). Empty when side_topic is empty.",
+          description: "When side_topic is set: 2-4 ways the user could come at it, labelled to fit this exact take (e.g. 'Team 11am' / 'Team 9am' / 'Church on a Sunday?', 'Agree' / 'Disagree', 'Defend naps' / 'Attack naps', 'Bring the coffee' / 'Bring two coffees'). Empty when side_topic is empty.",
           items: {
             type: "object",
             properties: {
@@ -41,7 +42,7 @@ const REPLY_SCHEMA = {
           },
         },
       },
-      required: ["person", "hook", "visible_hooks", "kind", "questions", "needs", "as_user", "side_topic", "sides"],
+      required: ["person", "hook", "visible_hooks", "kind", "questions", "needs", "as_user", "play", "side_topic", "sides"],
       additionalProperties: false,
     },
     context: { type: "string", description: "One short line naming what you replied to." },
@@ -215,7 +216,7 @@ export class ClaudeAI {
       ],
       content,
       schema: REPLY_SCHEMA,
-      effort: image || earlier.length ? "medium" : "low", // screenshots need real reading; text-only replies stay fast
+      effort: "medium", // reading who is asking whom for what needs real thinking, even for text-only prompts
     });
     return { context: out.context, read: out.read, replies: out.replies.slice(0, 5) };
   }

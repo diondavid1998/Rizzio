@@ -25,7 +25,7 @@
     },
     {
       "category": "My Type",
-      "how": "What they want in a partner: show with humor that the user fits (or playfully might not), using the user's real details. Don't just say 'that's me'.",
+      "how": "What they want from whoever messages them. The user is the one being asked: do the thing they asked for, or play on doing it with self-aware humor, using the user's real details. Never hand it back to them, argue with it, or just say 'that's me'.",
       "prompts": [
         "All I ask is that you",
         "I want someone who",
@@ -33,7 +33,8 @@
         "I'm looking for",
         "The key to my heart is",
         "The way to win me over is",
-        "We'll get along if"
+        "We'll get along if",
+        "The best way to ask me out is by"
       ]
     },
     {
