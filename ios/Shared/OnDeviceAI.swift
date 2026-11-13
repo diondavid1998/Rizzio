@@ -147,9 +147,7 @@ enum OnDeviceAI {
     struct Result {
         let context: String
         let replies: [Reply]
-        var sideTopic: String
-    @Guide(description: "If sideTopic is set: 2 to 4 ways to come at it, labelled to fit this exact take (like Team 11am, Defend naps, Agree, Disagree); otherwise empty")
-    var sides: [GeneratedSide]? = nil
+        var sideTopic: String? = nil
         var sideOptions: [SideChoice]? = nil
     }
 
@@ -287,6 +285,8 @@ struct GeneratedReplies {
     var context: String
     @Guide(description: "The take the user could agree or disagree with, in 2-6 words: always for a dating-profile prompt (the claim or preference in their answer), in a chat only when they state an opinion; otherwise empty")
     var sideTopic: String
+    @Guide(description: "If sideTopic is set: 2 to 4 ways to come at it, labelled to fit this exact take (like Team 11am, Defend naps, Agree, Disagree); otherwise empty")
+    var sides: [GeneratedSide]
     @Guide(description: "Exactly five different messages, best first")
     var replies: [GeneratedReply]
 }
