@@ -107,7 +107,7 @@ enum RizzAPI {
         } else {
             result = try await generate(mode: mode, tone: tone, jpeg: jpeg, text: text, draft: draft,
                                         instruction: instruction, previous: previous, earlier: earlier,
-                                        stance: stance, stanceTopic: stanceTopic, side: side)
+                                        stance: stance, stanceTopic: stanceTopic, side: side, hook: hook)
         }
         if jpeg != nil, keepScreenshot { store.saveScreenshot(jpeg) }
         let batch = SuggestionBatch(

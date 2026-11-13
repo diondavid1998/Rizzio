@@ -171,7 +171,7 @@ enum OnDeviceAI {
                         persona: Persona, me: MeResponse?,
                         instruction: String? = nil, previous: [String] = [],
                         length: ReplyLength = .auto, earlier: [Data] = [],
-                        stance: String? = nil, stanceTopic: String? = nil, side: SideChoice? = nil) async throws -> Result {
+                        stance: String? = nil, stanceTopic: String? = nil, side: SideChoice? = nil, hook: String? = nil) async throws -> Result {
         if let reason = unavailableReason { throw RizzError.server(reason) }
         var content: [String] = []
         for (i, screen) in earlier.enumerated() {
@@ -182,6 +182,9 @@ enum OnDeviceAI {
         if let draft, !draft.isEmpty { content.append("The user's draft:\n\(draft.prefix(600))") }
         if !previous.isEmpty { content.append("Earlier suggestions (write new ones):\n" + previous.prefix(5).map { "- \($0)" }.joined(separator: "\n")) }
         if let hint = length.hint { content.append("Length: every message must be \(hint). This overrides the usual 6 to 25 words.") }
+        if let hook, !hook.isEmpty {
+            content.append("The user chose what to reply to: \"\(hook)\". All 5 messages reply to that one item only; don't mention any other prompt or photo.")
+        }
         if let side {
             content.append("The user picked a side on \(stanceTopic ?? "this"): \(side.label) (\(side.how)). Every message must come at it that way.")
         } else if let stance {
