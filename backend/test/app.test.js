@@ -46,13 +46,14 @@ class FakeAI {
 
 let server, base, ai, store;
 
-async function call(method, path, body, { user = USER, token = TOKEN } = {}) {
+async function call(method, path, body, { user = USER, token = TOKEN, headers = {} } = {}) {
   const res = await fetch(base + path, {
     method,
     headers: {
       "content-type": "application/json",
       ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...(user ? { "x-rizzio-user": user } : {}),
+      ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -205,6 +206,13 @@ describe("learning loop", () => {
 });
 
 describe("review fixes", () => {
+  test("Premium Plus (X-Rizzio-Tier: plus) asks for the stronger model; Premium doesn't", async () => {
+    await call("POST", "/v1/replies", { mode: "prompt", text: "Typical Sunday: naps" });
+    assert.equal(ai.calls.replies.at(-1).plus, false);
+    await call("POST", "/v1/replies", { mode: "prompt", text: "Typical Sunday: naps" }, { headers: { "x-rizzio-tier": "plus" } });
+    assert.equal(ai.calls.replies.at(-1).plus, true);
+  });
+
   test("auto mode asks the AI to detect profile vs chat", async () => {
     const r = await call("POST", "/v1/replies", { mode: "auto", text: "hey" });
     assert.equal(r.status, 200);

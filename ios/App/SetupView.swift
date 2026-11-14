@@ -30,6 +30,7 @@ struct SetupView: View {
                     Picker("AI", selection: $engine) {
                         Text("Free").tag(Engine.free)
                         Text("Premium").tag(Engine.premium)
+                        Text("Plus").tag(Engine.premiumPlus)
                     }
                     .pickerStyle(.segmented)
                     .accessibilityIdentifier("engine")
@@ -40,9 +41,14 @@ struct SetupView: View {
                 } header: {
                     Text("AI")
                 } footer: {
-                    Text(engine == .free
-                         ? "Free: Apple Intelligence writes replies on your iPhone. Costs nothing, works offline, nothing leaves your phone. Replies are simpler."
-                         : "Premium: Claude Sonnet writes replies on your Rizzio server. Reads prompts better, wittier and more like you. Uses your Claude API credits (about 3-4 cents per set of 5 replies).")
+                    switch engine {
+                    case .free:
+                        Text("Free: Apple Intelligence writes replies on your iPhone. Costs nothing, works offline, nothing leaves your phone. Replies are simpler.")
+                    case .premium:
+                        Text("Premium: Claude Haiku writes replies on your Rizzio server. Fast and wittier than Free. Uses your Claude API credits (about a cent per 5 sets of replies).")
+                    case .premiumPlus:
+                        Text("Premium Plus: Claude Sonnet writes replies on your Rizzio server. Best at reading what a prompt is really asking, funniest and most like you. Uses your Claude API credits (about 3-4 cents per set of 5 replies).")
+                    }
                 }
 
                 Section {

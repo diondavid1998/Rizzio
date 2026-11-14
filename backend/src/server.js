@@ -5,7 +5,7 @@ import { openDb } from "./db.js";
 import { mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-const { ANTHROPIC_API_KEY, APP_TOKEN, RIZZIO_MODEL, RIZZIO_FAKE_AI, PORT = 4000, RAILWAY_VOLUME_MOUNT_PATH, RAILWAY_ENVIRONMENT } = process.env;
+const { ANTHROPIC_API_KEY, APP_TOKEN, RIZZIO_MODEL, RIZZIO_PLUS_MODEL, RIZZIO_FAKE_AI, PORT = 4000, RAILWAY_VOLUME_MOUNT_PATH, RAILWAY_ENVIRONMENT } = process.env;
 
 // Where learned voices live. It must be on a Railway Volume, or every deploy starts from an empty database.
 // Railway tells us where an attached volume is mounted, so use it unless DB_PATH says otherwise.
@@ -27,7 +27,7 @@ else if (!ANTHROPIC_API_KEY) console.warn("ANTHROPIC_API_KEY is not set: reply r
 if (!APP_TOKEN) console.warn("APP_TOKEN is not set: every request will be rejected.");
 
 const store = openDb(DB_PATH);
-const ai = fake ? new FakeAI() : new ClaudeAI({ apiKey: ANTHROPIC_API_KEY, model: RIZZIO_MODEL });
+const ai = fake ? new FakeAI() : new ClaudeAI({ apiKey: ANTHROPIC_API_KEY, model: RIZZIO_MODEL, plusModel: RIZZIO_PLUS_MODEL });
 const app = createApp({ store, ai, appToken: APP_TOKEN, storage: { persistent } });
 
 const server = app.listen(PORT, () => console.log(`Rizzio backend listening on :${PORT} (db: ${DB_PATH})`));

@@ -20,12 +20,13 @@ The keyboard can also:
 - **Polish**: type a rough draft and get 5 better versions.
 - **↻**: 5 fresh replies for the same screenshot or text.
 
-## Free or Premium
+## Free, Premium or Premium Plus
 
 Setup → **AI** switches the engine for everything (Action Button, keyboard, Train, Persona):
 
 - **Free:** Apple Intelligence on the iPhone (iOS 26+, Apple Intelligence on). Screenshots are read on the phone and replies are written by Apple's on-device model. Costs nothing, works offline; the server only stores history and learned messages. Replies are simpler.
-- **Premium:** Claude Sonnet on your Rizzio server (`RIZZIO_MODEL` overrides the model). Reads prompts far better, wittier, closer to your style. Uses Claude API credits, about 3-4 cents per set of 5 replies.
+- **Premium:** Claude Haiku on your Rizzio server (`RIZZIO_MODEL` overrides it). Fast, wittier than Free. About 0.2 cents per set of 5 replies.
+- **Premium Plus:** Claude Sonnet on your Rizzio server (`RIZZIO_PLUS_MODEL` overrides it). Best at reading what a prompt is really asking. About 3-4 cents per set of 5 replies.
 
 ## The app is the control room
 

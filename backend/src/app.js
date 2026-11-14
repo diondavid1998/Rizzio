@@ -137,7 +137,9 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // A few relevant exchanges from the built-in library, as ideas for angle and flow (not voice).
       const refs = renderInspiration(inspiration([text, draft, instruction].filter(Boolean).join("\n"), { mode: b.mode, limit: b.mode === "draft" ? 3 : 6 }));
       const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image || earlier.length > 0, earlier: earlier.length, current: !!image, instruction, previous, length, ownRelated, stance, stanceTopic, side, overused, hook }), refs].filter(Boolean).join("\n\n");
-      const raw = await ai.generateReplies({ memory, requestText, image, earlier });
+      // Premium Plus (the app sends X-Rizzio-Tier: plus) is written by the stronger model.
+      const plus = req.get("x-rizzio-tier") === "plus";
+      const raw = await ai.generateReplies({ memory, requestText, image, earlier, plus });
       // Safety net: a reply that still uses a stock or overused phrase the user never says is rewritten once.
       const ownText = [...own, ...shown].join("\n");
       const banned = [...STOCK_PHRASES, ...overused, ...openers.never].filter((p) => phrasesIn(ownText, [p]).length === 0);
@@ -150,7 +152,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const bad = flagged.map((found, i) => [i, [...new Set(found)]]).filter(([, found]) => found.length);
       if (bad.length && ai.rewriteWithout) {
         try {
-          const fixed = await ai.rewriteWithout({ memory, texts: bad.map(([i]) => raw.replies[i].text), phrases: [...new Set(bad.flatMap(([, f]) => f))] });
+          const fixed = await ai.rewriteWithout({ plus, memory, texts: bad.map(([i]) => raw.replies[i].text), phrases: [...new Set(bad.flatMap(([, f]) => f))] });
           bad.forEach(([i], k) => { if (typeof fixed[k] === "string" && fixed[k].trim()) raw.replies[i] = { ...raw.replies[i], text: fixed[k].trim() }; });
         } catch (err) {
           log.error?.(`rewrite without stock phrases failed: ${err.message}`); // keep the originals
@@ -162,6 +164,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       if (tooLong.length && ai.rewriteTexts) {
         try {
           const short = await ai.rewriteTexts({
+            plus,
             memory,
             texts: tooLong.map(([, t]) => t),
             instruction: `Shorten each of these Hinge comments to under ${HINGE_CHAR_LIMIT} characters, keeping the idea, the voice and the question if there is one.`,

@@ -356,6 +356,7 @@ enum RizzAPI {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(store.appToken)", forHTTPHeaderField: "Authorization")
         request.setValue(store.userId, forHTTPHeaderField: "X-Rizzio-User")
+        if store.engine == .premiumPlus { request.setValue("plus", forHTTPHeaderField: "X-Rizzio-Tier") }
         if let body { request.httpBody = try JSONEncoder().encode(body) }
 
         let data: Data

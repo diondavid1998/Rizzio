@@ -33,7 +33,9 @@ test("falls back to simpler requests when Claude rejects newer features, and rem
   const origError = console.error; const origWarn = console.warn; console.error = () => {}; console.warn = () => {};
   try {
     assert.equal(await ai.rebuildProfile({ evidence: "x" }), "short, lowercase");
-    assert.equal(ai.workingVariant, "plain-json");
+    assert.equal(ai.workingVariants.get(ai.model), "plain-json");
+    assert.equal(ai.model, "claude-haiku-5-5");
+    assert.equal(ai.plusModel, "claude-sonnet-5-5");
     assert.equal(ai.client.calls.length, 3);
     await ai.rebuildProfile({ evidence: "y" });
     assert.equal(ai.client.calls.length, 4, "second call should go straight to the working shape");

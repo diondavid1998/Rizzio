@@ -107,10 +107,17 @@ struct ExamplesPage: Decodable {
 
 /// Which AI writes the replies.
 enum Engine: String, Codable, CaseIterable, Identifiable {
-    case free      // Apple Intelligence on the iPhone, $0
-    case premium   // Claude Sonnet on the Rizzio server
+    case free         // Apple Intelligence on the iPhone, $0
+    case premium      // Claude Haiku on the Rizzio server
+    case premiumPlus  // Claude Sonnet on the Rizzio server: reads prompts best
     var id: String { rawValue }
-    var label: String { self == .free ? "Free" : "Premium" }
+    var label: String {
+        switch self {
+        case .free: return "Free"
+        case .premium: return "Premium"
+        case .premiumPlus: return "Premium Plus"
+        }
+    }
 }
 
 /// What the agent learns from. Mirrors the backend's signal kinds.

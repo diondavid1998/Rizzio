@@ -110,10 +110,13 @@ export class AIError extends Error {
 
 /** Claude calls. Swap in a fake with the same three methods for tests. */
 export class ClaudeAI {
-  constructor({ apiKey, model }) {
+  constructor({ apiKey, model, plusModel }) {
     this.client = new Anthropic({ apiKey });
-    // Premium = Claude Sonnet: reads what a prompt is really asking far better than Haiku. Set RIZZIO_MODEL to override.
-    this.model = model || "claude-sonnet-5-5";
+    // Premium = Claude Haiku (fast, cheap); Premium Plus = Claude Sonnet, which reads what a prompt is really
+    // asking far better. RIZZIO_MODEL / RIZZIO_PLUS_MODEL override them.
+    this.model = model || "claude-haiku-5-5";
+    this.plusModel = plusModel || "claude-sonnet-5-5";
+    this.workingVariants = new Map(); // per model: the request shape that model's API accepts
   }
 
   /**
@@ -123,8 +126,8 @@ export class ClaudeAI {
    */
   static VARIANTS = ["full", "no-fallback", "plain-json"];
 
-  #request(variant, { system, content, schema, effort }) {
-    const base = { model: this.model, max_tokens: 8000, system, messages: [{ role: "user", content }] };
+  #request(variant, { system, content, schema, effort, model = this.model }) {
+    const base = { model, max_tokens: 8000, system, messages: [{ role: "user", content }] };
     if (variant === "full") {
       return this.client.beta.messages.create({
         ...base,
@@ -146,15 +149,16 @@ export class ClaudeAI {
   }
 
   async #call(args) {
-    const start = ClaudeAI.VARIANTS.indexOf(this.workingVariant ?? "full");
+    const model = args.model ?? this.model;
+    const start = ClaudeAI.VARIANTS.indexOf(this.workingVariants.get(model) ?? "full");
     let response;
     let lastBadRequest = null;
     for (const variant of ClaudeAI.VARIANTS.slice(start)) {
       try {
         response = await this.#request(variant, args);
-        if (this.workingVariant !== variant) {
+        if (this.workingVariants.get(model) !== variant) {
           if (lastBadRequest) console.warn(`Claude request works with variant "${variant}"; using it from now on.`);
-          this.workingVariant = variant;
+          this.workingVariants.set(model, variant);
         }
         break;
       } catch (err) {
@@ -169,7 +173,7 @@ export class ClaudeAI {
         if (err instanceof Anthropic.RateLimitError) throw new AIError("Busy right now, try again in a few seconds.", 429);
         if (err instanceof Anthropic.AuthenticationError) throw new AIError("The server's Claude API key is invalid.", 500);
         if (err instanceof Anthropic.PermissionDeniedError) throw new AIError("The server's Claude API key isn't allowed to use this model.", 500);
-        if (err instanceof Anthropic.NotFoundError) throw new AIError(`Claude model "${this.model}" wasn't found. Check RIZZIO_MODEL.`, 500);
+        if (err instanceof Anthropic.NotFoundError) throw new AIError(`Claude model "${model}" wasn't found. Check RIZZIO_MODEL / RIZZIO_PLUS_MODEL.`, 500);
         if (err instanceof Anthropic.APIError) throw new AIError(`AI error (${err.status}): ${String(err.message).slice(0, 300)}`, 502);
         throw new AIError("Couldn't reach the AI.", 502);
       }
@@ -199,7 +203,8 @@ export class ClaudeAI {
 
   /** memory: the user's rendered voice profile + examples. */
   /** earlier: screenshots taken just before this one (same profile, scrolled), oldest first. */
-  async generateReplies({ memory, requestText, image, earlier = [] }) {
+  /** plus: Premium Plus, written by the stronger model. */
+  async generateReplies({ memory, requestText, image, earlier = [], plus = false }) {
     const content = [];
     earlier.forEach((img, i) => {
       content.push({ type: "text", text: `Earlier screenshot ${i + 1} of ${earlier.length}:` }, ClaudeAI.#image(img));
@@ -216,23 +221,26 @@ export class ClaudeAI {
       ],
       content,
       schema: REPLY_SCHEMA,
+      model: plus ? this.plusModel : this.model,
       effort: "medium", // reading who is asking whom for what needs real thinking, even for text-only prompts
     });
     return { context: out.context, read: out.read, replies: out.replies.slice(0, 5) };
   }
 
   /** Rewrites a few replies so they no longer use the given phrases, keeping everything else. */
-  async rewriteWithout({ memory, texts, phrases }) {
+  async rewriteWithout({ memory, texts, phrases, plus = false }) {
     return this.rewriteTexts({
       memory,
       texts,
+      plus,
       instruction: `Rewrite each of these messages so it doesn't use any of these phrases: ${phrases.map((p) => `"${p}"`).join(", ")}. Keep the same idea, length, voice and punctuation; change only what's needed.`,
     });
   }
 
   /** Rewrites a few replies following one instruction (e.g. "make each under 150 characters"), same order back. */
-  async rewriteTexts({ memory, texts, instruction }) {
+  async rewriteTexts({ memory, texts, instruction, plus = false }) {
     const out = await this.#call({
+      model: plus ? this.plusModel : this.model,
       system: [
         { type: "text", text: REPLY_SYSTEM, cache_control: { type: "ephemeral" } },
         { type: "text", text: memory, cache_control: { type: "ephemeral" } },
