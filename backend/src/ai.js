@@ -112,8 +112,8 @@ export class AIError extends Error {
 export class ClaudeAI {
   constructor({ apiKey, model }) {
     this.client = new Anthropic({ apiKey });
-    // Premium = Claude Haiku: fast and cheap. Set RIZZIO_MODEL to use another model.
-    this.model = model || "claude-haiku-5-5";
+    // Premium = Claude Sonnet: reads what a prompt is really asking far better than Haiku. Set RIZZIO_MODEL to override.
+    this.model = model || "claude-sonnet-5-5";
   }
 
   /**

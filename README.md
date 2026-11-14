@@ -25,7 +25,7 @@ The keyboard can also:
 Setup → **AI** switches the engine for everything (Action Button, keyboard, Train, Persona):
 
 - **Free:** Apple Intelligence on the iPhone (iOS 26+, Apple Intelligence on). Screenshots are read on the phone and replies are written by Apple's on-device model. Costs nothing, works offline; the server only stores history and learned messages. Replies are simpler.
-- **Premium:** Claude Haiku on your Rizzio server (`RIZZIO_MODEL` overrides the model). Wittier, closer to your style. Uses Claude API credits.
+- **Premium:** Claude Sonnet on your Rizzio server (`RIZZIO_MODEL` overrides the model). Reads prompts far better, wittier, closer to your style. Uses Claude API credits, about 3-4 cents per set of 5 replies.
 
 ## The app is the control room
 
@@ -54,21 +54,14 @@ Every few signals it rewrites a short **style profile** of you, which you can re
 
 ## Built-in reference library
 
-Rizzio ships with a library of good exchanges in `backend/data/corpus/`:
+At reply time Rizzio shows the model a few relevant examples from `backend/data/corpus/`:
 
-- `the-rizz-corpus.json`: 5,000 short, on-topic, light exchanges picked from the [the-rizz corpus](https://huggingface.co/datasets/the-rizz/the-rizz-corpus) on Hugging Face (getting-to-know-you chats). Rebuild it with `node backend/scripts/build-corpus.mjs path/to/the-rizz-corpus.txt`. The dataset page states no license, so check that before any App Store release.
 - `rizzio-playbook.json`: Rizzio's own examples of comments on about 100 common Hinge prompts and photos.
 - `rizzio-chat-moves.json`: Rizzio's own examples of chat moves: answering and handing it back, handling dry replies, reviving a chat, and asking someone out.
 
 The reply model also gets a **texting playbook** (`backend/src/playbook.js`): reading interest, conversation stages, humor techniques, flirting, questions, what lands on common Hinge prompts, how texting reads, and what to avoid.
-- `empathetic-dialogues.json`: 6,000 replies to someone sharing a feeling, from Meta's [EmpatheticDialogues](https://huggingface.co/datasets/Estwld/empathetic_dialogues_llm), labelled with the feeling. **License CC BY-NC 4.0 (non-commercial):** fine for personal use; remove or replace it before selling Rizzio.
 
-- `synthetic-persona-chat.json`: 4,000 exchanges from Google's [Synthetic-Persona-Chat](https://huggingface.co/datasets/google/Synthetic-Persona-Chat) (CC BY 4.0): two people with short bios getting to know each other.
-- `daily-dialog.json`: 5,000 exchanges from [DailyDialog](https://huggingface.co/datasets/OpenRL/daily_dialog) (CC BY-NC-SA 4.0, **non-commercial**): clean everyday conversations.
-- `blended-skill-talk.json`: 4,000 exchanges from Meta's [Blended Skill Talk](https://huggingface.co/datasets/ParlAI/blended_skill_talk) (license not stated): personality, empathy and small talk combined.
-- `movie-lines.json`: 1,500 strictly filtered exchanges from the [Cornell Movie-Dialogs Corpus](https://huggingface.co/datasets/spawn99/CornellMovieDialogCorpus) (no clear license; lines belong to the studios, **personal use only**). Weighted lower, so they only show up when clearly on topic.
-
-All of these are filtered for short, on-topic, light exchanges: no parroting, no customer-service chores, no explicit or heavy topics. Rebuild them with `node backend/scripts/build-corpus-hf.mjs` (or one at a time: `persona`, `daily`, `bst`, `movie`, `empathy`). Before selling Rizzio, remove the non-commercial and unclear-license files (`empathetic-dialogues`, `daily-dialog`, `blended-skill-talk`, `movie-lines`). Considered and left out: Hinglish-Everyday-Conversations (not wanted), Reddit/Tinder scrapes (real people's private messages, crude, mostly pickup lines), Relationship_Advice (Reddit advice posts, unknown license, not texting) and HinGE (formal sentence translations, not conversation).
+**Not used at reply time:** `backend/data/corpus-generic/` holds crowd-sourced conversation datasets (the-rizz-corpus, Synthetic-Persona-Chat, DailyDialog, Blended Skill Talk, EmpatheticDialogues, Cornell movie lines). They were tried as references, but they're stilted, off-topic everyday chat ("Thomas the tank is my favorite... How many friends do you have?") and made replies blander, so they're no longer loaded. Rebuild them with `node backend/scripts/build-corpus.mjs` / `build-corpus-hf.mjs`; several are non-commercial or have no clear license. Considered and never added: Hinglish-Everyday-Conversations (not wanted), Reddit/Tinder scrapes (real people's private messages, crude, mostly pickup lines), Relationship_Advice (Reddit advice posts, unknown license, not texting) and HinGE (formal sentence translations, not conversation).
 
 For each request, the server picks the few exchanges most related to what's on screen and shows them to the AI as ideas for angle and flow (free mode gets them from `POST /v1/inspiration`). They're never treated as your voice: what you upload in **Train** decides how replies sound. To add another dataset, drop a JSON file in that folder shaped like `{ "source", "kind": "chat" | "prompt", "pairs": [["their message", "a good reply"], ...] }`.
 
@@ -134,7 +127,7 @@ In Xcode:
 
 ## Cost
 
-Each suggestion is one Claude API call with a compressed screenshot. To make it faster or cheaper, set the `RIZZIO_MODEL` variable in Railway (e.g. `claude-sonnet-5-5` or `claude-haiku-5-5`).
+Each suggestion is one Claude API call with a compressed screenshot. To make it faster or cheaper, set the `RIZZIO_MODEL` variable in Railway (e.g. `claude-haiku-5-5`, about 20x cheaper but much weaker at reading prompts, or `claude-opus-5-5`).
 
 ## Privacy
 

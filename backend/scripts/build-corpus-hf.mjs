@@ -1,9 +1,9 @@
 // Builds reference-library files from Hugging Face datasets (via the public datasets-server API):
-//   data/corpus/empathetic-dialogues.json  Estwld/empathetic_dialogues_llm (Meta EmpatheticDialogues, CC BY-NC 4.0)
-//   data/corpus/synthetic-persona-chat.json google/Synthetic-Persona-Chat (CC BY 4.0)
-//   data/corpus/daily-dialog.json           OpenRL/daily_dialog (mirror of DailyDialog, CC BY-NC-SA 4.0)
-//   data/corpus/blended-skill-talk.json     ParlAI/blended_skill_talk (Meta)
-//   data/corpus/movie-lines.json            spawn99/CornellMovieDialogCorpus (mirror of Cornell Movie-Dialogs)
+//   data/corpus-generic/empathetic-dialogues.json  Estwld/empathetic_dialogues_llm (Meta EmpatheticDialogues, CC BY-NC 4.0)
+//   data/corpus-generic/synthetic-persona-chat.json google/Synthetic-Persona-Chat (CC BY 4.0)
+//   data/corpus-generic/daily-dialog.json           OpenRL/daily_dialog (mirror of DailyDialog, CC BY-NC-SA 4.0)
+//   data/corpus-generic/blended-skill-talk.json     ParlAI/blended_skill_talk (Meta)
+//   data/corpus-generic/movie-lines.json            spawn99/CornellMovieDialogCorpus (mirror of Cornell Movie-Dialogs)
 //
 //   node scripts/build-corpus-hf.mjs
 //
@@ -11,7 +11,7 @@
 import { writeFileSync } from "node:fs";
 
 const API = "https://datasets-server.huggingface.co/rows";
-const out = (name) => new URL(`../data/corpus/${name}`, import.meta.url);
+const out = (name) => new URL(`../data/corpus-generic/${name}`, import.meta.url);
 
 async function rows(dataset, offset, length = 100, split = "train") {
   for (let attempt = 0; attempt < 4; attempt++) {

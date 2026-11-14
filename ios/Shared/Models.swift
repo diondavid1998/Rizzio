@@ -108,7 +108,7 @@ struct ExamplesPage: Decodable {
 /// Which AI writes the replies.
 enum Engine: String, Codable, CaseIterable, Identifiable {
     case free      // Apple Intelligence on the iPhone, $0
-    case premium   // Claude Haiku on the Rizzio server
+    case premium   // Claude Sonnet on the Rizzio server
     var id: String { rawValue }
     var label: String { self == .free ? "Free" : "Premium" }
 }

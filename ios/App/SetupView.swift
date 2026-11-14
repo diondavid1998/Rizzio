@@ -42,7 +42,7 @@ struct SetupView: View {
                 } footer: {
                     Text(engine == .free
                          ? "Free: Apple Intelligence writes replies on your iPhone. Costs nothing, works offline, nothing leaves your phone. Replies are simpler."
-                         : "Premium: Claude Haiku writes replies on your Rizzio server. Wittier and more like you. Uses your Claude API credits (roughly a cent per 10 screenshots).")
+                         : "Premium: Claude Sonnet writes replies on your Rizzio server. Reads prompts better, wittier and more like you. Uses your Claude API credits (about 3-4 cents per set of 5 replies).")
                 }
 
                 Section {

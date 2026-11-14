@@ -1,4 +1,4 @@
-// Builds backend/data/corpus/the-rizz-corpus.json from the Hugging Face dataset
+// Builds backend/data/corpus-generic/the-rizz-corpus.json (not loaded at reply time) from the Hugging Face dataset
 // https://huggingface.co/datasets/the-rizz/the-rizz-corpus (one Llama-2-style text file).
 //
 //   git clone https://huggingface.co/datasets/the-rizz/the-rizz-corpus /tmp/the-rizz-corpus
@@ -55,7 +55,7 @@ scored.sort((a, b) => b.score - a.score);
 const keep = scored.slice(0, 5000).map(({ them, reply }) => [them, reply]);
 
 writeFileSync(
-  new URL("../data/corpus/the-rizz-corpus.json", import.meta.url),
+  new URL("../data/corpus-generic/the-rizz-corpus.json", import.meta.url),
   JSON.stringify({
     source: "https://huggingface.co/datasets/the-rizz/the-rizz-corpus",
     note: "Getting-to-know-you chats on a social app (PersonaChat style). Filtered for short, on-topic, light exchanges. Reference only: shows how good replies pick up on what was said and keep things going.",

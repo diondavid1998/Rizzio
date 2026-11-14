@@ -1,4 +1,6 @@
-// Reference library: good exchanges from public datasets and Rizzio's own playbook (data/corpus/*.json).
+// Reference library: Rizzio's hand-written playbook of Hinge comments and chat moves (data/corpus/*.json).
+// The crowd-sourced datasets in data/corpus-generic/ (incl. the-rizz-corpus) are NOT loaded: they were stilted and off-topic and
+// made replies blander.
 // At reply time we pick the few most relevant to what's on screen and show them to the model as examples
 // of how good replies pick up on details and keep things going. They're never the user's voice: the
 // user's own uploads (Train) decide how replies sound.
@@ -59,8 +61,6 @@ export function inspiration(text, { limit = 6, mode = "auto" } = {}) {
     .map(([i, s]) => {
       let score = s / Math.sqrt(docs[i].toks.length + 2);
       if (wantPrompt && docs[i].kind === "prompt") score += 0.5;
-      if (mode === "prompt" && docs[i].kind === "empathy") score *= 0.5; // profiles want play, not consoling
-      if (docs[i].kind === "movie") score *= 0.6; // movie lines only when clearly on topic
       return [i, score];
     })
     .sort((a, b) => b[1] - a[1]);
@@ -92,9 +92,7 @@ export function renderInspiration(examples) {
     "Never copy their wording, and never let them change how the user sounds.\n" +
     examples
       .map((e) => {
-        const label = e.kind === "prompt" ? "Profile"
-          : e.kind === "empathy" ? `They shared (feeling ${e.emotion ?? "something"})`
-          : e.kind === "movie" ? "Movie line" : "They said";
+        const label = e.kind === "prompt" ? "Profile" : "They said";
         return `- ${label}: "${e.them}" → Reply: "${e.reply}"`;
       })
       .join("\n")

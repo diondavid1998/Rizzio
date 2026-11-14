@@ -4,9 +4,9 @@ import { corpus, inspiration, renderInspiration } from "../src/corpus.js";
 import { stripEmoji } from "../src/persona.js";
 
 describe("built-in reference library", () => {
-  test("loads the Hugging Face corpus and the Rizzio playbook", () => {
+  test("loads the Rizzio playbook (Hinge comments and chat moves)", () => {
     const { docs } = corpus();
-    assert.ok(docs.length > 4000);
+    assert.ok(docs.length > 100 && docs.length < 1000);
     assert.ok(docs.some((d) => d.kind === "prompt"));
     assert.ok(docs.every((d) => d.them.length <= 200 && d.reply.length <= 160));
   });
@@ -15,8 +15,8 @@ describe("built-in reference library", () => {
     const r = inspiration("I'm overly competitive about board games", { mode: "prompt", limit: 4 });
     assert.equal(r.length, 4);
     assert.match(r[0].reply, /Catan/);
-    const chat = inspiration("I just adopted a puppy", { mode: "chat", limit: 5 });
-    assert.ok(chat.some((e) => /pupp|dog/i.test(e.them + e.reply)));
+    const chat = inspiration("lol", { mode: "chat", limit: 3 });
+    assert.match(chat[0].reply, /that lol is doing a lot of work/);
   });
 
   test("screenshot-only requests still get a stable sample", () => {
@@ -29,19 +29,10 @@ describe("built-in reference library", () => {
     assert.ok(!corpus().docs.some((d) => bad.test(d.them) || bad.test(d.reply)));
   });
 
-  test("feelings pull in EmpatheticDialogues examples, labelled with the feeling", () => {
-    const r = inspiration("I just got promoted and I am so proud of myself", { mode: "chat", limit: 5 });
-    const empathy = r.filter((e) => e.kind === "empathy");
-    assert.ok(empathy.length >= 1 && empathy.length <= 3, "mixed with other sources");
-    assert.match(renderInspiration(r), /They shared \(feeling \w+\)/);
-  });
-
-  test("every dataset in data/corpus loads, and results mix sources", () => {
+  test("only dating-specific datasets load; the generic ones stay out of replies", () => {
     const sources = new Set(corpus().docs.map((d) => d.source));
-    assert.ok(sources.size >= 7, `expected 7 datasets, got ${sources.size}`);
-    const r = inspiration("I love hiking and trying new coffee shops on weekends", { mode: "chat", limit: 6 });
-    assert.ok(new Set(r.map((e) => e.them)).size === 6);
-    assert.ok(new Set(r.map((e) => e.kind + e.them.length)).size > 1);
+    assert.ok(sources.size >= 1 && sources.size <= 3, `got ${[...sources].join(", ")}`);
+    assert.ok(!corpus().docs.some((d) => d.kind === "empathy" || d.kind === "movie"));
   });
 
   test("stripEmoji", () => {
