@@ -129,6 +129,12 @@ enum OnDeviceAI {
         var parts = SliderSpec.all.map { spec in
             "- \(spec.title): \(Int(persona.value(spec.key)))/100 (0 = \(spec.left), 100 = \(spec.right))"
         }
+        if let who = persona.whoLine {
+            parts.append("- \(who) Write it the way they'd really text the person they're messaging.")
+            if persona.me == "man" && persona.into == "women" {
+                parts.append("- Sound like a confident, funny guy texting a woman he's into: tease, make a confident guess, give his own take or suggest a plan. Never grade or gush (\"I'm impressed\", \"love that\", \"so cute\", \"obsessed\", \"bold move\", \"respect\", \"slay\", \"queen\", \"bestie\"), and no strings of exclamation marks or heart emoji.")
+            }
+        }
         if persona.isOn("lowercase") { parts.append("- Write everything in lowercase.") }
         if persona.isOn("noEmoji") { parts.append("- No emoji at all.") }
         if persona.isOn("noPhotos") { parts.append("- Reply only to their written prompts and messages, never to their photos.") }

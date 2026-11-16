@@ -4,7 +4,7 @@ import { AIError } from "./ai.js";
 import { PROFILE_RULES, SIGNAL_KINDS } from "./db.js";
 import { randomUUID } from "node:crypto";
 import { ImportError, parseExport, summarizeSenders } from "./importers.js";
-import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, enforcePersona, renderPersona, sanitizePersona } from "./persona.js";
+import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, enforcePersona, personaPhrases, renderPersona, sanitizePersona } from "./persona.js";
 import { inspiration, related, renderInspiration } from "./corpus.js";
 import { HINGE_CHAR_LIMIT } from "./playbook.js";
 import { OPENERS, STOCK_PHRASES, openerUsage, overusedPhrases, phrasesIn, renderOpenerUsage, renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
@@ -142,7 +142,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const raw = await ai.generateReplies({ memory, requestText, image, earlier, plus });
       // Safety net: a reply that still uses a stock or overused phrase the user never says is rewritten once.
       const ownText = [...own, ...shown].join("\n");
-      const banned = [...STOCK_PHRASES, ...overused, ...openers.never].filter((p) => phrasesIn(ownText, [p]).length === 0);
+      const banned = [...STOCK_PHRASES, ...personaPhrases(persona), ...overused, ...openers.never].filter((p) => phrasesIn(ownText, [p]).length === 0);
       const flagged = raw.replies.map((r) => phrasesIn(r.text, banned));
       // An opener ("lol", "wait", "ok but"...) in more than 2 of the 5 reads like a tic: drop it from the extra ones.
       for (const o of OPENERS) {

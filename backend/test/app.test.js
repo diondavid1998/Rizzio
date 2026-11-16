@@ -394,6 +394,23 @@ describe("persona", () => {
     assert.equal(ai.calls.rewrite.length, before, "the user's own phrases are fine");
   });
 
+  test("a guy messaging women: the model is told so, and gushing reactions are rewritten", async () => {
+    await call("PUT", "/v1/me/persona", { persona: { me: "man", into: "women" } });
+    const saved = (await call("GET", "/v1/me/persona")).body.persona;
+    assert.equal(saved.me, "man");
+    assert.equal(saved.into, "women");
+    ai.replyTexts = ["ok I'm impressed, what's the trick", "love that for you", "mini golf thursday?", "you seem like a cheater at board games", "fair"];
+    await call("POST", "/v1/replies", { mode: "prompt", text: "Unusual skills: I can juggle" });
+    assert.match(ai.calls.replies.at(-1).memory, /The user is a man messaging women[\s\S]*doesn't grade or cheerlead/);
+    assert.deepEqual(ai.calls.rewrite.at(-1).texts, ["ok I'm impressed, what's the trick", "love that for you"]);
+    await call("PUT", "/v1/me/persona", { persona: { me: "woman", into: "men" } });
+    const before = ai.calls.rewrite.length;
+    ai.replyTexts = ["love that for you", "mini golf thursday?", "a", "b", "c"];
+    await call("POST", "/v1/replies", { mode: "prompt", text: "Unusual skills: I can juggle" });
+    assert.equal(ai.calls.rewrite.length, before, "the gush list only applies to a guy texting women");
+    assert.doesNotMatch(ai.calls.replies.at(-1).memory, /doesn't grade or cheerlead/);
+  });
+
   test("openers: the model sees how the user uses them; ones they never use are blocked", async () => {
     const mine = ["wait you've been to peru??", "wait what, since when", "lowkey want to try that", "lol fair enough", "ok but why tho"];
     const filler = Array.from({ length: 40 }, (_, i) => `plain message ${i} about my day`);

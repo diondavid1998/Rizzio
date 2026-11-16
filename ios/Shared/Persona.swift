@@ -7,6 +7,9 @@ struct Persona: Codable, Equatable {
     var goal: String
     var avoid: String
     var notes: String
+    /// Who's texting and who they're messaging ("man"/"woman"/"nonbinary", "women"/"men"/"everyone"; "" = not set).
+    var me: String = ""
+    var into: String = ""
 
     static let `default` = Persona(
         sliders: Dictionary(uniqueKeysWithValues: SliderSpec.all.map { ($0.key, $0.defaultValue) }),
@@ -15,6 +18,30 @@ struct Persona: Codable, Equatable {
         avoid: "",
         notes: ""
     )
+
+    init(sliders: [String: Double], toggles: [String: Bool], goal: String, avoid: String, notes: String, me: String = "", into: String = "") {
+        self.sliders = sliders; self.toggles = toggles; self.goal = goal; self.avoid = avoid; self.notes = notes
+        self.me = me; self.into = into
+    }
+
+    // Personas saved before "me"/"into" existed still load.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        sliders = try c.decode([String: Double].self, forKey: .sliders)
+        toggles = try c.decode([String: Bool].self, forKey: .toggles)
+        goal = try c.decode(String.self, forKey: .goal)
+        avoid = try c.decodeIfPresent(String.self, forKey: .avoid) ?? ""
+        notes = try c.decodeIfPresent(String.self, forKey: .notes) ?? ""
+        me = try c.decodeIfPresent(String.self, forKey: .me) ?? ""
+        into = try c.decodeIfPresent(String.self, forKey: .into) ?? ""
+    }
+
+    /// One line for the prompt, e.g. "The user is a man messaging women."
+    var whoLine: String? {
+        guard !me.isEmpty || !into.isEmpty else { return nil }
+        let who = me.isEmpty ? "The user" : "The user is a \(me)"
+        return into.isEmpty ? "\(who)." : "\(who) messaging \(into)."
+    }
 
     func value(_ key: String) -> Double { sliders[key] ?? SliderSpec.byKey[key]?.defaultValue ?? 50 }
     func isOn(_ key: String) -> Bool { toggles[key] ?? false }

@@ -4,7 +4,7 @@ import { TEXTING_PLAYBOOK } from "./playbook.js";
 /** Stock reactions Claude reaches for that most people never type. Blocked unless the user's own messages use them. */
 export const STOCK_PHRASES = [
   "bold pick", "bold move", "bold claim", "bold take", "bold of you", "bold choice", "respect", "respectfully", "sweet spot",
-  "elite", "iconic", "a whole vibe", "die on that hill", "not gonna lie", "hostage situation", "this is a dealbreaker",
+  "elite", "iconic", "a whole vibe", "die on that hill", "not gonna lie", "hostage situation", "this is a dealbreaker", "i'm impressed",
 ];
 
 /** Which of `phrases` appear in `text` (case-insensitive, whole words). */

@@ -41,7 +41,22 @@ export const DEFAULT_PERSONA = {
   goal: "match",
   avoid: "",
   notes: "",
+  me: "", // who's texting: man / woman / nonbinary person ("" = not set)
+  into: "", // who they're messaging: women / men / everyone
 };
+
+export const ME = ["man", "woman", "nonbinary person"];
+export const INTO = ["women", "men", "everyone"];
+
+/** Reactions that read as grading or gushing, not how a guy texts a woman he's into. Caught by the safety net. */
+export const GUSH_PHRASES = [
+  "i'm impressed", "im impressed", "impressive", "love that", "love this", "obsessed", "so cute", "slay", "queen", "bestie", "yass", "yasss", "omg", "that's amazing", "so proud",
+];
+
+/** Extra phrases to keep out of this persona's replies. */
+export function personaPhrases(persona) {
+  return persona?.me === "man" && persona?.into === "women" ? GUSH_PHRASES : [];
+}
 
 const clamp = (n) => Math.max(0, Math.min(100, Math.round(n)));
 
@@ -60,7 +75,23 @@ export function sanitizePersona(raw, base = DEFAULT_PERSONA) {
   if (typeof raw.goal === "string" && raw.goal in GOALS) out.goal = raw.goal;
   if (typeof raw.avoid === "string") out.avoid = raw.avoid.slice(0, 300);
   if (typeof raw.notes === "string") out.notes = raw.notes.slice(0, 500);
+  if (ME.includes(raw.me) || raw.me === "") out.me = raw.me;
+  if (INTO.includes(raw.into) || raw.into === "") out.into = raw.into;
   return out;
+}
+
+/** Who's texting whom, and what that means for how replies sound. */
+function renderWho(p) {
+  if (!p.me && !p.into) return "";
+  const line = `## Who's texting\n${p.me ? `The user is a ${p.me}` : "The user"}${p.into ? ` messaging ${p.into}` : ""}. Every reply is them texting the person they're messaging, so it has to sound like that: how a ${p.me || "person"} like the user actually texts someone they're into, not a neutral or generic "dating app" voice.`;
+  if (p.me !== "man" || p.into !== "women") return line;
+  return `${line}
+Sounding like a straight guy texting a woman he's into:
+- He reacts with a tease, a confident guess about her, his own take, a callback or a plan. He doesn't grade or cheerlead what she said ("I'm impressed", "impressive", "love that", "so cute", "obsessed", "that's amazing", "bold move", "respect", "so proud").
+- No girl-talk or bestie register ("slay", "queen", "bestie", "yass", "omg", "literally dying", "I'm screaming"), no strings of exclamation marks, no heart or sparkle emoji.
+- Compliments, when they fit, are specific and a little understated, often with a tease attached ("ok that's a good answer. still wrong about pineapple though"), never gushing.
+- Confident and relaxed, not eager: he's interested, not auditioning. Short, dry and playful beats long and enthusiastic.
+- Still follow the user's own voice and settings above all; this is about register, not about sounding like a stereotype.`;
 }
 
 function band(v) {
@@ -90,6 +121,8 @@ export function renderPersona(persona) {
     "## Persona settings (the user set these with sliders; follow them closely)",
     lines.join("\n"),
   ];
+  const who = renderWho(p);
+  if (who) parts.unshift(who);
   if (rules.length) parts.push("Rules:\n" + rules.join("\n"));
   parts.push(`Goal: ${GOALS[p.goal]}`);
   if (p.avoid.trim()) parts.push(`Never bring up: ${p.avoid.trim()}`);

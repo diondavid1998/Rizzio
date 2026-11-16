@@ -49,6 +49,27 @@ struct PersonaView: View {
                     Text("Presets are a starting point. \"Match how I actually text\" reads your real messages and sets the sliders for you.")
                 }
 
+                Section {
+                    Picker("I'm a", selection: $persona.me) {
+                        Text("Not set").tag("")
+                        Text("Man").tag("man")
+                        Text("Woman").tag("woman")
+                        Text("Non-binary person").tag("nonbinary person")
+                    }
+                    .accessibilityIdentifier("persona.me")
+                    Picker("Messaging", selection: $persona.into) {
+                        Text("Not set").tag("")
+                        Text("Women").tag("women")
+                        Text("Men").tag("men")
+                        Text("Everyone").tag("everyone")
+                    }
+                    .accessibilityIdentifier("persona.into")
+                } header: {
+                    Text("You")
+                } footer: {
+                    Text("So replies sound like you texting them, e.g. a guy texting a woman, not a generic \"dating app\" voice.")
+                }
+
                 ForEach(SliderSpec.Group.allCases, id: \.self) { group in
                     Section(group.rawValue) {
                         if group == .style {
