@@ -9,8 +9,8 @@ import { REPLY_FORMS } from "./ai.js";
 import { OPENERS, phrasesIn } from "./prompts.js";
 
 export const MAX_SHOWN = 5;
-export const MIN_SHOWN = 3;
-/** A candidate needs this judge score to be shown (unless fewer than MIN_SHOWN pass). */
+export const MIN_SHOWN = 5; // always 5 when there are 5 candidates: the judge picks the best 5 of 10
+/** Judge score that counts as good (used to keep a good question back in the set). */
 export const PASS_SCORE = 6;
 const QUESTION_FORMS = new Set(["follow_up_question", "answer_and_ask"]);
 
@@ -111,7 +111,7 @@ export function describeTaste(taste) {
 /**
  * Picks up to MAX_SHOWN of the candidates: by judge score, minus a penalty per stock phrase,
  * plus the user's taste. Keeps at least one question back if a good one exists, and shows
- * fewer (down to MIN_SHOWN) rather than padding with weak ones.
+ * the best MAX_SHOWN (5); the weakest of the 10 candidates never make it.
  * Returns the chosen replies, best first, each with its `score`.
  */
 export function choose(candidates, { scores = null, flags = [], taste = null } = {}) {

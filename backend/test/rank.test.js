@@ -5,14 +5,14 @@ import { choose, describeTaste, emptyTaste, features, learn, tasteBoost, tasteSh
 const c = (text, form = "guess") => ({ text, form, angle: "x" });
 
 describe("choosing what to show", () => {
-  test("keeps the best by judge score, drops weak ones, never fewer than 3", () => {
+  test("keeps the best 5 by judge score, weakest left out", () => {
     const cands = ["a", "b", "c", "d", "e", "f", "g"].map((t) => c(`reply ${t}`));
     const scores = [3, 9, 8, 2, 7, 4, 6].map((score) => ({ score, issue: "" }));
     const out = choose(cands, { scores });
-    assert.deepEqual(out.map((r) => r.text), ["reply b", "reply c", "reply e", "reply g"]);
+    assert.deepEqual(out.map((r) => r.text), ["reply b", "reply c", "reply e", "reply g", "reply f"]);
     assert.equal(out[0].score, 9);
     const weak = choose(cands, { scores: cands.map(() => ({ score: 3, issue: "generic" })) });
-    assert.equal(weak.length, 3, "a thin profile shows 3, not padding to 5");
+    assert.equal(weak.length, 5, "always the best 5 of the candidates");
   });
 
   test("a stock phrase costs points; a good question back is kept", () => {
