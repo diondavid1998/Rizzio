@@ -25,14 +25,6 @@ export const TEXTING_PLAYBOOK = `# Texting playbook (how good texters think; alw
 - Match their energy and length. If they write one line, don't send four.
 - If they asked something, answer it before asking anything back.
 
-## Know the stage of the conversation
-- First comment on a profile: specific to one prompt or photo, light, and easy to answer. Never "hey", "hi beautiful", or a generic compliment.
-- Early chat: build rapport. Find common ground, react to details, add a bit of playful tension. Avoid job-interview questions ("what do you do?", "where are you from?") unless you put a spin on them.
-- Mid chat: go a little deeper, use callbacks and running jokes, share something real about the user in return.
-- Moving to a date (after some real back and forth, usually 6-10 good exchanges, or as soon as they hint): be specific (a day plus an activity tied to something they mentioned), confident, and easy to say yes or no to. "we should get tacos sometime" is weak; "thursday, the taco place you mentioned, I'll judge your order" is strong.
-- Logistics: be clear and short.
-- Reviving a dead chat: bring a fresh hook or a callback to something they said, never "hello??", "you there?" or guilt.
-
 ## Humor that works in text
 - Callback: bring back something they said earlier.
 - Exaggeration: blow a small detail up into something absurd.
@@ -51,17 +43,6 @@ export const TEXTING_PLAYBOOK = `# Texting playbook (how good texters think; alw
 - Prefer specific, fun questions over broad ones: this-or-that, hypotheticals, "what's the story behind...", rankings.
 - One question per message. Don't stack three questions or interview them.
 - A good statement (an opinion, a guess, a tease) can carry the conversation as well as a question.
-
-## Common Hinge prompts and what lands
-- Prompts that ask YOU something ("One thing I'd like to know about you is...", "I want to know your...", "Teach me something about...", "Give me travel tips for...", "Ask me about...", "Guess where this was taken"): answer it as the user, specifically and invitingly, then toss it back. These aren't about the other person.
-- Two truths and a lie: guess the lie with a funny reason.
-- Together we could / Let's make sure we're on the same page about: say yes and raise it, or make it a specific plan.
-- I'm looking for / The way to win me over is: show, with humor, that the user fits (or playfully that they might not).
-- My simple pleasures / Typical Sunday / A perfect day: relate with a specific detail of the user's own, or ask about the best part.
-- Dating me is like / I'm convinced that / My most controversial opinion: play with the metaphor or take a side.
-- Unusual skills / I bet you can't / I'm weirdly attracted to: challenge, test or tease it.
-- Two-sided prompts (cats or dogs, pineapple on pizza): pick a side with personality.
-- Photos: comment on something specific and interesting (an activity, a place, a pet, a detail in the background), never on looks alone.
 
 ${HINGE_PROMPTS}
 

@@ -52,10 +52,20 @@ export function openDb(path = ":memory:") {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       UNIQUE(user_id, text)
     );
+    -- "Your best lines": openers the user knows work, offered word for word when they fit.
+    CREATE TABLE IF NOT EXISTS lines (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      text TEXT NOT NULL,
+      use_when TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(user_id, text)
+    );
   `);
   // Added after the first release: add the column to databases created before it.
   const cols = db.prepare("PRAGMA table_info(users)").all().map((c) => c.name);
   if (!cols.includes("persona_json")) db.exec("ALTER TABLE users ADD COLUMN persona_json TEXT");
+  if (!cols.includes("taste_json")) db.exec("ALTER TABLE users ADD COLUMN taste_json TEXT");
   if (!cols.includes("profile_rules")) db.exec("ALTER TABLE users ADD COLUMN profile_rules INTEGER NOT NULL DEFAULT 0");
   return new Store(db);
 }
@@ -87,6 +97,35 @@ export class Store {
 
   updateAboutMe(id, aboutMe) {
     this.db.prepare("UPDATE users SET about_me = ? WHERE id = ?").run(aboutMe, id);
+  }
+
+  listLines(userId) {
+    return this.db.prepare("SELECT id, text, use_when AS useWhen FROM lines WHERE user_id = ? ORDER BY id").all(userId);
+  }
+
+  addLine(userId, text, useWhen = "") {
+    this.db
+      .prepare("INSERT INTO lines (user_id, text, use_when) VALUES (?, ?, ?) ON CONFLICT(user_id, text) DO UPDATE SET use_when = excluded.use_when")
+      .run(userId, text, useWhen);
+    return this.db.prepare("SELECT id, text, use_when AS useWhen FROM lines WHERE user_id = ? AND text = ?").get(userId, text);
+  }
+
+  deleteLine(userId, id) {
+    this.db.prepare("DELETE FROM lines WHERE user_id = ? AND id = ?").run(userId, id);
+  }
+
+  /** The per-user ranking model (see rank.js). */
+  getTaste(id) {
+    const row = this.db.prepare("SELECT taste_json FROM users WHERE id = ?").get(id);
+    try {
+      return row?.taste_json ? JSON.parse(row.taste_json) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  setTaste(id, taste) {
+    this.db.prepare("UPDATE users SET taste_json = ? WHERE id = ?").run(taste ? JSON.stringify(taste) : null, id);
   }
 
   getPersona(id) {
@@ -267,6 +306,6 @@ export class Store {
     this.db.prepare("DELETE FROM signals WHERE user_id = ?").run(userId);
     this.db.prepare("DELETE FROM examples WHERE user_id = ? AND source != 'seed'").run(userId);
     this.db.prepare("DELETE FROM generations WHERE user_id = ?").run(userId);
-    this.db.prepare("UPDATE users SET voice_profile = '', profile_updated_at = NULL, signals_since_rebuild = 0 WHERE id = ?").run(userId);
+    this.db.prepare("UPDATE users SET voice_profile = '', profile_updated_at = NULL, signals_since_rebuild = 0, taste_json = NULL WHERE id = ?").run(userId);
   }
 }

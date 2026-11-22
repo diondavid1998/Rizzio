@@ -1,12 +1,16 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { SLIDERS } from "./persona.js";
-import { ABOUT_SYSTEM, AUTOTUNE_SYSTEM, EXTRACT_SYSTEM, PROFILE_SYSTEM, REPLY_SYSTEM } from "./prompts.js";
+import { ABOUT_SYSTEM, AUTOTUNE_SYSTEM, EXTRACT_SYSTEM, JUDGE_SYSTEM, PROFILE_SYSTEM, REPLY_SYSTEM } from "./prompts.js";
 
 /** How a reply responds to what was said. The model picks one per reply and must use at least 4 different ones. */
 export const REPLY_FORMS = [
   "answer", "answer_and_ask", "play_along", "comeback", "tease_back", "agree_and_raise", "playful_disagree",
-  "guess", "follow_up_question", "callback", "story", "compliment_back", "make_plans", "hook",
+  "guess", "follow_up_question", "callback", "story", "compliment_back", "make_plans", "hook", "saved_line",
 ];
+/** Where a conversation is, so replies aim one step forward (TinderGPT-style stage tracking, read per screenshot). */
+export const STAGES = ["first_comment", "getting_to_know", "building_rapport", "ready_to_ask_out", "making_plans", "reviving", "other"];
+/** Candidates written per request; the judge keeps the best (up to 5). */
+export const CANDIDATES = 10;
 export const MESSAGE_KINDS = [
   "profile_prompt", "profile_question_for_user", "profile_wants_from_user", "photo", "question", "several_questions", "rhetorical_question", "challenge_or_hot_take",
   "tease", "story_or_statement", "compliment", "making_plans", "low_effort", "mixed",
@@ -23,6 +27,7 @@ const REPLY_SCHEMA = {
         hook: { type: "string", description: "The prompt, photo or message you're replying to, and why it's the best hook." },
         visible_hooks: { type: "array", items: { type: "string" }, description: "Every prompt or photo on the screen now (the last screenshot) that could be replied to, each as a short label like 'Typical Sunday: church at 11' or 'Photo: hiking at sunset'. Empty for chats." },
         kind: { type: "string", enum: MESSAGE_KINDS },
+        stage: { type: "string", enum: STAGES, description: "Where the conversation is. A dating-profile comment is first_comment." },
         questions: { type: "array", items: { type: "string" }, description: "Every question they asked that needs an answer (empty if none)." },
         needs: { type: "string", description: "One line: what a good reply has to do here." },
         as_user: { type: "string", description: "One line: what the user would notice first and how they'd react, judging from their own messages." },
@@ -42,13 +47,13 @@ const REPLY_SCHEMA = {
           },
         },
       },
-      required: ["person", "hook", "visible_hooks", "kind", "questions", "needs", "as_user", "play", "side_topic", "sides"],
+      required: ["person", "hook", "visible_hooks", "kind", "stage", "questions", "needs", "as_user", "play", "side_topic", "sides"],
       additionalProperties: false,
     },
     context: { type: "string", description: "One short line naming what you replied to." },
     replies: {
       type: "array",
-      description: "Exactly 5 messages, best first.",
+      description: `${CANDIDATES} different candidate messages, best first.`,
       items: {
         type: "object",
         properties: {
@@ -62,6 +67,27 @@ const REPLY_SCHEMA = {
     },
   },
   required: ["read", "context", "replies"],
+  additionalProperties: false,
+};
+
+const JUDGE_SCHEMA = {
+  type: "object",
+  properties: {
+    scores: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          n: { type: "integer", description: "The candidate's number." },
+          issue: { type: "string", description: "The main problem in a few words, or empty if none." },
+          score: { type: "integer", description: "1-10." },
+        },
+        required: ["n", "issue", "score"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["scores"],
   additionalProperties: false,
 };
 
@@ -224,7 +250,36 @@ export class ClaudeAI {
       model: plus ? this.plusModel : this.model,
       effort: "medium", // reading who is asking whom for what needs real thinking, even for text-only prompts
     });
-    return { context: out.context, read: out.read, replies: out.replies.slice(0, 5) };
+    return { context: out.context, read: out.read, replies: out.replies.slice(0, CANDIDATES) };
+  }
+
+  /**
+   * Scores candidate replies 1-10 against the rubric in JUDGE_SYSTEM (misread, generic, invented facts, not the user...).
+   * Returns [{ score, issue }] in the same order as `texts`.
+   */
+  async judgeReplies({ memory, requestText, read, texts, image, plus = false }) {
+    const readLine = read ? `Rizzio's read: kind ${read.kind}; stage ${read.stage}; hook: ${read.hook}; play: ${read.play}; needs: ${read.needs}` : "";
+    const content = [];
+    if (image) content.push(ClaudeAI.#image(image));
+    content.push({
+      type: "text",
+      text: [`What the user is replying to:\n${requestText}`, readLine, "Candidates:\n" + texts.map((t, i) => `${i + 1}. ${t}`).join("\n")].filter(Boolean).join("\n\n"),
+    });
+    const out = await this.#call({
+      model: plus ? this.plusModel : this.model,
+      system: [
+        { type: "text", text: JUDGE_SYSTEM, cache_control: { type: "ephemeral" } },
+        { type: "text", text: memory, cache_control: { type: "ephemeral" } },
+      ],
+      content,
+      schema: JUDGE_SCHEMA,
+      effort: "low",
+    });
+    const byN = new Map(out.scores.map((s) => [s.n, s]));
+    return texts.map((_, i) => {
+      const s = byN.get(i + 1);
+      return { score: s ? Math.max(1, Math.min(10, Math.round(s.score))) : 5, issue: s?.issue ?? "" };
+    });
   }
 
   /** Rewrites a few replies so they no longer use the given phrases, keeping everything else. */

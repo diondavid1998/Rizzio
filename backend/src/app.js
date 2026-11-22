@@ -7,6 +7,7 @@ import { ImportError, parseExport, summarizeSenders } from "./importers.js";
 import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, enforcePersona, personaPhrases, renderPersona, sanitizePersona } from "./persona.js";
 import { inspiration, related, renderInspiration } from "./corpus.js";
 import { HINGE_CHAR_LIMIT } from "./playbook.js";
+import { choose, describeTaste, emptyTaste, learn } from "./rank.js";
 import { OPENERS, STOCK_PHRASES, openerUsage, overusedPhrases, phrasesIn, renderOpenerUsage, renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
 const MODES = ["auto", "prompt", "chat", "draft"];
@@ -18,6 +19,20 @@ export const REBUILD_EVERY = 6;
 
 /** Example sources written by Rizzio rather than the user: good for style, never for facts about the user. */
 const AI_WRITTEN = new Set(["picked", "won"]);
+/** The saved line a reply was meant to be (most shared words), so it can be sent verbatim. */
+function closestLine(text, lines) {
+  const words = (s) => new Set(String(s).toLowerCase().match(/[a-z0-9']+/g) ?? []);
+  const t = words(text);
+  let best = null;
+  let bestScore = 0;
+  for (const l of lines) {
+    const w = words(l.text);
+    const shared = [...w].filter((x) => t.has(x)).length / Math.max(1, Math.max(w.size, t.size));
+    if (shared > bestScore) [best, bestScore] = [l.text, shared];
+  }
+  return bestScore >= 0.5 ? best : null;
+}
+
 const str = (v, max) => (typeof v === "string" ? v.slice(0, max) : undefined);
 
 function parseImage(raw) {
@@ -134,15 +149,28 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const ownRelated = related([text, draft].filter(Boolean).join("\n"), own, 8);
       // Catchphrases Rizzio keeps writing that the user never says ("that's a bold pick"): steer away from them.
       const overused = overusedPhrases(store.history(req.userId, 20).map((g) => g.replies.map((r) => r.text)), [...own, ...shown]);
+      // The user's saved lines (their proven openers), offered word for word when one fits.
+      const savedLines = store.listLines(req.userId).slice(0, 30);
       // A few relevant exchanges from the built-in library, as ideas for angle and flow (not voice).
       const refs = renderInspiration(inspiration([text, draft, instruction].filter(Boolean).join("\n"), { mode: b.mode, limit: b.mode === "draft" ? 3 : 6 }));
-      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image || earlier.length > 0, earlier: earlier.length, current: !!image, instruction, previous, length, ownRelated, stance, stanceTopic, side, overused, hook }), refs].filter(Boolean).join("\n\n");
+      const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image || earlier.length > 0, earlier: earlier.length, current: !!image, instruction, previous, length, ownRelated, stance, stanceTopic, side, overused, hook, lines: savedLines }), refs].filter(Boolean).join("\n\n");
       // Premium Plus (the app sends X-Rizzio-Tier: plus) is written by the stronger model.
       const plus = req.get("x-rizzio-tier") === "plus";
       const raw = await ai.generateReplies({ memory, requestText, image, earlier, plus });
-      // Safety net: a reply that still uses a stock or overused phrase the user never says is rewritten once.
       const ownText = [...own, ...shown].join("\n");
       const banned = [...STOCK_PHRASES, ...personaPhrases(persona), ...overused, ...openers.never].filter((p) => phrasesIn(ownText, [p]).length === 0);
+      // Write many, show the best: a judge scores every candidate (misread, generic, invented facts, not the user),
+      // stock phrases cost points, and the user's learned taste nudges the order. Weak ones are dropped.
+      let scores = null;
+      if (ai.judgeReplies && raw.replies.length > 5) {
+        try {
+          scores = await ai.judgeReplies({ memory, requestText, read: raw.read, texts: raw.replies.map((r) => r.text), image, plus });
+        } catch (err) {
+          log.error?.(`judging replies failed: ${err.message}`); // fall back to the model's own order
+        }
+      }
+      raw.replies = choose(raw.replies, { scores, flags: raw.replies.map((r) => phrasesIn(r.text, banned)), taste: store.getTaste(req.userId) });
+      // Safety net: a shown reply that still uses a stock or overused phrase the user never says is rewritten once.
       const flagged = raw.replies.map((r) => phrasesIn(r.text, banned));
       // An opener ("lol", "wait", "ok but"...) in more than 2 of the 5 reads like a tic: drop it from the extra ones.
       for (const o of OPENERS) {
@@ -174,7 +202,10 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
           log.error?.(`shortening long comments failed: ${err.message}`);
         }
       }
-      const result = { ...raw, replies: enforcePersona(persona, raw.replies) };
+      // A saved line goes out exactly as the user saved it, even if the model changed a word.
+      raw.replies = raw.replies.map((r) => (r.form === "saved_line" ? { ...r, text: closestLine(r.text, savedLines) ?? r.text } : r));
+      // Persona clean-ups (lowercase, no emoji...) don't touch a saved line: it's already the user's own wording.
+      const result = { ...raw, replies: enforcePersona(persona, raw.replies).map((r, i) => (raw.replies[i].form === "saved_line" ? { ...r, text: raw.replies[i].text } : r)) };
       const generationId = preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, ...result });
       res.json({ generationId, ...result });
     } catch (err) {
@@ -244,6 +275,9 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
     if (b.kind === "edited" && !text) return res.status(400).json({ error: "edited needs the text you sent." });
 
     store.addSignal(req.userId, { generationId, replyIndex, kind: b.kind, text });
+    // Teach the ranking model what this user goes for.
+    const gen = generationId ? store.getGeneration(req.userId, generationId) : null;
+    if (gen && replyIndex != null) store.setTaste(req.userId, learn(store.getTaste(req.userId) ?? emptyTaste(), b.kind, gen.replies, replyIndex));
     maybeRebuild(req.userId);
     res.json({ ok: true });
   });
@@ -253,6 +287,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
     const user = store.getUser(req.userId);
     res.json({
       aboutMe: user.about_me,
+      taste: describeTaste(store.getTaste(req.userId)),
       styleExamples: store.listExamples(req.userId, "seed").map((e) => e.text),
       voiceProfile: user.voice_profile,
       profileUpdatedAt: user.profile_updated_at,
@@ -413,6 +448,27 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
   });
 
   /** Forget everything learned (keeps your about-me and hand-written examples). */
+  /** "Your best lines": openers the user knows work. */
+  app.get("/v1/me/lines", (req, res) => res.json({ lines: store.listLines(req.userId) }));
+
+  app.post("/v1/me/lines", (req, res) => {
+    const text = str(req.body?.text, 300)?.trim();
+    if (!text) return res.status(400).json({ error: "Send the line's text." });
+    if (store.listLines(req.userId).length >= 100) return res.status(400).json({ error: "You can save up to 100 lines." });
+    res.json({ line: store.addLine(req.userId, text, str(req.body?.useWhen, 200)?.trim() ?? "") });
+  });
+
+  app.delete("/v1/me/lines/:id", (req, res) => {
+    store.deleteLine(req.userId, Number(req.params.id));
+    res.json({ ok: true });
+  });
+
+  /** Forget the ranking model only (what the user tends to pick). */
+  app.delete("/v1/me/taste", (req, res) => {
+    store.setTaste(req.userId, null);
+    res.json({ ok: true });
+  });
+
   app.delete("/v1/me/memory", (req, res) => {
     store.resetLearning(req.userId);
     res.json({ ok: true });

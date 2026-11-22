@@ -206,6 +206,42 @@ describe("learning loop", () => {
 });
 
 describe("review fixes", () => {
+  test("saved lines: stored, shown to the model, and sent word for word", async () => {
+    const add = await call("POST", "/v1/me/lines", { text: "Ok but what's the most chaotic thing you've done this year?", useWhen: "a fun or adventurous profile" });
+    assert.equal(add.status, 200);
+    assert.equal((await call("GET", "/v1/me/lines")).body.lines.length, 1);
+    ai.replyTexts = ["ok but whats the most chaotic thing youve done this year", "b", "c", "d", "e"];
+    const origGen = ai.generateReplies.bind(ai);
+    ai.generateReplies = async (args) => {
+      const out = await origGen(args);
+      out.replies[0].form = "saved_line";
+      return out;
+    };
+    const r = await call("POST", "/v1/replies", { mode: "prompt", text: "My most irrational fear: geese" });
+    assert.match(ai.calls.replies.at(-1).requestText, /saved lines[\s\S]*use when: a fun or adventurous profile/);
+    assert.equal(r.body.replies[0].text, "Ok but what's the most chaotic thing you've done this year?");
+    ai.generateReplies = origGen;
+    await call("DELETE", `/v1/me/lines/${add.body.line.id}`);
+    assert.equal((await call("GET", "/v1/me/lines")).body.lines.length, 0);
+  });
+
+  test("10 candidates are judged and only the best reach the user; picks teach the ranking model", async () => {
+    ai.replyTexts = Array.from({ length: 10 }, (_, i) => `candidate ${i}`);
+    ai.judgeReplies = async (args) => {
+      ai.calls.judge = [...(ai.calls.judge ?? []), args];
+      return args.texts.map((_, i) => ({ score: [4, 9, 3, 8, 2, 7, 7, 5, 6, 1][i], issue: "" }));
+    };
+    const r = await call("POST", "/v1/replies", { mode: "prompt", text: "Typical Sunday: naps" });
+    assert.equal(ai.calls.judge.at(-1).texts.length, 10);
+    assert.deepEqual(r.body.replies.map((x) => x.text), ["candidate 1", "candidate 3", "candidate 5", "candidate 6", "candidate 8"]);
+    await call("POST", "/v1/feedback", { generationId: r.body.generationId, replyIndex: 0, kind: "picked" });
+    const me = (await call("GET", "/v1/me")).body;
+    assert.equal(me.taste.signals, 1);
+    await call("DELETE", "/v1/me/taste");
+    assert.equal((await call("GET", "/v1/me")).body.taste.signals, 0);
+    delete ai.judgeReplies;
+  });
+
   test("Premium Plus (X-Rizzio-Tier: plus) asks for the stronger model; Premium doesn't", async () => {
     await call("POST", "/v1/replies", { mode: "prompt", text: "Typical Sunday: naps" });
     assert.equal(ai.calls.replies.at(-1).plus, false);

@@ -84,10 +84,11 @@ test("replies: the model reads the message first and labels each reply's form", 
   const system = req.system.map((b) => b.text).join("\n");
   assert.match(system, /rhetorical question/i);
   assert.match(system, /challenge, rebuttal or hot take/);
-  assert.match(system, /at least 3 different forms/);
+  assert.match(system, /at least 4 different forms/);
+  assert.match(system, /Write 10 candidate messages/);
   assert.match(system, /profile_wants_from_user/);
   assert.ok(schema.properties.read.required.includes("play"), "the model settles on one read before writing");
-  assert.match(system, /At least one of the 5 is a question back to them/);
+  assert.match(system, /At least two are a question back to them/);
   assert.match(system, /comes from the user alone/);
   assert.match(system, /Never borrow their wording, tone or opinions/);
   assert.ok(schema.properties.read.required.includes("as_user"), "the model thinks as the user before writing");
