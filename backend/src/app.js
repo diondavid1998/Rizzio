@@ -162,10 +162,12 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // Write many, show the best: a judge scores every candidate (misread, generic, invented facts, not the user),
       // stock phrases cost points, and the user's learned taste nudges the order. Weak ones are dropped.
       let scores = null;
+      let judgeError = null;
       if (ai.judgeReplies && raw.replies.length > 5) {
         try {
           scores = await ai.judgeReplies({ memory, requestText, read: raw.read, texts: raw.replies.map((r) => r.text), image, plus });
         } catch (err) {
+          judgeError = err.message;
           log.error?.(`judging replies failed: ${err.message}`); // fall back to the model's own order
         }
       }
@@ -207,7 +209,8 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // Persona clean-ups (lowercase, no emoji...) don't touch a saved line: it's already the user's own wording.
       const result = { ...raw, replies: enforcePersona(persona, raw.replies).map((r, i) => (raw.replies[i].form === "saved_line" ? { ...r, text: raw.replies[i].text } : r)) };
       const generationId = preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, ...result });
-      res.json({ generationId, ...result });
+      // Previews (Test drive, the eval script) also say if the judge failed, to make that visible.
+      res.json({ generationId, ...result, ...(preview && judgeError ? { judgeError } : {}) });
     } catch (err) {
       next(err);
     }

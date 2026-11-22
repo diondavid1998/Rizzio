@@ -1,0 +1,263 @@
+{
+  "note": "Made-up Hinge prompts and chats with what a correct read looks like. Run: node scripts/eval.mjs (see the script for options). mustNot are case-insensitive regexes that no shown reply may match.",
+  "cases": [
+    {
+      "id": "askout-plan",
+      "mode": "prompt",
+      "text": "The best way to ask me out is by\nPlanning an activity and not being overly freaked out",
+      "kind": [
+        "profile_wants_from_user"
+      ],
+      "mustNot": [
+        "what activity would you",
+        "you pick the (place|spot|activity)",
+        "drinks are (fine|better)",
+        "planning an activity is"
+      ]
+    },
+    {
+      "id": "win-me-over",
+      "mode": "prompt",
+      "text": "The way to win me over is\nRemembering the little things I mention",
+      "kind": [
+        "profile_wants_from_user"
+      ],
+      "mustNot": [
+        "what (are|is) the little things you"
+      ]
+    },
+    {
+      "id": "niche-hobby",
+      "mode": "prompt",
+      "text": "One thing I'd love to know about you is\nWhat's your most niche hobby",
+      "kind": [
+        "profile_question_for_user"
+      ],
+      "mustNot": [
+        "your (most )?niche hobby (is|sounds)",
+        "so you('re| are) into"
+      ]
+    },
+    {
+      "id": "travel-tips",
+      "mode": "prompt",
+      "text": "Give me travel tips for\nLisbon",
+      "kind": [
+        "profile_question_for_user"
+      ],
+      "mustNot": [
+        "have you been to lisbon\\?$"
+      ]
+    },
+    {
+      "id": "two-truths",
+      "mode": "prompt",
+      "text": "Two truths and a lie\nI've met Beyonce, I can juggle, I've never been on a plane",
+      "kind": [
+        "profile_prompt",
+        "challenge_or_hot_take"
+      ],
+      "mustNot": []
+    },
+    {
+      "id": "hot-take",
+      "mode": "prompt",
+      "text": "My most controversial opinion is\nCereal is a soup",
+      "kind": [
+        "challenge_or_hot_take",
+        "profile_prompt"
+      ],
+      "mustNot": []
+    },
+    {
+      "id": "boundary",
+      "mode": "prompt",
+      "text": "A boundary of mine is\nI don't text during work hours",
+      "kind": [
+        "profile_prompt",
+        "story_or_statement"
+      ],
+      "mustNot": [
+        "just one text",
+        "what if i (did|text)",
+        "rules are made to"
+      ]
+    },
+    {
+      "id": "dealbreaker",
+      "mode": "prompt",
+      "text": "My biggest dealbreaker is\nBeing rude to waiters",
+      "kind": [
+        "profile_prompt",
+        "story_or_statement"
+      ],
+      "mustNot": [
+        "(disagree|devil'?s advocate)"
+      ]
+    },
+    {
+      "id": "simple-pleasures",
+      "mode": "prompt",
+      "text": "My simple pleasures\nIced coffee, sunsets and my cat Mochi",
+      "kind": [
+        "profile_prompt"
+      ],
+      "mustNot": [
+        "i love (iced coffee|sunsets)",
+        "me too"
+      ]
+    },
+    {
+      "id": "unusual-skill",
+      "mode": "prompt",
+      "text": "Unusual skills\nI can do a backflip",
+      "kind": [
+        "profile_prompt",
+        "challenge_or_hot_take",
+        "story_or_statement"
+      ],
+      "mustNot": [
+        "i('m| am) impressed",
+        "impressive"
+      ]
+    },
+    {
+      "id": "typical-sunday",
+      "mode": "prompt",
+      "text": "Typical Sunday\nChurch, but the 11am service because 9am is too early",
+      "kind": [
+        "profile_prompt"
+      ],
+      "mustNot": [
+        "(atheist|religion is)"
+      ]
+    },
+    {
+      "id": "together-we-could",
+      "mode": "prompt",
+      "text": "Together we could\nFind the best taco truck in the city",
+      "kind": [
+        "profile_prompt",
+        "profile_wants_from_user"
+      ],
+      "mustNot": []
+    },
+    {
+      "id": "i-bet-you-cant",
+      "mode": "prompt",
+      "text": "I bet you can't\nBeat me at Mario Kart",
+      "kind": [
+        "challenge_or_hot_take",
+        "profile_prompt"
+      ],
+      "mustNot": [
+        "you('re| are) probably right"
+      ]
+    },
+    {
+      "id": "green-flags",
+      "mode": "prompt",
+      "text": "Green flags I look for\nSomeone who reads, and calls their mom",
+      "kind": [
+        "profile_wants_from_user"
+      ],
+      "mustNot": [
+        "what (are|do) you read\\?"
+      ]
+    },
+    {
+      "id": "chat-question",
+      "mode": "chat",
+      "text": "Them: ok random question, what's the last thing you binge watched",
+      "kind": [
+        "question"
+      ],
+      "mustNot": [
+        "what('s| is) the last thing you"
+      ]
+    },
+    {
+      "id": "chat-several",
+      "mode": "chat",
+      "text": "Them: where are you from originally? and do you have siblings",
+      "kind": [
+        "several_questions",
+        "question"
+      ],
+      "mustNot": []
+    },
+    {
+      "id": "chat-rhetorical",
+      "mode": "chat",
+      "text": "Them: who even decided mornings were a good idea",
+      "kind": [
+        "rhetorical_question"
+      ],
+      "mustNot": [
+        "^(i think )?(it was|probably)"
+      ]
+    },
+    {
+      "id": "chat-tease",
+      "mode": "chat",
+      "text": "Me: i make a mean lasagna\nThem: mean as in good or mean as in it bites back",
+      "kind": [
+        "tease"
+      ],
+      "mustNot": [
+        "i('m| am) sorry"
+      ]
+    },
+    {
+      "id": "chat-lowEffort",
+      "mode": "chat",
+      "text": "Me: ok what's the most chaotic thing you did this year\nThem: lol idk",
+      "kind": [
+        "low_effort"
+      ],
+      "mustNot": [
+        "hello\\?\\?",
+        "you there"
+      ]
+    },
+    {
+      "id": "chat-ready",
+      "mode": "chat",
+      "text": "Me: ok you clearly know your coffee\nThem: i'm a menace about it honestly\nMe: rank the top 3 spots\nThem: blue bottle, the tiny one on 5th, and anywhere with oat milk that doesn't taste like cardboard\nMe: the tiny one on 5th, i've walked past it a hundred times\nThem: you HAVE to go, their cortado is unreal\nMe: dangerous thing to say to someone who'll hold you to it\nThem: hold me to it then",
+      "kind": [
+        "making_plans",
+        "challenge_or_hot_take",
+        "tease",
+        "story_or_statement",
+        "mixed"
+      ],
+      "stage": [
+        "ready_to_ask_out",
+        "making_plans"
+      ],
+      "mustNot": []
+    },
+    {
+      "id": "chat-reviving",
+      "mode": "chat",
+      "text": "Me: ok final answer, pineapple on pizza yes or no\nThem: yes and i won't be taking questions\n(5 days later, no reply since)",
+      "stage": [
+        "reviving"
+      ],
+      "mustNot": [
+        "hello\\?\\?",
+        "you (there|alive)",
+        "ghost"
+      ]
+    },
+    {
+      "id": "chat-compliment",
+      "mode": "chat",
+      "text": "Them: ok your dog is the cutest thing i've seen all week",
+      "kind": [
+        "compliment"
+      ],
+      "mustNot": []
+    }
+  ]
+}

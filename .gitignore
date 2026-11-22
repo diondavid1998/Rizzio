@@ -6,3 +6,7 @@ build/
 *.p8
 __pycache__/
 *.pyc
+
+# Eval: results and your private replay data never go in the repo
+backend/eval/results/
+backend/eval/private/
