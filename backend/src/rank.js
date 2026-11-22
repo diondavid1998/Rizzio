@@ -128,8 +128,34 @@ export function choose(candidates, { scores = null, flags = [], taste = null } =
     seen.add(key);
     return true;
   });
-  const passing = ranked.filter((x) => x.judge >= PASS_SCORE);
-  let picked = (passing.length >= MIN_SHOWN ? passing : ranked).slice(0, Math.max(MIN_SHOWN, Math.min(MAX_SHOWN, passing.length)));
+  // No judge: trust the model's own order (it already puts the best first).
+  if (!scores) return ranked.slice(0, MAX_SHOWN).map((x) => ({ ...x.r, score: Math.round(x.judge * 10) / 10 }));
+  // Greedy pick for variety: a candidate that repeats the form or most of the words of one already
+  // picked loses points, so the set isn't five takes on the same idea.
+  const words = (t) => new Set(t.toLowerCase().match(/[a-z0-9']{3,}/g) ?? []);
+  const overlap = (a, b) => {
+    const [x, y] = [words(a), words(b)];
+    return [...x].filter((w) => y.has(w)).length / Math.max(1, Math.min(x.size, y.size));
+  };
+  const pool = [...ranked];
+  const chosen = [];
+  while (pool.length && chosen.length < MAX_SHOWN) {
+    let bestIdx = 0;
+    let bestVal = -Infinity;
+    pool.forEach((x, k) => {
+      const sameForm = chosen.filter((c) => c.r.form && c.r.form === x.r.form).length;
+      const similar = chosen.some((c) => overlap(c.r.text, x.r.text) >= 0.5) ? 1 : 0;
+      const val = x.total - 0.75 * sameForm - 1.5 * similar;
+      if (val > bestVal) [bestIdx, bestVal] = [k, val];
+    });
+    const [x] = pool.splice(bestIdx, 1);
+    x.adjusted = bestVal;
+    chosen.push(x);
+  }
+  // Show fewer rather than padding with weak ones: keep those that pass, but never fewer than MIN_SHOWN.
+  const passCount = chosen.filter((x) => x.judge >= PASS_SCORE).length;
+  let picked = chosen.filter((x, k) => x.judge >= PASS_SCORE || k < MIN_SHOWN).slice(0, Math.max(MIN_SHOWN, passCount));
+  picked.sort((a, b) => b.adjusted - a.adjusted);
   const isQ = (x) => QUESTION_FORMS.has(x.r.form) || x.r.text.includes("?");
   if (!picked.some(isQ)) {
     const q = ranked.find((x) => isQ(x) && x.judge >= PASS_SCORE && !picked.includes(x));

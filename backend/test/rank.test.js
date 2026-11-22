@@ -62,3 +62,15 @@ describe("taste: the per-user ranking model", () => {
     assert.equal(learn(t, "nonsense", [c("x")], 0), t);
   });
 });
+
+describe("variety", () => {
+  test("five takes on the same idea don't all make it when there are different good ones", () => {
+    const same = Array.from({ length: 5 }, (_, i) => c(`weekend is open so pitch me something and gary can vote ${i}`, "play_along"));
+    const other = [c("gary sounds like the real boss of the house", "tease_back"), c("saturday farmers market then we see if gary approves?", "make_plans")];
+    const scores = [...same.map(() => ({ score: 8, issue: "" })), { score: 7, issue: "" }, { score: 7, issue: "" }];
+    const out = choose([...same, ...other], { scores });
+    assert.ok(out.some((r) => r.form === "tease_back"));
+    assert.ok(out.some((r) => r.form === "make_plans"));
+    assert.ok(out.filter((r) => r.form === "play_along").length <= 3);
+  });
+});
