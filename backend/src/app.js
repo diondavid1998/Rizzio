@@ -157,6 +157,9 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // Premium Plus (the app sends X-Rizzio-Tier: plus) is written by the stronger model.
       const plus = req.get("x-rizzio-tier") === "plus";
       const raw = await ai.generateReplies({ memory, requestText, image, earlier, plus });
+      // Ways to reply offered without a take to agree or disagree with (a boundary, what they want from the user):
+      // give them a topic anyway, so the app still asks which way to go.
+      if (raw.read?.sides?.length && !raw.read.side_topic?.trim()) raw.read.side_topic = "how to reply";
       const ownText = [...own, ...shown].join("\n");
       const banned = [...STOCK_PHRASES, ...personaPhrases(persona), ...overused, ...openers.never].filter((p) => phrasesIn(ownText, [p]).length === 0);
       // Write many, show the best: a judge scores every candidate (misread, generic, invented facts, not the user),

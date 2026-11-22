@@ -206,6 +206,14 @@ describe("learning loop", () => {
 });
 
 describe("review fixes", () => {
+  test("ways to reply without a take still get a topic, so the app asks which way to go", async () => {
+    const orig = ai.generateReplies.bind(ai);
+    ai.generateReplies = async (args) => ({ ...(await orig(args)), read: { kind: "profile_prompt", side_topic: "", sides: [{ label: "Play it cool", how: "x" }, { label: "Light tease", how: "y" }] } });
+    const r = await call("POST", "/v1/replies", { mode: "prompt", text: "A boundary of mine: no texting at work" });
+    assert.equal(r.body.read.side_topic, "how to reply");
+    ai.generateReplies = orig;
+  });
+
   test("saved lines: stored, shown to the model, and sent word for word", async () => {
     const add = await call("POST", "/v1/me/lines", { text: "Ok but what's the most chaotic thing you've done this year?", useWhen: "a fun or adventurous profile" });
     assert.equal(add.status, 200);
