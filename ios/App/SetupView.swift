@@ -45,9 +45,9 @@ struct SetupView: View {
                     case .free:
                         Text("Free: Apple Intelligence writes replies on your iPhone. Costs nothing, works offline, nothing leaves your phone. Replies are simpler.")
                     case .premium:
-                        Text("Premium: Claude Haiku writes replies on your Rizzio server. Fast and wittier than Free. Uses your Claude API credits (about a cent per 5 sets of replies).")
+                        Text("Premium: Claude Haiku writes replies on your Rizzio server. Fast and wittier than Free. Uses your Claude API credits (under half a cent per set of replies).")
                     case .premiumPlus:
-                        Text("Premium Plus: Claude Sonnet writes replies on your Rizzio server. Best at reading what a prompt is really asking, funniest and most like you. Uses your Claude API credits (about 3-4 cents per set of 5 replies).")
+                        Text("Premium Plus: Claude Sonnet writes replies on your Rizzio server. Best at reading what a prompt is really asking, funniest and most like you. Uses your Claude API credits (about 5-6 cents per set of replies).")
                     }
                 }
 
@@ -89,7 +89,7 @@ struct SetupView: View {
                     Step("Or Back Tap: Settings → Accessibility → Touch → Back Tap → Double Tap → Rizzio. You can set up both.")
                 }
                 Section("4. Use it") {
-                    Step("On a Hinge profile, press the Action Button (or double-tap the back). In a few seconds you pick one of 5 replies and it's copied. Scroll and tap again to add more of their profile.")
+                    Step("On a Hinge profile, press the Action Button (or double-tap the back). In a few seconds you pick one of up to 5 replies and it's copied. Each tap reads only the screenshot you just took.")
                     Step("Tap the comment box, hold 🌐, pick Rizzio, and tap a reply. 👎 the ones that aren't you.")
                     Step("For texts: copy their message, then tap Clipboard in the Rizzio keyboard. Or type a draft and tap Polish.")
                     Step("Mark wins in History. The more you use it, the more it sounds like you.")

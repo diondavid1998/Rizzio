@@ -25,8 +25,8 @@ The keyboard can also:
 Setup → **AI** switches the engine for everything (Action Button, keyboard, Train, Persona):
 
 - **Free:** Apple Intelligence on the iPhone (iOS 26+, Apple Intelligence on). Screenshots are read on the phone and replies are written by Apple's on-device model. Costs nothing, works offline; the server only stores history and learned messages. Replies are simpler.
-- **Premium:** Claude Haiku on your Rizzio server (`RIZZIO_MODEL` overrides it). Fast, wittier than Free. About 0.2 cents per set of 5 replies.
-- **Premium Plus:** Claude Sonnet on your Rizzio server (`RIZZIO_PLUS_MODEL` overrides it). Best at reading what a prompt is really asking. About 3-4 cents per set of 5 replies.
+- **Premium:** Claude Haiku on your Rizzio server (`RIZZIO_MODEL` overrides it). Fast, wittier than Free. Under half a cent per set of replies.
+- **Premium Plus:** Claude Sonnet on your Rizzio server (`RIZZIO_PLUS_MODEL` overrides it). Best at reading what a prompt is really asking. About 5-6 cents per set of replies.
 
 ## The app is the control room
 
@@ -48,6 +48,8 @@ Rizzio is meant to act like you, not like a generic pickup-line bot. It keeps a 
 | Change a reply before sending | Your exact wording (strongest signal of your style) |
 | 👎 a reply | What to avoid |
 | Mark 💘 Match / 💬 Replied in History | What actually works for you (weighted highest) |
+
+**Write many, show the best.** On Premium and Plus, Rizzio writes 10 candidates, a judge scores each (misread prompt, generic, invented facts, not you, AI-sounding), and you see the best 3 to 5, with variety. A small **ranking model** learns from your picks, edits, 👎 and matches which kinds of replies you go for, and moves those up; its say grows to 60% as it learns (Train → What you go for, with a reset). **Your best lines** (Train, or long-press any reply) are openers you know work; Rizzio offers one word for word when it fits.
 
 Every few signals it rewrites a short **style profile** of you, which you can read (and correct) in the **Train** tab. Every reply is written with that profile plus your best real messages. You can delete anything it learned, or reset it.
 

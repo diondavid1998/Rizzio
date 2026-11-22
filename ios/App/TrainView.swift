@@ -152,6 +152,40 @@ struct TrainView: View {
                     Text("Rizzio writes this itself and updates it as you use the keyboard. Next: open Persona → \"Match how I actually text\" to set the sliders from it.")
                 }
 
+                // MARK: What you go for (the ranking model)
+                Section {
+                    if let taste = me?.taste, taste.signals > 0 {
+                        if !taste.likes.isEmpty {
+                            LabeledContent("You go for", value: taste.likes.joined(separator: ", "))
+                        }
+                        if !taste.dislikes.isEmpty {
+                            LabeledContent("You skip", value: taste.dislikes.joined(separator: ", "))
+                        }
+                        LabeledContent("Learned from", value: "\(taste.signals) picks and results")
+                        LabeledContent("Say in the ranking", value: "\(taste.share)%")
+                        Button("Reset what it learned", role: .destructive) {
+                            Task { await busy("Resetting…", done: "Reset. Rizzio will learn your taste again from your picks.") { try await RizzAPI.resetTaste() } }
+                        }
+                        .disabled(isBusy)
+                    } else {
+                        Text("Nothing yet. Pick, edit or tap \"Not me\" on replies, and mark the ones that got a match.").foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("What you go for")
+                } footer: {
+                    Text("Rizzio writes 10 replies and shows you the best. As you pick, it learns which kinds you like and which get matches, and ranks those higher. Its say grows as it learns, up to 60%.")
+                }
+
+                Section {
+                    NavigationLink {
+                        SavedLinesView()
+                    } label: {
+                        Label("Your best lines", systemImage: "star")
+                    }
+                } footer: {
+                    Text("Openers you know work. Rizzio offers one word for word when it fits (Premium and Plus). Long-press any reply to save it here.")
+                }
+
                 if let stats = me?.stats, stats.examples > 0 {
                     Section {
                         NavigationLink {
@@ -382,5 +416,70 @@ struct VoiceMatchCard: View {
         .background(Theme.card)
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Theme.hairline, lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+}
+
+
+/// "Your best lines": openers you know work, offered word for word when one fits.
+struct SavedLinesView: View {
+    @State private var lines: [SavedLine] = []
+    @State private var newText = ""
+    @State private var newUseWhen = ""
+    @State private var errorMessage: String?
+
+    var body: some View {
+        Form {
+            if let errorMessage {
+                Section { Text(errorMessage).foregroundStyle(.red) }
+            }
+            Section {
+                TextField("The line, exactly as you send it", text: $newText, axis: .vertical)
+                    .lineLimit(1...4)
+                    .accessibilityIdentifier("newLine")
+                TextField("Use when (optional), e.g. a travel prompt", text: $newUseWhen)
+                Button("Save line") { Task { await add() } }
+                    .disabled(newText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            } header: {
+                Text("Add a line")
+            }
+            Section {
+                if lines.isEmpty {
+                    Text("No lines yet.").foregroundStyle(.secondary)
+                }
+                ForEach(lines) { line in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(line.text)
+                        if !line.useWhen.isEmpty {
+                            Text("Use when: \(line.useWhen)").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .onDelete { idx in Task { await remove(idx) } }
+            } header: {
+                Text("Saved")
+            } footer: {
+                Text("Swipe to delete. A saved line is sent exactly as you wrote it.")
+            }
+        }
+        .themedList()
+        .navigationTitle("Your best lines")
+        .task { await load() }
+    }
+
+    private func load() async {
+        do { lines = try await RizzAPI.lines(); errorMessage = nil } catch { errorMessage = error.localizedDescription }
+    }
+
+    private func add() async {
+        do {
+            try await RizzAPI.addLine(newText.trimmingCharacters(in: .whitespacesAndNewlines), useWhen: newUseWhen.trimmingCharacters(in: .whitespacesAndNewlines))
+            newText = ""; newUseWhen = ""
+            await load()
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    private func remove(_ idx: IndexSet) async {
+        for i in idx { try? await RizzAPI.deleteLine(id: lines[i].id) }
+        await load()
     }
 }

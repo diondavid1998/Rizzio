@@ -156,6 +156,22 @@ struct MeResponse: Decodable {
     let profileUpdatedAt: String?
     let learnedExamples: [Learned]
     let stats: Stats
+    /// What the ranking model learned from your picks (older servers don't send it).
+    var taste: Taste? = nil
+
+    struct Taste: Decodable {
+        let signals: Int
+        let share: Int // how much it counts in the ranking, 0-60 (%)
+        let likes: [String]
+        let dislikes: [String]
+    }
+}
+
+/// One of "Your best lines": an opener you know works, sent word for word when it fits.
+struct SavedLine: Decodable, Identifiable, Hashable {
+    let id: Int
+    let text: String
+    let useWhen: String
 }
 
 struct HistoryItem: Decodable, Identifiable {

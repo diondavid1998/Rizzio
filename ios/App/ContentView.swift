@@ -43,5 +43,12 @@ struct ReplyRow: View {
             }
             .padding(.vertical, 2)
         }
+        .contextMenu {
+            Button {
+                Task { try? await RizzAPI.addLine(reply.text) }
+            } label: {
+                Label("Save to my best lines", systemImage: "star")
+            }
+        }
     }
 }

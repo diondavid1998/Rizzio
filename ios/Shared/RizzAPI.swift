@@ -281,6 +281,30 @@ enum RizzAPI {
         let _: Empty = try await send("DELETE", "v1/me/examples/\(id)")
     }
 
+    private struct LinesResult: Decodable { let lines: [SavedLine] }
+    private struct LineBody: Encodable { let text: String; let useWhen: String }
+    private struct LineResult: Decodable { let line: SavedLine }
+
+    static func lines() async throws -> [SavedLine] {
+        let r: LinesResult = try await send("GET", "v1/me/lines")
+        return r.lines
+    }
+
+    @discardableResult
+    static func addLine(_ text: String, useWhen: String = "") async throws -> SavedLine {
+        let r: LineResult = try await send("POST", "v1/me/lines", body: LineBody(text: text, useWhen: useWhen))
+        return r.line
+    }
+
+    static func deleteLine(id: Int) async throws {
+        let _: Empty = try await send("DELETE", "v1/me/lines/\(id)")
+    }
+
+    /// Forget what the ranking model learned from your picks.
+    static func resetTaste() async throws {
+        let _: Empty = try await send("DELETE", "v1/me/taste")
+    }
+
     static func resetMemory() async throws {
         let _: Empty = try await send("DELETE", "v1/me/memory")
     }

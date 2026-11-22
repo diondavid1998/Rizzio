@@ -116,10 +116,44 @@ struct GenerateRepliesIntent: AppIntent {
         // A card with the 5 replies numbered 1-5, one per line (plain dialogs merge lines into a paragraph),
         // then the shortcut's Choose from List lets you pick one to copy.
         let spoken = replies.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")
-        return .result(value: replies, dialog: IntentDialog(full: LocalizedStringResource(stringLiteral: spoken), supporting: "Your 5 replies"), view: RepliesSnippet(replies: replies))
+        return .result(value: replies, dialog: IntentDialog(full: LocalizedStringResource(stringLiteral: spoken), supporting: "Your replies"), view: RepliesSnippet(replies: replies))
     }
 }
 
+
+/// Shows up in Shortcuts as "Get Rizzio Replies (Several Screenshots)".
+/// For one profile across 2-4 screenshots, so Rizzio knows the whole person (hinge-auto reads whole profiles).
+/// Shortcut: Select Photos (Select Multiple on) → this. The last photo is the one to reply to.
+/// Only the screenshots you pick together are sent, so nobody else's profile gets mixed in.
+struct GenerateFromScreenshotsIntent: AppIntent {
+    static var title: LocalizedStringResource = "Get Rizzio Replies (Several Screenshots)"
+    static var description = IntentDescription("Reads 2-4 screenshots of the same profile together (the last one is what you reply to) and writes replies. Open the Rizzio keyboard to use them.")
+    static var openAppWhenRun: Bool = false
+
+    @Parameter(title: "Screenshots", supportedTypeIdentifiers: ["public.image"], inputConnectionBehavior: .connectToPreviousIntentResult)
+    var screenshots: [IntentFile]
+
+    @Parameter(title: "Tone (optional)")
+    var tone: ToneOption?
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Get Rizzio replies for \(\.$screenshots)") { \.$tone }
+    }
+
+    func perform() async throws -> some IntentResult & ReturnsValue<[String]> & ProvidesDialog & ShowsSnippetView {
+        let images = screenshots.suffix(4).compactMap { ImageTools.compressedJPEG(from: $0.data) }
+        guard let current = images.last else {
+            throw RizzError.server("No screenshots reached Rizzio. In your shortcut, use Select Photos with Select Multiple on, then this action.")
+        }
+        let batch = try await RizzAPI.generateAndStore(
+            mode: .prompt, tone: tone.flatMap { Tone(rawValue: $0.rawValue) }, jpeg: current, keepScreenshot: true, earlier: Array(images.dropLast())
+        )
+        guard !batch.replies.isEmpty else { throw RizzError.server("No replies this time. Try other screenshots.") }
+        let replies = batch.replies.map(\.text)
+        let spoken = replies.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")
+        return .result(value: replies, dialog: IntentDialog(full: LocalizedStringResource(stringLiteral: spoken), supporting: "Your replies"), view: RepliesSnippet(replies: replies))
+    }
+}
 
 enum ScreenKind: String, AppEnum {
     case auto, profile, chat
