@@ -202,7 +202,8 @@
       "mode": "chat",
       "text": "Me: i make a mean lasagna\nThem: mean as in good or mean as in it bites back",
       "kind": [
-        "tease"
+        "tease",
+        "challenge_or_hot_take"
       ],
       "mustNot": [
         "i('m| am) sorry"

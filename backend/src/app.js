@@ -163,7 +163,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // stock phrases cost points, and the user's learned taste nudges the order. Weak ones are dropped.
       let scores = null;
       let judgeError = null;
-      if (ai.judgeReplies && raw.replies.length > 5) {
+      if (ai.judgeReplies && raw.replies.length >= 3) {
         try {
           scores = await ai.judgeReplies({ memory, requestText, read: raw.read, texts: raw.replies.map((r) => r.text), image, plus });
         } catch (err) {

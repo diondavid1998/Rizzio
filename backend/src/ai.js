@@ -53,7 +53,7 @@ const REPLY_SCHEMA = {
     context: { type: "string", description: "One short line naming what you replied to." },
     replies: {
       type: "array",
-      description: `${CANDIDATES} different candidate messages, best first.`,
+      description: `Exactly ${CANDIDATES} different candidate messages, best first. Always ${CANDIDATES}, even for a short message.`,
       items: {
         type: "object",
         properties: {

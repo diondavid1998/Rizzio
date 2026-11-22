@@ -304,6 +304,7 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier 
           : "The screenshot is attached.",
     );
   }
+  parts.push("Write exactly 10 different candidates, even if their message is short: different forms and angles, all fitting the read.");
   parts.push("Before finalizing: every fact the messages claim about the user (job, career stage, plans, hobbies, places) must be in the About you note. Drop or rewrite anything taken from their old messages or from the other person.");
   return parts.join("\n\n");
 }
