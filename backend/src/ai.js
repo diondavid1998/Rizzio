@@ -39,7 +39,7 @@ const REPLY_SCHEMA = {
           items: {
             type: "object",
             properties: {
-              label: { type: "string", description: "1-4 words, specific to this take." },
+              label: { type: "string", description: "1-4 words, specific to this take (for Two truths and a lie: \"Lie: \" plus the statement in a few words)." },
               how: { type: "string", description: "One line: how replies taking this side should come at it." },
             },
             required: ["label", "how"],

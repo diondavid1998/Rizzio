@@ -311,9 +311,9 @@ struct GeneratedReplies {
     var read: String
     @Guide(description: "One short line naming what you replied to")
     var context: String
-    @Guide(description: "The take the user could agree or disagree with, in 2-6 words: always for a dating-profile prompt (the claim or preference in their answer), in a chat only when they state an opinion; otherwise empty")
+    @Guide(description: "The take the user could agree or disagree with, in 2-6 words: always for a dating-profile prompt (the claim or preference in their answer), in a chat only when they state an opinion; otherwise empty. For Two truths and a lie: exactly "which is the lie"")
     var sideTopic: String
-    @Guide(description: "If sideTopic is set: 2 to 4 ways to come at it, labelled to fit this exact take (like Team 11am, Defend naps, Agree, Disagree); otherwise empty")
+    @Guide(description: "If sideTopic is set: 2 to 4 ways to come at it, labelled to fit this exact take (like Team 11am, Defend naps, Agree, Disagree). For Two truths and a lie: one per statement, labelled "Lie: " and the statement in a few words; otherwise empty")
     var sides: [GeneratedSide]
     @Guide(description: "Exactly five different messages, best first")
     var replies: [GeneratedReply]
@@ -322,7 +322,7 @@ struct GeneratedReplies {
 @available(iOS 26.0, *)
 @Generable
 struct GeneratedSide {
-    @Guide(description: "1 to 4 words, specific to the take")
+    @Guide(description: "1 to 6 words, specific to the take")
     var label: String
     @Guide(description: "One line: how replies taking this side come at it")
     var how: String

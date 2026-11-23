@@ -57,7 +57,8 @@
         "profile_prompt",
         "challenge_or_hot_take"
       ],
-      "mustNot": []
+      "mustNot": [],
+      "sideTopic": "which is the lie"
     },
     {
       "id": "hot-take",

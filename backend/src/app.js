@@ -160,6 +160,8 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // Ways to reply offered without a take to agree or disagree with (a boundary, what they want from the user):
       // give them a topic anyway, so the app still asks which way to go.
       if (raw.read?.sides?.length && !raw.read.side_topic?.trim()) raw.read.side_topic = "how to reply";
+      // Two truths and a lie: one fixed topic, so the app knows to ask "Which one's the lie?".
+      if (raw.read?.sides?.some((s) => /^lie:/i.test(s.label))) raw.read.side_topic = "which is the lie";
       const ownText = [...own, ...shown].join("\n");
       const banned = [...STOCK_PHRASES, ...personaPhrases(persona), ...overused, ...openers.never].filter((p) => phrasesIn(ownText, [p]).length === 0);
       // Write many, show the best: a judge scores every candidate (misread, generic, invented facts, not the user),

@@ -60,7 +60,7 @@ async function runCases() {
       const bad = (c.mustNot ?? []).flatMap((re) => texts.filter((t) => new RegExp(re, "i").test(t)).map((t) => `/${re}/ in "${t}"`));
       const stock = texts.filter((t) => STOCK.test(t));
       const kindOk = !c.kind || c.kind.includes(r.read?.kind);
-      const stageOk = !c.stage || c.stage.includes(r.read?.stage);
+      const stageOk = (!c.stage || c.stage.includes(r.read?.stage)) && (!c.sideTopic || r.read?.side_topic === c.sideTopic);
       const scores = r.replies.map((x) => x.score).filter((s) => typeof s === "number");
       const row = {
         id: c.id, kind: r.read?.kind, kindOk, stage: r.read?.stage, stageOk, shown: texts.length,

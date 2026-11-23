@@ -90,13 +90,15 @@ struct GenerateRepliesIntent: AppIntent {
         // Their prompt has a take: ask which side (with options written for this prompt), then write replies from it.
         // Only when Scan photos is off: with photos on, Rizzio picks its own hook.
         let scanPhotos = !store.persona.isOn("noPhotos")
-        if let topic = batch.sideTopic, !topic.isEmpty, side != .decide, !scanPhotos {
+        // Two truths and a lie always asks which one you think is the lie, photos or not.
+        let isLieGame = batch.sideTopic == "which is the lie"
+        if let topic = batch.sideTopic, !topic.isEmpty, side != .decide, !scanPhotos || isLieGame {
             let options = batch.sideOptions ?? []
             if side == .ask, !options.isEmpty {
-                let decide = "Let Rizzio decide"
+                let decide = isLieGame ? "Let Rizzio guess" : "Let Rizzio decide"
                 let picked = try await $pickedSide.requestDisambiguation(
                     among: options.map(\.label) + [decide],
-                    dialog: IntentDialog(stringLiteral: "\(topic.prefix(1).uppercased() + topic.dropFirst()): which side?")
+                    dialog: IntentDialog(stringLiteral: isLieGame ? "Which one's the lie?" : "\(topic.prefix(1).uppercased() + topic.dropFirst()): which side?")
                 )
                 if let choice = options.first(where: { $0.label == picked }) {
                     batch = try await RizzAPI.generateAndStore(
