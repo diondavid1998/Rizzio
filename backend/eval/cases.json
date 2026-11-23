@@ -109,6 +109,16 @@
       ]
     },
     {
+      "id": "list-interests",
+      "mode": "prompt",
+      "text": "I go crazy for\nMatcha and horror movies",
+      "kind": [
+        "profile_prompt"
+      ],
+      "maxCombined": 2,
+      "mustNot": []
+    },
+    {
       "id": "unusual-skill",
       "mode": "prompt",
       "text": "Unusual skills\nI can do a backflip",

@@ -59,6 +59,12 @@ async function runCases() {
       const texts = r.replies.map((x) => x.text);
       const bad = (c.mustNot ?? []).flatMap((re) => texts.filter((t) => new RegExp(re, "i").test(t)).map((t) => `/${re}/ in "${t}"`));
       const stock = texts.filter((t) => STOCK.test(t));
+      // A list answer ("matcha and horror movies"): at most N replies may cram every item into one line.
+      if (c.maxCombined != null) {
+        const items = c.text.split("\n").slice(-1)[0].split(/,| and /i).map((x) => x.trim().toLowerCase().split(" ")[0]).filter(Boolean);
+        const combined = texts.filter((t) => items.every((w) => t.toLowerCase().includes(w)));
+        if (combined.length > c.maxCombined) bad.push(`${combined.length} replies combine every item (max ${c.maxCombined})`);
+      }
       const kindOk = !c.kind || c.kind.includes(r.read?.kind);
       const stageOk = (!c.stage || c.stage.includes(r.read?.stage)) && (!c.sideTopic || r.read?.side_topic === c.sideTopic);
       const scores = r.replies.map((x) => x.score).filter((s) => typeof s === "number");
