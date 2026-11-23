@@ -43,6 +43,10 @@ struct GenerateRepliesIntent: AppIntent {
     @Parameter(title: "Pick what to reply to", default: true)
     var askWhichPrompt: Bool
 
+    /// Holds what you type after picking "Type my own…": how Rizzio should tackle the reply.
+    @Parameter(title: "Your own take", default: "")
+    var myTake: String
+
     /// Holds the prompt or photo picked when it asks.
     @Parameter(title: "Picked prompt", default: "")
     var pickedHook: String
@@ -96,11 +100,23 @@ struct GenerateRepliesIntent: AppIntent {
             let options = batch.sideOptions ?? []
             if side == .ask, !options.isEmpty {
                 let decide = isLieGame ? "Let Rizzio guess" : "Let Rizzio decide"
+                let typeOwn = "Type my own…"
                 let picked = try await $pickedSide.requestDisambiguation(
-                    among: options.map(\.label) + [decide],
+                    among: options.map(\.label) + [typeOwn, decide],
                     dialog: IntentDialog(stringLiteral: isLieGame ? "Which one's the lie?" : howToReply ? "How should I reply?" : "\(topic.prefix(1).uppercased() + topic.dropFirst()): which side?")
                 )
-                if let choice = options.first(where: { $0.label == picked }) {
+                if picked == typeOwn {
+                    // A text box: say in your own words how to tackle it ("agree but tease her about the 9am").
+                    let typed = try await $myTake.requestValue(IntentDialog(stringLiteral: "How should Rizzio reply? Say it your way"))
+                    let take = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !take.isEmpty {
+                        batch = try await RizzAPI.generateAndStore(
+                            mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true,
+                            instruction: "Reply the way the user wants to tackle it: \(take.prefix(250)). All 5 messages follow this.",
+                            earlier: earlier, stanceTopic: topic, sideOptions: options, hook: chosenHook
+                        )
+                    }
+                } else if let choice = options.first(where: { $0.label == picked }) {
                     batch = try await RizzAPI.generateAndStore(
                         mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, earlier: earlier,
                         stanceTopic: topic, side: choice, sideOptions: options, hook: chosenHook
