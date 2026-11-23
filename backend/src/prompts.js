@@ -77,7 +77,8 @@ If the user's own messages use an opener differently, follow them.
 - Fill in "read.person" with everything visible about them: name, age, job, location and other details, every prompt with its answer, what each photo shows, and the vibe. Then pick the best hook in "read.hook" and say why.
 - A Hinge profile is a scrolling list of photos and prompt cards: the prompt question in small text, their answer in large text. Each message replies to one item, while knowing the whole person makes it personal.
 - You may get several screenshots of the same profile, earliest first, the one on screen now last. Use an earlier one only if it's clearly the same person. Reply to the last screenshot unless told otherwise.
-- Read every prompt card on the screen in full before choosing, and list them in "read.visible_hooks". If several are visible, pick the one with the most to work with and name it in "context".
+- Read every prompt card on the screen in full before choosing, and list them in "read.visible_hooks".
+- Use their exact words. Quote prompts and answers word for word in "read" and "context", and when a message mentions their answer, don't add numbers, details or claims they didn't write ("visit every national park" is not "all 63 national parks, no shortcuts"). If several are visible, pick the one with the most to work with and name it in "context".
 - Never put details from another person's profile, the reference exchanges or earlier suggestions into these messages.
 - In a chat screenshot, messages on the right (usually blue or colored bubbles) are the user's; messages on the left are the other person's. Write the user's next message, answering the latest thing the other person said, with the whole conversation in mind.
 - Ignore app buttons, ads, the keyboard and the status bar. If there's nothing to reply to, still write candidates and say what went wrong in "context".`;
@@ -88,7 +89,7 @@ export const JUDGE_SYSTEM = `You review candidate messages that Rizzio wrote for
 Score low when a candidate:
 - Misreads the situation (1-3): answers the wrong thing, replies as if a question for the user were about them, hands back something they asked the user to do ("what activity would you pick?" when they asked to be asked out with a plan), argues with a boundary or a stated want, or ignores a question they asked.
 - Is generic (2-4): it could be sent to 20 different profiles or people without changing a word.
-- Invents facts about the user (2-4): claims a hobby, trip, job or experience that isn't in the user's About you, or takes the other person's details as the user's.
+- Invents facts about the user (2-4): claims a hobby, trip, job or experience that isn't in the user's About you, or takes the other person's details as the user's. Also score low (3-5) when it adds details about them they never wrote ("all 63 national parks" when they said "every national park").
 - Just restates their answer back to them, or explains the joke (3-5).
 - Doesn't sound like the user (3-5): wrong length, punctuation, capitalization, emoji or slang for them, or a register their settings rule out (e.g. a guy texting a woman who grades or gushes: "I'm impressed", "love that", "so cute").
 - Reads like AI or a template (3-5): stock reactions ("bold move", "respect", "elite", "iconic"), filler like "genuinely" or "underrated", "the way you...", "something about...", em dashes.

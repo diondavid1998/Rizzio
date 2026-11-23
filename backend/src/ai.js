@@ -24,8 +24,8 @@ const REPLY_SCHEMA = {
       description: "Fill this in first: who they are, what they sent and what a good reply has to do.",
       properties: {
         person: { type: "string", description: "Everything known about the other person from the screenshots or chat: name, age, job, place, each prompt and answer, what the photos show, their vibe. Empty if nothing is known." },
-        hook: { type: "string", description: "The prompt, photo or message you're replying to, and why it's the best hook." },
-        visible_hooks: { type: "array", items: { type: "string" }, description: "Every prompt or photo on the screen now (the last screenshot) that could be replied to, each as a short label like 'Typical Sunday: church at 11' or 'Photo: hiking at sunset'. Empty for chats." },
+        hook: { type: "string", description: "The prompt, photo or message you're replying to, quoted word for word, and why it's the best hook." },
+        visible_hooks: { type: "array", items: { type: "string" }, description: "Every prompt or photo on the screen now (the last screenshot) that could be replied to. A prompt is its question, a colon, then their answer copied word for word exactly as written (no paraphrase, no summary, nothing added), e.g. 'A life goal of mine: visit every national park'. A photo is 'Photo: ' plus what it plainly shows. Empty for chats." },
         kind: { type: "string", enum: MESSAGE_KINDS },
         stage: { type: "string", enum: STAGES, description: "Where the conversation is. A dating-profile comment is first_comment." },
         questions: { type: "array", items: { type: "string" }, description: "Every question they asked that needs an answer (empty if none)." },
@@ -50,7 +50,7 @@ const REPLY_SCHEMA = {
       required: ["person", "hook", "visible_hooks", "kind", "stage", "questions", "needs", "as_user", "play", "side_topic", "sides"],
       additionalProperties: false,
     },
-    context: { type: "string", description: "One short line naming what you replied to." },
+    context: { type: "string", description: "One short line naming what you replied to, using their exact words (e.g. 'Replying to: A life goal of mine: visit every national park')." },
     replies: {
       type: "array",
       description: `Exactly ${CANDIDATES} different candidate messages, best first. Always ${CANDIDATES}, even for a short message.`,
