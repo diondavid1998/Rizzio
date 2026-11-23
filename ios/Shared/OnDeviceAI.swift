@@ -311,9 +311,9 @@ struct GeneratedReplies {
     var read: String
     @Guide(description: "One short line naming what you replied to")
     var context: String
-    @Guide(description: "The take the user could agree or disagree with, in 2-6 words: always for a dating-profile prompt (the claim or preference in their answer), in a chat only when they state an opinion; otherwise empty. For Two truths and a lie: exactly "which is the lie"")
+    @Guide(description: "The take the user could agree or disagree with, in 2-6 words: always for a dating-profile prompt (the claim or preference in their answer), in a chat only when they state an opinion; otherwise empty. For Two truths and a lie: exactly 'which is the lie'")
     var sideTopic: String
-    @Guide(description: "Always 2 to 4 options. If sideTopic is set: ways to come at it; if not, ways to reply that fit this message (like Straight answer, Playful answer, Answer and flip it). With a take: options labelled to fit this exact take (like Team 11am, Defend naps, Agree, Disagree). For Two truths and a lie: one per statement, labelled "Lie: " and the statement in a few words. Never empty")
+    @Guide(description: "Always 2 to 4 options. If sideTopic is set: ways to come at it; if not, ways to reply that fit this message (like Straight answer, Playful answer, Answer and flip it). With a take: options labelled to fit this exact take (like Team 11am, Defend naps, Agree, Disagree). For Two truths and a lie: one per statement, labelled 'Lie: ' and the statement in a few words. Never empty")
     var sides: [GeneratedSide]
     @Guide(description: "Exactly five different messages, best first")
     var replies: [GeneratedReply]
