@@ -33,6 +33,13 @@ function closestLine(text, lines) {
   return bestScore >= 0.5 ? best : null;
 }
 
+/** Ways to reply when the model offered none (so the app can always ask). */
+const DEFAULT_SIDES = [
+  { label: "Keep it light", how: "Playful and easy to answer, no big moves." },
+  { label: "Flirt a little", how: "A bit of charged teasing or a confident compliment about a choice they made." },
+  { label: "Be direct", how: "Confident and straightforward: a clear take, or move toward a plan if it fits." },
+];
+
 const str = (v, max) => (typeof v === "string" ? v.slice(0, max) : undefined);
 
 function parseImage(raw) {
@@ -159,6 +166,9 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const raw = await ai.generateReplies({ memory, requestText, image, earlier, plus });
       // Ways to reply offered without a take to agree or disagree with (a boundary, what they want from the user):
       // give them a topic anyway, so the app still asks which way to go.
+      // The user is asked how to reply after every screenshot: make sure there are options and a topic.
+      raw.read ??= {};
+      if (!raw.read.sides?.length) raw.read.sides = DEFAULT_SIDES;
       if (raw.read?.sides?.length && !raw.read.side_topic?.trim()) raw.read.side_topic = "how to reply";
       // Two truths and a lie: one fixed topic, so the app knows to ask "Which one's the lie?".
       if (raw.read?.sides?.some((s) => /^lie:/i.test(s.label))) raw.read.side_topic = "which is the lie";

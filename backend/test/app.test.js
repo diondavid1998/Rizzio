@@ -206,6 +206,12 @@ describe("learning loop", () => {
 });
 
 describe("review fixes", () => {
+  test("every reply set comes with ways to reply, even when the model offered none", async () => {
+    const r = await call("POST", "/v1/replies", { mode: "chat", text: "Them: hey how was your day" });
+    assert.ok(r.body.read.sides.length >= 2);
+    assert.equal(r.body.read.side_topic, "how to reply");
+  });
+
   test("ways to reply without a take still get a topic, so the app asks which way to go", async () => {
     const orig = ai.generateReplies.bind(ai);
     ai.generateReplies = async (args) => ({ ...(await orig(args)), read: { kind: "profile_prompt", side_topic: "", sides: [{ label: "Play it cool", how: "x" }, { label: "Light tease", how: "y" }] } });

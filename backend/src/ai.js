@@ -35,7 +35,7 @@ const REPLY_SCHEMA = {
         side_topic: { type: "string", description: "The take the user could agree or disagree with, in 2-6 words. For a dating-profile prompt that states something, fill it with the claim, preference or choice in their answer (e.g. 'pineapple on pizza', '11am church over 9am', 'naps after the market'). Empty when the prompt is a question for the user to answer. In a chat, only when they state an opinion or preference; otherwise empty." },
         sides: {
           type: "array",
-          description: "When side_topic is set: 2-4 ways the user could come at it, labelled to fit this exact take (e.g. 'Team 11am' / 'Team 9am' / 'Church on a Sunday?', 'Agree' / 'Disagree', 'Defend naps' / 'Attack naps', 'Bring the coffee' / 'Bring two coffees'). Empty when side_topic is empty.",
+          description: "Always 2-4 options, never empty. With a side_topic: ways the user could come at it, labelled to fit this exact take (e.g. 'Team 11am' / 'Team 9am' / 'Church on a Sunday?', 'Agree' / 'Disagree', 'Defend naps' / 'Attack naps', 'Bring the coffee' / 'Bring two coffees'). Without a take: ways to reply that fit this message (e.g. 'Straight answer' / 'Playful answer' / 'Answer and flip it').",
           items: {
             type: "object",
             properties: {

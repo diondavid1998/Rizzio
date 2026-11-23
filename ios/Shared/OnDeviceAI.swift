@@ -223,7 +223,7 @@ enum OnDeviceAI {
             let topic = response.content.sideTopic.trimmingCharacters(in: .whitespacesAndNewlines)
             let sides = response.content.sides.map { SideChoice(label: $0.label, how: $0.how) }.filter { !$0.label.isEmpty }
             return Result(context: response.content.context, replies: Array(replies.prefix(5)),
-                          sideTopic: topic.isEmpty ? nil : topic, sideOptions: sides.isEmpty ? nil : sides)
+                          sideTopic: topic.isEmpty ? (sides.isEmpty ? nil : "how to reply") : topic, sideOptions: sides.isEmpty ? nil : sides)
         }
         #endif
         throw RizzError.server(unavailableReason ?? "Free mode isn't available.")
@@ -313,7 +313,7 @@ struct GeneratedReplies {
     var context: String
     @Guide(description: "The take the user could agree or disagree with, in 2-6 words: always for a dating-profile prompt (the claim or preference in their answer), in a chat only when they state an opinion; otherwise empty. For Two truths and a lie: exactly "which is the lie"")
     var sideTopic: String
-    @Guide(description: "If sideTopic is set: 2 to 4 ways to come at it, labelled to fit this exact take (like Team 11am, Defend naps, Agree, Disagree). For Two truths and a lie: one per statement, labelled "Lie: " and the statement in a few words; otherwise empty")
+    @Guide(description: "Always 2 to 4 options. If sideTopic is set: ways to come at it; if not, ways to reply that fit this message (like Straight answer, Playful answer, Answer and flip it). With a take: options labelled to fit this exact take (like Team 11am, Defend naps, Agree, Disagree). For Two truths and a lie: one per statement, labelled "Lie: " and the statement in a few words. Never empty")
     var sides: [GeneratedSide]
     @Guide(description: "Exactly five different messages, best first")
     var replies: [GeneratedReply]
