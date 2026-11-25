@@ -21,6 +21,7 @@ struct GenerateRepliesIntent: AppIntent {
             \.$kind
             \.$tone
             \.$side
+            \.$pickHere
         }
     }
 
@@ -42,6 +43,14 @@ struct GenerateRepliesIntent: AppIntent {
     /// When several prompts or photos are on screen: ask which one to reply to, or let Rizzio pick.
     @Parameter(title: "Pick what to reply to", default: true)
     var askWhichPrompt: Bool
+
+    /// Rizzio shows the replies, you tap one, it's copied and noted as your pick (no Choose from List needed).
+    @Parameter(title: "Pick and copy here", default: true)
+    var pickHere: Bool
+
+    /// Holds the reply you tapped.
+    @Parameter(title: "Picked reply", default: "")
+    var pickedReply: String
 
     /// Holds what you type after picking "Type my own…": how Rizzio should tackle the reply.
     @Parameter(title: "Your own take", default: "")
@@ -131,6 +140,9 @@ struct GenerateRepliesIntent: AppIntent {
         }
         guard !batch.replies.isEmpty else { throw RizzError.server("No replies this time. Try another screenshot.") }
         let replies = batch.replies.map(\.text)
+        if pickHere, let chosen = try await PickAndCopy.run(replies: replies, batch: batch, param: $pickedReply) {
+            return .result(value: [chosen], dialog: IntentDialog(stringLiteral: "Copied. Paste it in Hinge."), view: RepliesSnippet(replies: [chosen]))
+        }
         // A card with the 5 replies numbered 1-5, one per line (plain dialogs merge lines into a paragraph),
         // then the shortcut's Choose from List lets you pick one to copy.
         let spoken = replies.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")
@@ -154,8 +166,17 @@ struct GenerateFromScreenshotsIntent: AppIntent {
     @Parameter(title: "Tone (optional)")
     var tone: ToneOption?
 
+    @Parameter(title: "Pick and copy here", default: true)
+    var pickHere: Bool
+
+    @Parameter(title: "Picked reply", default: "")
+    var pickedReply: String
+
     static var parameterSummary: some ParameterSummary {
-        Summary("Get Rizzio replies for \(\.$screenshots)") { \.$tone }
+        Summary("Get Rizzio replies for \(\.$screenshots)") {
+            \.$tone
+            \.$pickHere
+        }
     }
 
     func perform() async throws -> some IntentResult & ReturnsValue<[String]> & ProvidesDialog & ShowsSnippetView {
@@ -168,8 +189,30 @@ struct GenerateFromScreenshotsIntent: AppIntent {
         )
         guard !batch.replies.isEmpty else { throw RizzError.server("No replies this time. Try other screenshots.") }
         let replies = batch.replies.map(\.text)
+        if pickHere, let chosen = try await PickAndCopy.run(replies: replies, batch: batch, param: $pickedReply) {
+            return .result(value: [chosen], dialog: IntentDialog(stringLiteral: "Copied. Paste it in Hinge."), view: RepliesSnippet(replies: [chosen]))
+        }
         let spoken = replies.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")
         return .result(value: replies, dialog: IntentDialog(full: LocalizedStringResource(stringLiteral: spoken), supporting: "Your replies"), view: RepliesSnippet(replies: replies))
+    }
+}
+
+/// Shows the replies to tap, copies the one you pick and tells Rizzio it was your pick (trains the ranking).
+/// iOS asks "Allow Paste?" whenever an app reads what another app copied, so Rizzio does the picking itself
+/// instead of checking the clipboard afterwards.
+enum PickAndCopy {
+    static func run(replies: [String], batch: SuggestionBatch, param: IntentParameter<String>) async throws -> String? {
+        let numbered = replies.enumerated().map { "\($0.offset + 1). \($0.element)" }
+        let picked = try await param.requestDisambiguation(among: numbered, dialog: IntentDialog(stringLiteral: "Which one? It'll be copied"))
+        guard let index = numbered.firstIndex(of: picked) else { return nil }
+        let chosen = replies[index]
+        await MainActor.run { UIPasteboard.general.string = chosen }
+        if let id = batch.generationId {
+            try? await RizzAPI.feedback(.picked, generationId: id, replyIndex: index)
+            // So the keyboard can notice later if you changed it before sending.
+            SharedStore.shared.pendingInsert = PendingInsert(generationId: id, replyIndex: index, text: chosen)
+        }
+        return chosen
     }
 }
 

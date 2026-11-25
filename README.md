@@ -49,7 +49,7 @@ Rizzio is meant to act like you, not like a generic pickup-line bot. It keeps a 
 | 👎 a reply | What to avoid |
 | Mark 💘 Match / 💬 Replied in History | What actually works for you (weighted highest) |
 
-**Write many, show the best.** On Premium and Plus, Rizzio writes 10 candidates, a judge scores each (misread prompt, generic, invented facts, not you, AI-sounding), and you see the best 5, with variety. A small **ranking model** learns from your picks, edits, 👎 and matches which kinds of replies you go for, and moves those up; its say grows to 60% as it learns (Train → What you go for, with a reset). Your Back Tap picks count too: add **Tell Rizzio Which One I Picked** after Choose from List in the shortcut. The sides you pick and your "Type my own…" takes are remembered, so replies (and "Let Rizzio decide") lean the way you usually go. **Your best lines** (Train, or long-press any reply) are openers you know work; Rizzio offers one word for word when it fits.
+**Write many, show the best.** On Premium and Plus, Rizzio writes 10 candidates, a judge scores each (misread prompt, generic, invented facts, not you, AI-sounding), and you see the best 5, with variety. A small **ranking model** learns from your picks, edits, 👎 and matches which kinds of replies you go for, and moves those up; its say grows to 60% as it learns (Train → What you go for, with a reset). Your Back Tap picks count too: Rizzio shows the replies itself, copies the one you tap and notes it as your pick. The sides you pick and your "Type my own…" takes are remembered, so replies (and "Let Rizzio decide") lean the way you usually go. **Your best lines** (Train, or long-press any reply) are openers you know work; Rizzio offers one word for word when it fits.
 
 Every few signals it rewrites a short **style profile** of you, which you can read (and correct) in the **Train** tab. Every reply is written with that profile plus your best real messages. You can delete anything it learned, or reset it.
 
@@ -125,7 +125,7 @@ In Xcode:
 
 1. Open **Rizzio → Setup**, paste your server URL and APP_TOKEN, and tap Save.
 2. Open the **You** tab: add a bit about yourself and a few messages that worked, then **Teach from chat screenshots** with 5–10 screenshots of your best conversations.
-3. Follow the rest of the **Setup** tab: add the keyboard and turn on Full Access, build the Shortcut (Take Screenshot → Copy to Clipboard → Get Rizzio Replies → Choose from List → Copy to Clipboard), and assign it to the Action Button (Settings → Action Button → Shortcut) or Back Tap (Settings → Accessibility → Touch → Back Tap).
+3. Follow the rest of the **Setup** tab: add the keyboard and turn on Full Access, build the Shortcut (Take Screenshot → Copy to Clipboard → Get Rizzio Replies; Rizzio shows the replies, you tap one and it's copied), and assign it to the Action Button (Settings → Action Button → Shortcut) or Back Tap (Settings → Accessibility → Touch → Back Tap).
 4. Test it on the **Try it** tab with a saved screenshot first.
 
 ## Cost

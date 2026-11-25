@@ -80,7 +80,7 @@ struct SetupView: View {
                     Step("Open the Shortcuts app → + → Add Action → search \"Take Screenshot\" and add it.")
                     Step("Add Action → search \"Copy to Clipboard\" and add it below Take Screenshot.")
                     Step("Add Action → search \"Get Rizzio Replies\" and add it last. Leave its Screenshot field empty: Rizzio reads the screenshot from the clipboard.")
-                    Step("Add Action → \"Choose from List\" (it uses Rizzio's replies), then \"Copy to Clipboard\" last. You'll pick a reply and it's copied, ready to paste.")
+                    Step("That's it: Rizzio shows the replies, you tap one and it's copied, ready to paste (and Rizzio learns your pick). If your shortcut still has Choose from List and Copy to Clipboard after Get Rizzio Replies, delete those two.")
                     Step("The first time, iOS may ask to allow pasting. To stop it asking: Settings → Apps → Rizzio → Paste from Other Apps → Allow.")
                     Step("Name it \"Rizzio\". Optional: make a copy with Type set to Chat, for text conversations.")
                 }
