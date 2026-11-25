@@ -344,6 +344,7 @@ export function renderProfileEvidence(user, examples, signals) {
     match: "WON (got a match)",
     replied: "WON (got a reply)",
     ignored: "IGNORED (no response)",
+    redo: "REDONE (they Back Tapped again instead of picking any of the set)",
   };
   const lines = [];
   lines.push(`## Current profile\n${user.voice_profile?.trim() || "(empty)"}`);

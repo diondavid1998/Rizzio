@@ -128,6 +128,16 @@ enum FeedbackKind: String, Codable {
     case match     // it got a match
     case replied   // they replied
     case ignored   // no response
+    case redo      // Back Tapped the same screen again without picking any of the set
+}
+
+/// The last Back Tap, so tapping the same screen again counts as "not these, try another angle".
+struct LastBackTap: Codable {
+    let date: Date
+    let fingerprint: [UInt8]
+    let generationId: String?
+    let replies: [String]
+    var picked: Bool
 }
 
 /// The reply the keyboard last inserted, so it can notice if you edited it.

@@ -15,6 +15,24 @@ enum ImageTools {
         }
         return resized.jpegData(compressionQuality: quality)
     }
+
+    /// A small grayscale thumbnail (32x32) of a screenshot, to tell "the same screen again" from a new one.
+    /// The status bar (top rows) is left out, since its clock changes between taps.
+    static func fingerprint(_ data: Data) -> [UInt8]? {
+        guard let image = UIImage(data: data)?.cgImage else { return nil }
+        var pixels = [UInt8](repeating: 0, count: 32 * 32)
+        guard let ctx = CGContext(data: &pixels, width: 32, height: 32, bitsPerComponent: 8, bytesPerRow: 32,
+                                  space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return nil }
+        ctx.interpolationQuality = .medium
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: 32, height: 32))
+        return Array(pixels.dropFirst(32 * 2)) // drop the top 2 rows (status bar)
+    }
+
+    /// Average difference per pixel (0 = identical screen, a different profile is usually well over 10).
+    static func distance(_ a: [UInt8], _ b: [UInt8]) -> Double {
+        guard a.count == b.count, !a.isEmpty else { return .infinity }
+        return Double(zip(a, b).reduce(0) { $0 + abs(Int($1.0) - Int($1.1)) }) / Double(a.count)
+    }
 }
 
 // MARK: - Keyboard

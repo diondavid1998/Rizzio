@@ -44,6 +44,7 @@ export const SIGNAL_WEIGHTS = {
   match: { target: 1, weight: 2 }, // it worked: strongest signal
   replied: { target: 1, weight: 2 },
   ignored: { target: 0, weight: 1 },
+  redo: { target: 0, weight: 0.3 }, // Back Tapped the same screen again without picking: a mild "none of these"
 };
 /** The other replies in a set the user picked from count as a weak "not this". */
 const PASSED_OVER = { target: 0, weight: 0.25 };
@@ -64,6 +65,13 @@ function step(taste, f, target, weight) {
     const w = taste.weights[k] ?? 0;
     taste.weights[k] = w - LEARNING_RATE * weight * (err * v + L2 * w);
   }
+}
+
+/** A redo (no reply picked, asked again) is a mild "not these" for every reply in the set. */
+export function learnRedo(taste, replies) {
+  let next = taste;
+  (replies ?? []).forEach((_, i) => { next = learn(next, "redo", replies, i); });
+  return next ? { ...next, signals: (taste?.signals ?? 0) + 1 } : next;
 }
 
 /** Learns from one signal on a generation's replies. Returns the updated taste (a copy). */

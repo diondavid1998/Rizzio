@@ -7,7 +7,7 @@ import { ImportError, parseExport, summarizeSenders } from "./importers.js";
 import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, enforcePersona, personaPhrases, renderPersona, sanitizePersona } from "./persona.js";
 import { inspiration, related, renderInspiration } from "./corpus.js";
 import { HINGE_CHAR_LIMIT } from "./playbook.js";
-import { choose, describeTaste, emptyTaste, learn } from "./rank.js";
+import { choose, describeTaste, emptyTaste, learn, learnRedo } from "./rank.js";
 import { OPENERS, STOCK_PHRASES, renderChoices, openerUsage, overusedPhrases, phrasesIn, renderOpenerUsage, renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
 const MODES = ["auto", "prompt", "chat", "draft"];
@@ -299,7 +299,8 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
     store.addSignal(req.userId, { generationId, replyIndex, kind: b.kind, text });
     // Teach the ranking model what this user goes for.
     const gen = generationId ? store.getGeneration(req.userId, generationId) : null;
-    if (gen && replyIndex != null) store.setTaste(req.userId, learn(store.getTaste(req.userId) ?? emptyTaste(), b.kind, gen.replies, replyIndex));
+    if (gen && b.kind === "redo") store.setTaste(req.userId, learnRedo(store.getTaste(req.userId) ?? emptyTaste(), gen.replies));
+    else if (gen && replyIndex != null) store.setTaste(req.userId, learn(store.getTaste(req.userId) ?? emptyTaste(), b.kind, gen.replies, replyIndex));
     maybeRebuild(req.userId);
     res.json({ ok: true });
   });

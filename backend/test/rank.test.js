@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { choose, describeTaste, emptyTaste, features, learn, tasteBoost, tasteShare } from "../src/rank.js";
+import { choose, describeTaste, emptyTaste, features, learn, learnRedo, tasteBoost, tasteShare } from "../src/rank.js";
 
 const c = (text, form = "guess") => ({ text, form, angle: "x" });
 
@@ -72,5 +72,14 @@ describe("variety", () => {
     assert.ok(out.some((r) => r.form === "tease_back"));
     assert.ok(out.some((r) => r.form === "make_plans"));
     assert.ok(out.filter((r) => r.form === "play_along").length <= 3);
+  });
+});
+
+describe("redo", () => {
+  test("Back Tapping again without picking is one mild signal against the whole set", () => {
+    const set = [c("you seem like a cheater at board games", "guess"), c("what's the story there?", "follow_up_question")];
+    const t = learnRedo(emptyTaste(), set);
+    assert.equal(t.signals, 1);
+    assert.ok(t.weights.form_guess < 0 && t.weights.form_guess > -0.1);
   });
 });

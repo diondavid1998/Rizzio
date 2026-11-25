@@ -72,6 +72,11 @@ final class SharedStore {
         set { encode(newValue, key: "persona") }
     }
 
+    var lastBackTap: LastBackTap? {
+        get { decode(LastBackTap.self, key: "lastBackTap") }
+        set { encode(newValue, key: "lastBackTap") }
+    }
+
     var pendingInsert: PendingInsert? {
         get { decode(PendingInsert.self, key: "pendingInsert") }
         set { encode(newValue, key: "pendingInsert") }

@@ -78,8 +78,21 @@ struct GenerateRepliesIntent: AppIntent {
         // Every screenshot is read on its own: nothing from earlier Back Taps is mixed in.
         let earlier: [Data] = []
         let pickedTone = tone.flatMap { Tone(rawValue: $0.rawValue) }
+        // Back Tapped the same screen again within 3 minutes: the last replies (or their angle) didn't work.
+        // Don't repeat them; if none was picked, say so (a mild "not these" for the ranking) and change the angle.
+        let fingerprint = ImageTools.fingerprint(jpeg)
+        var avoid: [String] = []
+        var redoNote: String? = nil
+        if let fp = fingerprint, let last = store.lastBackTap, Date().timeIntervalSince(last.date) < 180,
+           ImageTools.distance(fp, last.fingerprint) <= 3 {
+            avoid = last.replies
+            if !last.picked {
+                redoNote = "The user Back Tapped this same screen again without picking any of the earlier replies: they didn't like those or their angle. Take clearly different angles and forms this time."
+                if let id = last.generationId { RizzAPI.feedbackInBackground(.redo, generationId: id) }
+            }
+        }
         var batch = try await RizzAPI.generateAndStore(
-            mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, earlier: earlier
+            mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, instruction: redoNote, previous: avoid, earlier: earlier
         )
         store.clearProfileScreens() // drop anything older builds kept
 
@@ -95,7 +108,7 @@ struct GenerateRepliesIntent: AppIntent {
             if picked != letRizzio {
                 chosenHook = picked
                 batch = try await RizzAPI.generateAndStore(
-                    mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, earlier: earlier, hook: picked
+                    mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, previous: avoid, earlier: earlier, hook: picked
                 )
             }
         }
@@ -122,24 +135,25 @@ struct GenerateRepliesIntent: AppIntent {
                         batch = try await RizzAPI.generateAndStore(
                             mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true,
                             instruction: "Reply the way the user wants to tackle it: \(take.prefix(250)). All 5 messages follow this.",
-                            earlier: earlier, stanceTopic: topic, sideOptions: options, hook: chosenHook
+                            previous: avoid, earlier: earlier, stanceTopic: topic, sideOptions: options, hook: chosenHook
                         )
                     }
                 } else if let choice = options.first(where: { $0.label == picked }) {
                     batch = try await RizzAPI.generateAndStore(
-                        mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, earlier: earlier,
+                        mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, previous: avoid, earlier: earlier,
                         stanceTopic: topic, side: choice, sideOptions: options, hook: chosenHook
                     )
                 }
             } else if let stance = side.stance {
                 batch = try await RizzAPI.generateAndStore(
-                    mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, earlier: earlier,
+                    mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, previous: avoid, earlier: earlier,
                     stance: stance, stanceTopic: topic, sideOptions: options, hook: chosenHook
                 )
             }
         }
         guard !batch.replies.isEmpty else { throw RizzError.server("No replies this time. Try another screenshot.") }
         let replies = batch.replies.map(\.text)
+        store.lastBackTap = LastBackTap(date: Date(), fingerprint: fingerprint ?? [], generationId: batch.generationId, replies: replies, picked: false)
         if pickHere, let chosen = try await PickAndCopy.run(replies: replies, batch: batch, param: $pickedReply) {
             return .result(value: [chosen], dialog: IntentDialog(stringLiteral: "Copied. Paste it in Hinge."), view: RepliesSnippet(replies: [chosen]))
         }
@@ -207,6 +221,7 @@ enum PickAndCopy {
         guard let index = numbered.firstIndex(of: picked) else { return nil }
         let chosen = replies[index]
         await MainActor.run { UIPasteboard.general.string = chosen }
+        SharedStore.shared.lastBackTap?.picked = true
         if let id = batch.generationId {
             try? await RizzAPI.feedback(.picked, generationId: id, replyIndex: index)
             // So the keyboard can notice later if you changed it before sending.
