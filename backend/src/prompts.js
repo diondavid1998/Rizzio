@@ -156,6 +156,18 @@ export function renderMemory(user, examples) {
   return parts.join("\n\n");
 }
 
+/** How the user usually chooses to come at replies (their side picks and typed takes), for the reply model. */
+export function renderChoices(choices) {
+  const sides = Object.entries(choices?.sides ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const takes = (choices?.takes ?? []).slice(0, 6);
+  if (!sides.length && !takes.length) return "";
+  const parts = ["## How the user likes to come at replies (their own choices)"];
+  if (sides.length) parts.push("When asked which way to reply, they picked: " + sides.map(([l, n]) => `"${l}" (${n}x)`).join(", ") + ".");
+  if (takes.length) parts.push("In their own words, how they wanted recent replies tackled:\n" + takes.map((t) => `- ${t}`).join("\n"));
+  parts.push("Lean the same way when they haven't picked a side for this one (their approach, not their facts).");
+  return parts.join("\n");
+}
+
 /** What each quick tone means, so "Humor" and "Witty" come out different. */
 export const TONES = {
   witty: "witty: clever wordplay, quick comebacks, smart observations",

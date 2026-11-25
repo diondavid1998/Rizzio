@@ -158,6 +158,13 @@ struct MeResponse: Decodable {
     let stats: Stats
     /// What the ranking model learned from your picks (older servers don't send it).
     var taste: Taste? = nil
+    /// How you chose to tackle replies: side labels you picked (counts) and your own typed takes.
+    var choices: Choices? = nil
+
+    struct Choices: Decodable {
+        let sides: [String: Int]
+        let takes: [String]
+    }
 
     struct Taste: Decodable {
         let signals: Int

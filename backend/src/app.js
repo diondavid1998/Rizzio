@@ -8,7 +8,7 @@ import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, enforcePersona, personaPhrase
 import { inspiration, related, renderInspiration } from "./corpus.js";
 import { HINGE_CHAR_LIMIT } from "./playbook.js";
 import { choose, describeTaste, emptyTaste, learn } from "./rank.js";
-import { OPENERS, STOCK_PHRASES, openerUsage, overusedPhrases, phrasesIn, renderOpenerUsage, renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
+import { OPENERS, STOCK_PHRASES, renderChoices, openerUsage, overusedPhrases, phrasesIn, renderOpenerUsage, renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
 const MODES = ["auto", "prompt", "chat", "draft"];
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -149,7 +149,11 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // How the user really uses "wait", "ngl", "lowkey"... from all of their own messages.
       const ownAll = store.listExamples(req.userId).filter((e) => !AI_WRITTEN.has(e.source)).map((e) => e.text);
       const openers = openerUsage(ownAll);
-      const memory = [renderMemory(user, best), renderOpenerUsage(openers), renderPersona(persona)].filter(Boolean).join("\n\n");
+      const memory = [renderMemory(user, best), renderOpenerUsage(openers), renderPersona(persona), renderChoices(store.getChoices(req.userId))].filter(Boolean).join("\n\n");
+      // Remember how the user chose to tackle this one: the side they picked, or their own typed take.
+      const TAKE = "Reply the way the user wants to tackle it: ";
+      const take = instruction?.startsWith(TAKE) ? instruction.slice(TAKE.length).replace(/\. All 5 messages follow this\.$/, "").trim() : null;
+      if (!preview && (side?.label || take)) store.recordChoice(req.userId, { side: side?.label, take });
       // The user's own messages most related to this one (beyond the 25 always shown), so wording follows how they talk about it.
       const shown = new Set(best.map((e) => e.text));
       const own = store.listExamples(req.userId).filter((e) => !AI_WRITTEN.has(e.source) && !shown.has(e.text)).map((e) => e.text);
@@ -306,6 +310,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
     res.json({
       aboutMe: user.about_me,
       taste: describeTaste(store.getTaste(req.userId)),
+      choices: store.getChoices(req.userId),
       styleExamples: store.listExamples(req.userId, "seed").map((e) => e.text),
       voiceProfile: user.voice_profile,
       profileUpdatedAt: user.profile_updated_at,

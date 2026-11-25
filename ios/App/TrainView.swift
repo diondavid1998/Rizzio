@@ -161,6 +161,9 @@ struct TrainView: View {
                         if !taste.dislikes.isEmpty {
                             LabeledContent("You skip", value: taste.dislikes.joined(separator: ", "))
                         }
+                        if let sides = me?.choices?.sides, !sides.isEmpty {
+                            LabeledContent("Your usual approach", value: sides.sorted { $0.value > $1.value }.prefix(3).map(\.key).joined(separator: ", "))
+                        }
                         LabeledContent("Learned from", value: "\(taste.signals) picks and results")
                         LabeledContent("Say in the ranking", value: "\(taste.share)%")
                         Button("Reset what it learned", role: .destructive) {

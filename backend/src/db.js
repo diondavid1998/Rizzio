@@ -65,6 +65,7 @@ export function openDb(path = ":memory:") {
   // Added after the first release: add the column to databases created before it.
   const cols = db.prepare("PRAGMA table_info(users)").all().map((c) => c.name);
   if (!cols.includes("persona_json")) db.exec("ALTER TABLE users ADD COLUMN persona_json TEXT");
+  if (!cols.includes("choices_json")) db.exec("ALTER TABLE users ADD COLUMN choices_json TEXT");
   if (!cols.includes("taste_json")) db.exec("ALTER TABLE users ADD COLUMN taste_json TEXT");
   if (!cols.includes("profile_rules")) db.exec("ALTER TABLE users ADD COLUMN profile_rules INTEGER NOT NULL DEFAULT 0");
   return new Store(db);
@@ -112,6 +113,23 @@ export class Store {
 
   deleteLine(userId, id) {
     this.db.prepare("DELETE FROM lines WHERE user_id = ? AND id = ?").run(userId, id);
+  }
+
+  /** How the user chose to tackle replies: side labels they picked (counts) and their own typed takes (latest 10). */
+  getChoices(id) {
+    const row = this.db.prepare("SELECT choices_json FROM users WHERE id = ?").get(id);
+    try {
+      return { sides: {}, takes: [], ...(row?.choices_json ? JSON.parse(row.choices_json) : {}) };
+    } catch {
+      return { sides: {}, takes: [] };
+    }
+  }
+
+  recordChoice(id, { side, take }) {
+    const c = this.getChoices(id);
+    if (side) c.sides[side] = (c.sides[side] ?? 0) + 1;
+    if (take) c.takes = [take, ...c.takes.filter((t) => t !== take)].slice(0, 10);
+    this.db.prepare("UPDATE users SET choices_json = ? WHERE id = ?").run(JSON.stringify(c), id);
   }
 
   /** The per-user ranking model (see rank.js). */
@@ -306,6 +324,6 @@ export class Store {
     this.db.prepare("DELETE FROM signals WHERE user_id = ?").run(userId);
     this.db.prepare("DELETE FROM examples WHERE user_id = ? AND source != 'seed'").run(userId);
     this.db.prepare("DELETE FROM generations WHERE user_id = ?").run(userId);
-    this.db.prepare("UPDATE users SET voice_profile = '', profile_updated_at = NULL, signals_since_rebuild = 0, taste_json = NULL WHERE id = ?").run(userId);
+    this.db.prepare("UPDATE users SET voice_profile = '', profile_updated_at = NULL, signals_since_rebuild = 0, taste_json = NULL, choices_json = NULL WHERE id = ?").run(userId);
   }
 }

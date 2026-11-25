@@ -173,6 +173,36 @@ struct GenerateFromScreenshotsIntent: AppIntent {
     }
 }
 
+/// Shows up in Shortcuts as "Tell Rizzio Which One I Picked".
+/// Put it after Choose from List (Back Tap shortcut), so Rizzio learns which reply you went with,
+/// the same as tapping one in the keyboard. Runs silently in the background.
+struct RecordPickIntent: AppIntent {
+    static var title: LocalizedStringResource = "Tell Rizzio Which One I Picked"
+    static var description = IntentDescription("Put this after Choose from List. Rizzio learns which reply you picked, so it ranks that kind of reply higher next time.")
+    static var openAppWhenRun: Bool = false
+
+    @Parameter(title: "Picked reply", inputConnectionBehavior: .connectToPreviousIntentResult)
+    var picked: String
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Tell Rizzio I picked \(\.$picked)")
+    }
+
+    func perform() async throws -> some IntentResult & ReturnsValue<String> {
+        let store = SharedStore.shared
+        let text = picked.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let batch = store.latestBatch, let id = batch.generationId,
+           let index = batch.replies.firstIndex(where: { $0.text.trimmingCharacters(in: .whitespacesAndNewlines) == text })
+                ?? batch.replies.firstIndex(where: { $0.text.hasPrefix(text.prefix(40)) }) {
+            try? await RizzAPI.feedback(.picked, generationId: id, replyIndex: index)
+            // So the keyboard can notice later if you changed it before sending.
+            store.pendingInsert = PendingInsert(generationId: id, replyIndex: index, text: batch.replies[index].text)
+        }
+        // Passes the text through, so Copy to Clipboard can come after this too.
+        return .result(value: picked)
+    }
+}
+
 enum ScreenKind: String, AppEnum {
     case auto, profile, chat
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "Screen type"

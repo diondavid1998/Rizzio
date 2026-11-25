@@ -206,6 +206,17 @@ describe("learning loop", () => {
 });
 
 describe("review fixes", () => {
+  test("side picks and typed takes are remembered and steer later replies", async () => {
+    await call("POST", "/v1/replies", { mode: "prompt", text: "Typical Sunday: church at 11", side: { label: "Tease the take", how: "tease it" } });
+    await call("POST", "/v1/replies", { mode: "prompt", text: "Hot take: cereal is soup", instruction: "Reply the way the user wants to tackle it: agree but roast the milk. All 5 messages follow this." });
+    await call("POST", "/v1/replies", { mode: "prompt", text: "preview only", preview: true, side: { label: "Ignored", how: "x" } });
+    const me = (await call("GET", "/v1/me")).body;
+    assert.deepEqual(me.choices.sides, { "Tease the take": 1 });
+    assert.deepEqual(me.choices.takes, ["agree but roast the milk"]);
+    await call("POST", "/v1/replies", { mode: "prompt", text: "I go crazy for: tacos" });
+    assert.match(ai.calls.replies.at(-1).memory, /they picked: "Tease the take" \(1x\)[\s\S]*agree but roast the milk/);
+  });
+
   test("every reply set comes with ways to reply, even when the model offered none", async () => {
     const r = await call("POST", "/v1/replies", { mode: "chat", text: "Them: hey how was your day" });
     assert.ok(r.body.read.sides.length >= 2);
