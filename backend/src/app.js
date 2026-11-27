@@ -8,6 +8,7 @@ import { DEFAULT_PERSONA, GOALS, SLIDERS, TOGGLES, enforcePersona, personaPhrase
 import { inspiration, related, renderInspiration } from "./corpus.js";
 import { HINGE_CHAR_LIMIT } from "./playbook.js";
 import { choose, describeTaste, emptyTaste, learn, learnRedo } from "./rank.js";
+import { findOutcomes } from "./outcomes.js";
 import { OPENERS, STOCK_PHRASES, renderChoices, openerUsage, overusedPhrases, phrasesIn, renderOpenerUsage, renderAutoTuneEvidence, renderMemory, renderProfileEvidence, renderReplyRequest } from "./prompts.js";
 
 const MODES = ["auto", "prompt", "chat", "draft"];
@@ -59,7 +60,7 @@ function safeEqual(a, b) {
 }
 
 /** Max AI calls per user per hour. */
-export const HOURLY_LIMIT = Number(process.env.RIZZIO_HOURLY_LIMIT) || 120;
+export const HOURLY_LIMIT = Number(process.env.RIZZIO_HOURLY_LIMIT) || 300; // instant side answers send one request per option
 
 export function createApp({ store, ai, appToken, log = console, hourlyLimit = HOURLY_LIMIT, storage = { persistent: true } }) {
   const app = express();
@@ -94,6 +95,18 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
 
   function rebuildInBackground(userId) {
     rebuildProfile(userId).catch((err) => log.error?.(`profile rebuild failed for ${userId}:`, err.message));
+  }
+
+  /** A chat screenshot shows one of Rizzio's lines got answered: record the real result (match / replied). */
+  function recordOutcomes(userId, transcript, skipGenerationId = null) {
+    const found = findOutcomes(transcript, store.history(userId, 200).filter((g) => g.id !== skipGenerationId));
+    for (const o of found) {
+      store.addSignal(userId, { generationId: o.generationId, replyIndex: o.replyIndex, kind: o.kind, text: o.text });
+      const gen = store.getGeneration(userId, o.generationId);
+      if (gen) store.setTaste(userId, learn(store.getTaste(userId) ?? emptyTaste(), o.kind, gen.replies, o.replyIndex));
+    }
+    if (found.length) maybeRebuild(userId);
+    return found.map(({ kind, text }) => ({ kind, text }));
   }
 
   function maybeRebuild(userId) {
@@ -153,7 +166,9 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // Remember how the user chose to tackle this one: the side they picked, or their own typed take.
       const TAKE = "Reply the way the user wants to tackle it: ";
       const take = instruction?.startsWith(TAKE) ? instruction.slice(TAKE.length).replace(/\. All 5 messages follow this\.$/, "").trim() : null;
-      if (!preview && (side?.label || take)) store.recordChoice(req.userId, { side: side?.label, take });
+      // Instant side answers write every option ahead of time; only the one the user taps is their choice (POST /v1/choice).
+      const speculative = b.speculative === true;
+      if (!preview && !speculative && (side?.label || take)) store.recordChoice(req.userId, { side: side?.label, take });
       // The user's own messages most related to this one (beyond the 25 always shown), so wording follows how they talk about it.
       const shown = new Set(best.map((e) => e.text));
       const own = store.listExamples(req.userId).filter((e) => !AI_WRITTEN.has(e.source) && !shown.has(e.text)).map((e) => e.text);
@@ -228,8 +243,11 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // Persona clean-ups (lowercase, no emoji...) don't touch a saved line: it's already the user's own wording.
       const result = { ...raw, replies: enforcePersona(persona, raw.replies).map((r, i) => (raw.replies[i].form === "saved_line" ? { ...r, text: raw.replies[i].text } : r)) };
       const generationId = preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, ...result });
+      // A chat screenshot: if it shows one of Rizzio's earlier lines got an answer, learn from that real result.
+      const outcomes = !preview && !speculative && result.read?.transcript?.length ? recordOutcomes(req.userId, result.read.transcript, generationId) : [];
+      if (result.read) delete result.read.transcript;
       // Previews (Test drive, the eval script) also say if the judge failed, to make that visible.
-      res.json({ generationId, ...result, ...(preview && judgeError ? { judgeError } : {}) });
+      res.json({ generationId, ...result, ...(outcomes.length ? { outcomes } : {}), ...(preview && judgeError ? { judgeError } : {}) });
     } catch (err) {
       next(err);
     }
@@ -472,6 +490,19 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
   });
 
   /** Forget everything learned (keeps your about-me and hand-written examples). */
+  /** The side the user tapped when the options were written ahead of time (instant side answers). */
+  app.post("/v1/choice", (req, res) => {
+    const side = str(req.body?.side, 60)?.trim();
+    if (side) store.recordChoice(req.userId, { side });
+    res.json({ ok: true });
+  });
+
+  /** Free mode: the phone read a chat screenshot itself; check it for results of Rizzio's earlier lines. */
+  app.post("/v1/outcomes", (req, res) => {
+    const lines = Array.isArray(req.body?.lines) ? req.body.lines.slice(0, 80).map((l) => ({ from: l?.from, text: str(l?.text, 500) })) : [];
+    res.json({ outcomes: recordOutcomes(req.userId, lines) });
+  });
+
   /** "Your best lines": openers the user knows work. */
   app.get("/v1/me/lines", (req, res) => res.json({ lines: store.listLines(req.userId) }));
 

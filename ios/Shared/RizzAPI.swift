@@ -25,6 +25,9 @@ struct RizzResult: Decodable {
         var visible_hooks: [String]? = nil
     }
     var read: ReadInfo? = nil
+    /// Earlier Rizzio lines this chat screenshot shows got an answer (learned as real results).
+    struct Outcome: Decodable { let kind: String; let text: String }
+    var outcomes: [Outcome]? = nil
 }
 
 /// Talks to the Rizzio backend (backend/ folder).
@@ -49,12 +52,14 @@ enum RizzAPI {
         var stanceTopic: String? = nil
         var side: SideChoice? = nil
         var hook: String? = nil
+        /// Written ahead of time for an option the user may not pick (not counted as their choice).
+        var speculative: Bool? = nil
     }
 
     static func generate(mode: RizzMode, tone: Tone? = nil, jpeg: Data? = nil, text: String? = nil, draft: String? = nil,
                          instruction: String? = nil, previous: [String] = [], length: ReplyLength? = nil,
                          earlier: [Data] = [], stance: String? = nil, stanceTopic: String? = nil,
-                         side: SideChoice? = nil, hook: String? = nil) async throws -> RizzResult {
+                         side: SideChoice? = nil, hook: String? = nil, speculative: Bool = false) async throws -> RizzResult {
         let payload = ReplyPayload(
             mode: mode,
             tone: (tone ?? SharedStore.shared.tone).rawValue,
@@ -68,7 +73,8 @@ enum RizzAPI {
             stance: stance,
             stanceTopic: stanceTopic,
             side: side,
-            hook: hook
+            hook: hook,
+            speculative: speculative ? true : nil
         )
         return try await send("POST", "v1/replies", body: payload, timeout: 60)
     }
@@ -91,6 +97,36 @@ enum RizzAPI {
         sideOptions: [SideChoice]? = nil,
         hook: String? = nil
     ) async throws -> SuggestionBatch {
+        let batch = try await generateBatch(mode: mode, tone: tone, jpeg: jpeg, text: text, draft: draft, instruction: instruction,
+                                            previous: previous, earlier: earlier, stance: stance, stanceTopic: stanceTopic,
+                                            side: side, sideOptions: sideOptions, hook: hook)
+        use(batch, jpeg: jpeg, keepScreenshot: keepScreenshot)
+        return batch
+    }
+
+    /// Makes a batch the current one: the keyboard and history pick it up.
+    static func use(_ batch: SuggestionBatch, jpeg: Data? = nil, keepScreenshot: Bool = false) {
+        if jpeg != nil, keepScreenshot { SharedStore.shared.saveScreenshot(jpeg) }
+        SharedStore.shared.latestBatch = batch
+    }
+
+    /// Writes replies without making them the current set (instant side answers write each option ahead of time).
+    static func generateBatch(
+        mode: RizzMode,
+        tone: Tone? = nil,
+        jpeg: Data? = nil,
+        text: String? = nil,
+        draft: String? = nil,
+        instruction: String? = nil,
+        previous: [String] = [],
+        earlier: [Data] = [],
+        stance: String? = nil,
+        stanceTopic: String? = nil,
+        side: SideChoice? = nil,
+        sideOptions: [SideChoice]? = nil,
+        hook: String? = nil,
+        speculative: Bool = false
+    ) async throws -> SuggestionBatch {
         let store = SharedStore.shared
         let result: RizzResult
         if store.engine == .free {
@@ -101,15 +137,15 @@ enum RizzAPI {
                                                      instruction: instruction, previous: previous,
                                                      length: store.replyLength, earlier: earlier,
                                                      stance: stance, stanceTopic: stanceTopic, side: side, hook: hook)
+            if let jpeg, !speculative { reportOutcomesInBackground(jpeg) }
             let saved = try? await saveGeneration(mode: mode, tone: tone ?? store.tone, context: local.context, replies: local.replies)
             result = RizzResult(generationId: saved ?? "", context: local.context, replies: local.replies,
                                 read: .init(side_topic: local.sideTopic, sides: local.sideOptions))
         } else {
             result = try await generate(mode: mode, tone: tone, jpeg: jpeg, text: text, draft: draft,
                                         instruction: instruction, previous: previous, earlier: earlier,
-                                        stance: stance, stanceTopic: stanceTopic, side: side, hook: hook)
+                                        stance: stance, stanceTopic: stanceTopic, side: side, hook: hook, speculative: speculative)
         }
-        if jpeg != nil, keepScreenshot { store.saveScreenshot(jpeg) }
         let batch = SuggestionBatch(
             generationId: result.generationId.isEmpty ? nil : result.generationId,
             context: result.context,
@@ -124,10 +160,31 @@ enum RizzAPI {
             sideOptions: sideOptions ?? result.read?.sides,
             sideLabel: side?.label,
             visibleHooks: result.read?.visible_hooks,
-            hook: hook
+            hook: hook,
+            wins: result.outcomes?.count
         )
-        store.latestBatch = batch
         return batch
+    }
+
+    /// The side tapped when the options were written ahead of time, so it counts as the user's choice.
+    static func recordChoiceInBackground(_ side: String) {
+        struct Body: Encodable { let side: String }
+        Task { _ = try? await send("POST", "v1/choice", body: Body(side: side)) as Empty }
+    }
+
+    /// Free mode: the chat lines the phone read, so the server can spot earlier Rizzio lines that got an answer.
+    static func reportOutcomesInBackground(_ jpeg: Data) {
+        struct Line: Encodable { let from: String; let text: String }
+        struct Body: Encodable { let lines: [Line] }
+        struct Result: Decodable {}
+        Task {
+            guard let lines = try? OnDeviceAI.read(jpeg) else { return }
+            let chat = lines.compactMap { l -> Line? in
+                switch l.side { case .me: return Line(from: "me", text: l.text); case .them: return Line(from: "them", text: l.text); case .unknown: return nil }
+            }
+            guard chat.contains(where: { $0.from == "them" }) else { return }
+            _ = try? await send("POST", "v1/outcomes", body: Body(lines: chat)) as Result
+        }
     }
 
     // MARK: Reference library

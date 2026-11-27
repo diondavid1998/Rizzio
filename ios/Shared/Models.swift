@@ -75,6 +75,8 @@ struct SuggestionBatch: Codable {
     /// Every prompt or photo on screen that could be replied to, and the one the user picked (if any).
     var visibleHooks: [String]? = nil
     var hook: String? = nil
+    /// How many earlier Rizzio lines this screenshot showed got an answer.
+    var wins: Int? = nil
 }
 
 /// One way to come at their take, offered by the AI: a short label and how replies should approach it.

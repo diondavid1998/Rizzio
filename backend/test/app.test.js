@@ -206,6 +206,28 @@ describe("learning loop", () => {
 });
 
 describe("review fixes", () => {
+  test("a chat screenshot showing a Rizzio line got answered records the result and teaches the ranking", async () => {
+    ai.replyTexts = ["bet you cheat at board games", "b", "c", "d", "e"];
+    const first = await call("POST", "/v1/replies", { mode: "prompt", text: "I'm overly competitive about: board games" });
+    const orig = ai.generateReplies.bind(ai);
+    ai.generateReplies = async (args) => ({ ...(await orig(args)), read: { kind: "question", transcript: [{ from: "me", text: "bet you cheat at board games" }, { from: "them", text: "only at monopoly" }] } });
+    ai.replyTexts = ["new 1", "new 2", "new 3", "new 4", "new 5"];
+    const r = await call("POST", "/v1/replies", { mode: "chat", text: "chat screenshot" });
+    assert.deepEqual(r.body.outcomes, [{ kind: "match", text: "bet you cheat at board games" }]);
+    assert.equal(r.body.read.transcript, undefined, "the transcript isn't sent back");
+    const hist = (await call("GET", "/v1/history")).body.items.find((g) => g.id === first.body.generationId);
+    assert.ok(hist.signals.some((s) => s.kind === "match" && s.replyIndex === 0));
+    assert.ok((await call("GET", "/v1/me")).body.taste.signals >= 1);
+    ai.generateReplies = orig;
+  });
+
+  test("speculative side answers don't count as a choice; /v1/choice does", async () => {
+    await call("POST", "/v1/replies", { mode: "prompt", text: "Hot take: cereal is soup", side: { label: "Defend the soup", how: "x" }, speculative: true });
+    assert.deepEqual((await call("GET", "/v1/me")).body.choices.sides, {});
+    await call("POST", "/v1/choice", { side: "Defend the soup" });
+    assert.deepEqual((await call("GET", "/v1/me")).body.choices.sides, { "Defend the soup": 1 });
+  });
+
   test("side picks and typed takes are remembered and steer later replies", async () => {
     await call("POST", "/v1/replies", { mode: "prompt", text: "Typical Sunday: church at 11", side: { label: "Tease the take", how: "tease it" } });
     await call("POST", "/v1/replies", { mode: "prompt", text: "Hot take: cereal is soup", instruction: "Reply the way the user wants to tackle it: agree but roast the milk. All 5 messages follow this." });
