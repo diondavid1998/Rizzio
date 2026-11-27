@@ -10,7 +10,7 @@ export const REPLY_FORMS = [
 /** Where a conversation is, so replies aim one step forward (TinderGPT-style stage tracking, read per screenshot). */
 export const STAGES = ["first_comment", "getting_to_know", "building_rapport", "ready_to_ask_out", "making_plans", "reviving", "other"];
 /** Candidates written per request; the judge keeps the best (up to 5). */
-export const CANDIDATES = 10;
+export const CANDIDATES = 12;
 export const MESSAGE_KINDS = [
   "profile_prompt", "profile_question_for_user", "profile_wants_from_user", "photo", "question", "several_questions", "rhetorical_question", "challenge_or_hot_take",
   "tease", "story_or_statement", "compliment", "making_plans", "low_effort", "mixed",
@@ -70,8 +70,9 @@ const REPLY_SCHEMA = {
           text: { type: "string", description: "The message exactly as it should be sent." },
           form: { type: "string", enum: REPLY_FORMS, description: "How this reply responds to what was said." },
           angle: { type: "string", description: "2-4 word label for the approach, shown to the user." },
+          option: { type: "string", description: "Which of read.sides this candidate takes: that option's label copied exactly. Empty if none fits." },
         },
-        required: ["text", "form", "angle"],
+        required: ["text", "form", "angle", "option"],
         additionalProperties: false,
       },
     },

@@ -28,6 +28,7 @@ struct RizzResult: Decodable {
     /// Earlier Rizzio lines this chat screenshot shows got an answer (learned as real results).
     struct Outcome: Decodable { let kind: String; let text: String }
     var outcomes: [Outcome]? = nil
+    var bySide: [String: SideSet]? = nil
 }
 
 /// Talks to the Rizzio backend (backend/ folder).
@@ -161,7 +162,8 @@ enum RizzAPI {
             sideLabel: side?.label,
             visibleHooks: result.read?.visible_hooks,
             hook: hook,
-            wins: result.outcomes?.count
+            wins: result.outcomes?.count,
+            bySide: result.bySide
         )
         return batch
     }

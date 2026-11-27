@@ -206,6 +206,24 @@ describe("learning loop", () => {
 });
 
 describe("review fixes", () => {
+  test("each option gets its own best replies from the same candidates (instant side answers, no extra calls)", async () => {
+    const orig = ai.generateReplies.bind(ai);
+    ai.generateReplies = async (args) => ({
+      context: "Hot take: cereal is soup",
+      read: { kind: "challenge_or_hot_take", side_topic: "cereal is soup", sides: [{ label: "Defend the soup", how: "a" }, { label: "Argue cereal", how: "b" }] },
+      replies: Array.from({ length: 12 }, (_, i) => ({ text: `take ${i} on cereal soup`, form: "comeback", angle: "x", option: i % 2 ? "Argue cereal" : "Defend the soup" })),
+    });
+    ai.judgeReplies = async ({ texts }) => texts.map((_, i) => ({ score: 5 + (i % 5), issue: "" }));
+    const calls = ai.calls.replies.length;
+    const r = await call("POST", "/v1/replies", { mode: "prompt", text: "Hot take: cereal is soup" });
+    assert.deepEqual(Object.keys(r.body.bySide).sort(), ["Argue cereal", "Defend the soup"]);
+    assert.ok(r.body.bySide["Argue cereal"].replies.every((x) => x.option === "Argue cereal"));
+    assert.ok(r.body.bySide["Argue cereal"].generationId, "saved so picks train the ranking");
+    assert.equal(ai.calls.replies.length, calls, "no extra model calls");
+    ai.generateReplies = orig;
+    delete ai.judgeReplies;
+  });
+
   test("a chat screenshot showing a Rizzio line got answered records the result and teaches the ranking", async () => {
     ai.replyTexts = ["bet you cheat at board games", "b", "c", "d", "e"];
     const first = await call("POST", "/v1/replies", { mode: "prompt", text: "I'm overly competitive about: board games" });

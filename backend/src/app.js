@@ -205,7 +205,24 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
           log.error?.(`judging replies failed: ${err.message}`); // fall back to the model's own order
         }
       }
-      raw.replies = choose(raw.replies, { scores, flags: raw.replies.map((r) => phrasesIn(r.text, banned)), taste: store.getTaste(req.userId) });
+      const candidates = raw.replies;
+      const candidateFlags = candidates.map((r) => phrasesIn(r.text, banned));
+      const taste = store.getTaste(req.userId);
+      raw.replies = choose(candidates, { scores, flags: candidateFlags, taste });
+      // Instant side answers at no extra cost: the candidates already cover every option, tagged with it.
+      // For each option with 3+ clean ones, the judge's best are kept as their own set, ready for when the user taps it.
+      const bySide = {};
+      if (scores && !side?.label && !instruction && !stance) {
+        for (const o of raw.read?.sides ?? []) {
+          const isProfile = b.mode === "prompt" || String(raw.read?.kind ?? "").startsWith("profile");
+          const idx = candidates
+            .map((_, i) => i)
+            .filter((i) => candidates[i].option === o.label && !candidateFlags[i].length && (!isProfile || candidates[i].text.length <= HINGE_CHAR_LIMIT));
+          if (idx.length < 3) continue;
+          const replies = enforcePersona(persona, choose(idx.map((i) => candidates[i]), { scores: idx.map((i) => scores[i]), taste }));
+          bySide[o.label] = { generationId: preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, context: raw.context, replies }), replies };
+        }
+      }
       // Safety net: a shown reply that still uses a stock or overused phrase the user never says is rewritten once.
       const flagged = raw.replies.map((r) => phrasesIn(r.text, banned));
       // An opener ("lol", "wait", "ok but"...) in more than 2 of the 5 reads like a tic: drop it from the extra ones.
@@ -247,7 +264,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const outcomes = !preview && !speculative && result.read?.transcript?.length ? recordOutcomes(req.userId, result.read.transcript, generationId) : [];
       if (result.read) delete result.read.transcript;
       // Previews (Test drive, the eval script) also say if the judge failed, to make that visible.
-      res.json({ generationId, ...result, ...(outcomes.length ? { outcomes } : {}), ...(preview && judgeError ? { judgeError } : {}) });
+      res.json({ generationId, ...result, ...(Object.keys(bySide).length ? { bySide } : {}), ...(outcomes.length ? { outcomes } : {}), ...(preview && judgeError ? { judgeError } : {}) });
     } catch (err) {
       next(err);
     }

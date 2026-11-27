@@ -123,20 +123,9 @@ struct GenerateRepliesIntent: AppIntent {
             if side == .ask, !options.isEmpty {
                 let decide = isLieGame ? "Let Rizzio guess" : "Let Rizzio decide"
                 let typeOwn = "Type my own…"
-                // Instant answers: while you choose, the replies for every option are already being written
-                // (Premium and Plus), so the one you tap is ready right away. The others are dropped.
+                // Instant answers: the first set's candidates already covered every option, so the server kept
+                // the best replies for each one. Tapping an option switches to those with no new AI request.
                 let firstBatch = batch
-                var ahead: [String: Task<SuggestionBatch, Error>] = [:]
-                if store.engine != .free {
-                    let avoidNow = avoid, hookNow = chosenHook
-                    for choice in options {
-                        ahead[choice.label] = Task {
-                            try await RizzAPI.generateBatch(mode: mode, tone: pickedTone, jpeg: jpeg, previous: avoidNow, earlier: earlier,
-                                                            stanceTopic: topic, side: choice, sideOptions: options, hook: hookNow, speculative: true)
-                        }
-                    }
-                }
-                defer { ahead.values.forEach { $0.cancel() } }
                 let picked = try await $pickedSide.requestDisambiguation(
                     among: options.map(\.label) + [typeOwn, decide],
                     dialog: IntentDialog(stringLiteral: isLieGame ? "Which one's the lie?" : howToReply ? "How should I reply?" : "\(topic.prefix(1).uppercased() + topic.dropFirst()): which side?")
@@ -153,10 +142,16 @@ struct GenerateRepliesIntent: AppIntent {
                         )
                     }
                 } else if let choice = options.first(where: { $0.label == picked }) {
-                    if let ready = try? await ahead[choice.label]?.value {
-                        batch = ready
-                        RizzAPI.use(ready, jpeg: jpeg, keepScreenshot: true)
-                        RizzAPI.recordChoiceInBackground(choice.label) // written ahead, so tell the server this was the pick
+                    if let ready = firstBatch.bySide?[choice.label], ready.replies.count >= 3 {
+                        let instant = SuggestionBatch(
+                            generationId: ready.generationId, context: firstBatch.context, replies: ready.replies, mode: firstBatch.mode,
+                            createdAt: Date(), hasScreenshot: firstBatch.hasScreenshot, sourceText: firstBatch.sourceText,
+                            sourceDraft: firstBatch.sourceDraft, sideTopic: topic, stance: nil, sideOptions: options,
+                            sideLabel: choice.label, visibleHooks: firstBatch.visibleHooks, hook: chosenHook
+                        )
+                        batch = instant
+                        RizzAPI.use(instant, jpeg: jpeg, keepScreenshot: true)
+                        RizzAPI.recordChoiceInBackground(choice.label)
                     } else {
                         batch = try await RizzAPI.generateAndStore(
                             mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, previous: avoid, earlier: earlier,

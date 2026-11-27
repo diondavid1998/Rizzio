@@ -54,7 +54,7 @@ Fill "read.stage" and aim one step forward from it:
 Don't push for a date or a number before the chat has earned it.
 
 ## The candidates
-Write 10 candidate messages. A reviewer keeps only the best few, so every candidate must be good on its own and different from the others.
+Write 12 candidate messages. A reviewer keeps only the best few, so every candidate must be good on its own and different from the others.
 - Give each a "form" and use at least 4 different forms, all fitting what was said and the play. Never a form that goes against the read: no playful_disagree with what someone wants, a boundary or a dealbreaker, and no question that hands their own ask back to them.
 - At least two are a question back to them (for profile_wants_from_user, an easy yes-or-no invite counts), easy and fun to answer and tied to something specific they said or showed.
 - Specific: each picks up a concrete detail from their answer, a photo or the last message. One that could be sent to anyone is a failure. A simple, direct question about one thing they love ("what's your favorite book this year?") IS specific and is often the best reply: easy to answer and about them. Don't make every candidate a clever line. Don't restate their answer back to them; add something.
@@ -63,7 +63,7 @@ Write 10 candidate messages. A reviewer keeps only the best few, so every candid
 - No em dashes, semicolons or AI tells ("delve", "intriguing", "genuinely", "underrated", "fellow ___", "the way you...", "something about you...", "I must say"). No stock dating-app reactions unless the user's own messages use them: "bold pick/move/claim", "respect", "sweet spot", "elite", "iconic", "a whole vibe", "I'll die on that hill", "I'm impressed", "say less".
 - Never start two candidates the same way. Order them best first.
 - Match the requested tone, filtered through the user's voice. Write in the conversation's language.
-- Fill "read.side_topic" with the take the user could agree or disagree with (the claim, preference or choice in a profile answer; in a chat only a stated opinion). Leave it empty when there's no take (a question for the user, a plain chat message). "read.sides" is never empty: the user is asked how to reply after every screenshot. With a take, offer 2-4 ways to come at it, labelled for this exact take (agree/disagree, defend/attack, team A/team B, a playful third way). Without one, offer 2-4 ways to reply that fit this exact message (for a question, including a profile_question_for_user prompt, every option still answers it: "Straight answer" / "Playful answer" / "Answer and flip it", never dodging it; for a chat: "Keep it light" / "Flirt a little" / "Ask her out"), each with a "how". For a boundary, a dealbreaker, what they want from the user or anything personal, every side respects it ("Play it cool" / "Ask for real" / "Tease the plan"). Unless the user picked a side, cover every option you offer across the 10 candidates (at least two each), so the best of all of them can be chosen; lean a little toward the way the user usually goes.
+- Fill "read.side_topic" with the take the user could agree or disagree with (the claim, preference or choice in a profile answer; in a chat only a stated opinion). Leave it empty when there's no take (a question for the user, a plain chat message). "read.sides" is never empty: the user is asked how to reply after every screenshot. With a take, offer 2-4 ways to come at it, labelled for this exact take (agree/disagree, defend/attack, team A/team B, a playful third way). Without one, offer 2-4 ways to reply that fit this exact message (for a question, including a profile_question_for_user prompt, every option still answers it: "Straight answer" / "Playful answer" / "Answer and flip it", never dodging it; for a chat: "Keep it light" / "Flirt a little" / "Ask her out"), each with a "how". For a boundary, a dealbreaker, what they want from the user or anything personal, every side respects it ("Play it cool" / "Ask for real" / "Tease the plan"). Unless the user picked a side, cover every option you offer across the 12 candidates (at least three each, and mark each candidate's "option" with that label exactly), so the best of all of them can be chosen and each option already has replies ready; lean a little toward the way the user usually goes.
 
 ## Openers carry meaning
 Use one only when its meaning fits, only if the user uses it ("How the user uses openers" when given), and in at most two candidates:
@@ -321,7 +321,7 @@ export function renderReplyRequest({ mode, tone, text, draft, hasImage, earlier 
           : "The screenshot is attached.",
     );
   }
-  parts.push("Write exactly 10 different candidates, even if their message is short: different forms and angles, all fitting the read.");
+  parts.push("Write exactly 12 different candidates, even if their message is short: different forms and angles, all fitting the read.");
   parts.push("Before finalizing: every fact the messages claim about the user (job, career stage, plans, hobbies, places) must be in the About you note. Drop or rewrite anything taken from their old messages or from the other person.");
   return parts.join("\n\n");
 }

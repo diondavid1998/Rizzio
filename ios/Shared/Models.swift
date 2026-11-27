@@ -77,6 +77,14 @@ struct SuggestionBatch: Codable {
     var hook: String? = nil
     /// How many earlier Rizzio lines this screenshot showed got an answer.
     var wins: Int? = nil
+    /// Replies already written for each side option (from the same request), so picking a side is instant.
+    var bySide: [String: SideSet]? = nil
+}
+
+/// The best replies for one side option, saved on the server as their own set.
+struct SideSet: Codable {
+    let generationId: String?
+    let replies: [Reply]
 }
 
 /// One way to come at their take, offered by the AI: a short label and how replies should approach it.
