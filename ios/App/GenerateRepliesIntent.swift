@@ -62,6 +62,18 @@ struct GenerateRepliesIntent: AppIntent {
 
     /// Returns the 5 replies as a list, so the shortcut can show them with "Choose from List" and copy the one you tap.
     func perform() async throws -> some IntentResult & ReturnsValue<[String]> & ProvidesDialog & ShowsSnippetView {
+        do {
+            return try await run()
+        } catch let error as RizzError {
+            throw error
+        } catch {
+            // Tapping outside a question cancels quietly; anything else gets a real message instead of "unknown error".
+            if error is CancellationError || "\(error)".localizedCaseInsensitiveContains("cancel") { throw error }
+            throw RizzError.server("Rizzio hit a problem: \(error.localizedDescription)")
+        }
+    }
+
+    private func run() async throws -> some IntentResult & ReturnsValue<[String]> & ProvidesDialog & ShowsSnippetView {
         // The connected Screenshot, or else an image on the clipboard (when the shortcut copies it there).
         let raw = screenshot?.data ?? UIPasteboard.general.image?.pngData()
         guard let raw, let jpeg = ImageTools.compressedJPEG(from: raw) else {

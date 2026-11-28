@@ -143,7 +143,6 @@ enum RizzAPI {
                                                      instruction: instruction, previous: previous,
                                                      length: store.replyLength, earlier: earlier,
                                                      stance: stance, stanceTopic: stanceTopic, side: side, hook: hook)
-            if let jpeg, !speculative { reportOutcomesInBackground(jpeg) }
             let saved = try? await saveGeneration(mode: mode, tone: tone ?? store.tone, context: local.context, replies: local.replies)
             result = RizzResult(generationId: saved ?? "", context: local.context, replies: local.replies,
                                 read: .init(side_topic: local.sideTopic, sides: local.sideOptions))
@@ -152,6 +151,9 @@ enum RizzAPI {
                                         instruction: instruction, previous: previous, earlier: earlier,
                                         stance: stance, stanceTopic: stanceTopic, side: side, hook: hook, speculative: speculative, looksLike: looksLike)
         }
+        // Did one of Rizzio's earlier lines get an answer? The phone reads the chat bubbles itself (no AI cost),
+        // and the server matches them against what Rizzio wrote.
+        if let jpeg, !speculative { reportOutcomesInBackground(jpeg) }
         let batch = SuggestionBatch(
             generationId: result.generationId.isEmpty ? nil : result.generationId,
             context: result.context,
@@ -449,7 +451,7 @@ enum RizzAPI {
 
         // The server restarts for a minute or two after each update (502/503/504, or the connection drops):
         // wait and try again a few times instead of failing right away.
-        let waits: [UInt64] = [3, 6, 10]
+        let waits: [UInt64] = [2, 4, 6] // short: iOS gives a Shortcuts action limited time
         var data = Data()
         var status = 0
         for attempt in 0...waits.count {

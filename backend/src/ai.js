@@ -10,7 +10,7 @@ export const REPLY_FORMS = [
 /** Where a conversation is, so replies aim one step forward (TinderGPT-style stage tracking, read per screenshot). */
 export const STAGES = ["first_comment", "getting_to_know", "building_rapport", "ready_to_ask_out", "making_plans", "reviving", "other"];
 /** Candidates written per request; the judge keeps the best (up to 5). */
-export const CANDIDATES = 12;
+export const CANDIDATES = 10;
 export const MESSAGE_KINDS = [
   "profile_prompt", "profile_question_for_user", "profile_wants_from_user", "photo", "question", "several_questions", "rhetorical_question", "challenge_or_hot_take",
   "tease", "story_or_statement", "compliment", "making_plans", "low_effort", "mixed",
@@ -27,16 +27,6 @@ const REPLY_SCHEMA = {
         hook: { type: "string", description: "Under 30 words. The prompt, photo or message you're replying to, quoted word for word, and why it's the best hook." },
         visible_hooks: { type: "array", items: { type: "string" }, description: "Every prompt or photo on the screen now (the last screenshot) that could be replied to. A prompt is its question, a colon, then their answer copied word for word exactly as written (no paraphrase, no summary, nothing added), e.g. 'A life goal of mine: visit every national park'. A photo is 'Photo: ' plus what it plainly shows. Empty for chats." },
         kind: { type: "string", enum: MESSAGE_KINDS },
-        transcript: {
-          type: "array",
-          description: "For a chat screenshot: every message bubble top to bottom, copied word for word, with who sent it (right side = me, left = them). Empty for a dating profile.",
-          items: {
-            type: "object",
-            properties: { from: { type: "string", enum: ["me", "them"] }, text: { type: "string" } },
-            required: ["from", "text"],
-            additionalProperties: false,
-          },
-        },
         stage: { type: "string", enum: STAGES, description: "Where the conversation is. A dating-profile comment is first_comment." },
         questions: { type: "array", items: { type: "string" }, description: "Every question they asked that needs an answer (empty if none)." },
         needs: { type: "string", description: "One short line (under 20 words): what a good reply has to do here." },
@@ -58,7 +48,7 @@ const REPLY_SCHEMA = {
           },
         },
       },
-      required: ["person", "hook", "visible_hooks", "kind", "transcript", "stage", "questions", "needs", "her_humor", "her_wants", "play", "side_topic", "sides"],
+      required: ["person", "hook", "visible_hooks", "kind", "stage", "questions", "needs", "her_humor", "her_wants", "play", "side_topic", "sides"],
       additionalProperties: false,
     },
     context: { type: "string", description: "One short line naming what you replied to, using their exact words (e.g. 'Replying to: A life goal of mine: visit every national park')." },
