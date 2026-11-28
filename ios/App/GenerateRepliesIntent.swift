@@ -78,6 +78,10 @@ struct GenerateRepliesIntent: AppIntent {
         // Every screenshot is read on its own: nothing from earlier Back Taps is mixed in.
         let earlier: [Data] = []
         let pickedTone = tone.flatMap { Tone(rawValue: $0.rawValue) }
+        // A quick on-phone read (no AI): bubbles on both sides means a chat. Profiles get lighter, faster thinking.
+        let looksLike: String? = mode == .auto ? ((try? OnDeviceAI.read(jpeg)).map { lines in
+            lines.contains { $0.side == .me } && lines.contains { $0.side == .them } ? "chat" : "profile"
+        }) : nil
         // Back Tapped the same screen again within 3 minutes: the last replies (or their angle) didn't work.
         // Don't repeat them; if none was picked, say so (a mild "not these" for the ranking) and change the angle.
         let fingerprint = ImageTools.fingerprint(jpeg)
@@ -92,7 +96,7 @@ struct GenerateRepliesIntent: AppIntent {
             }
         }
         var batch = try await RizzAPI.generateAndStore(
-            mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, instruction: redoNote, previous: avoid, earlier: earlier
+            mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, instruction: redoNote, previous: avoid, earlier: earlier, looksLike: looksLike
         )
         store.clearProfileScreens() // drop anything older builds kept
 
@@ -108,7 +112,7 @@ struct GenerateRepliesIntent: AppIntent {
             if picked != letRizzio {
                 chosenHook = picked
                 batch = try await RizzAPI.generateAndStore(
-                    mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, previous: avoid, earlier: earlier, hook: picked
+                    mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, previous: avoid, earlier: earlier, hook: picked, looksLike: looksLike
                 )
             }
         }
@@ -138,7 +142,7 @@ struct GenerateRepliesIntent: AppIntent {
                         batch = try await RizzAPI.generateAndStore(
                             mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true,
                             instruction: "Reply the way the user wants to tackle it: \(take.prefix(250)). All 5 messages follow this.",
-                            previous: avoid, earlier: earlier, stanceTopic: topic, sideOptions: options, hook: chosenHook
+                            previous: avoid, earlier: earlier, stanceTopic: topic, sideOptions: options, hook: chosenHook, looksLike: looksLike
                         )
                     }
                 } else if let choice = options.first(where: { $0.label == picked }) {
@@ -155,7 +159,7 @@ struct GenerateRepliesIntent: AppIntent {
                     } else {
                         batch = try await RizzAPI.generateAndStore(
                             mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, previous: avoid, earlier: earlier,
-                            stanceTopic: topic, side: choice, sideOptions: options, hook: chosenHook
+                            stanceTopic: topic, side: choice, sideOptions: options, hook: chosenHook, looksLike: looksLike
                         )
                     }
                 } else {
@@ -164,7 +168,7 @@ struct GenerateRepliesIntent: AppIntent {
             } else if let stance = side.stance {
                 batch = try await RizzAPI.generateAndStore(
                     mode: mode, tone: pickedTone, jpeg: jpeg, keepScreenshot: true, previous: avoid, earlier: earlier,
-                    stance: stance, stanceTopic: topic, sideOptions: options, hook: chosenHook
+                    stance: stance, stanceTopic: topic, sideOptions: options, hook: chosenHook, looksLike: looksLike
                 )
             }
         }

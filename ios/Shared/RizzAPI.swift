@@ -55,12 +55,14 @@ enum RizzAPI {
         var hook: String? = nil
         /// Written ahead of time for an option the user may not pick (not counted as their choice).
         var speculative: Bool? = nil
+        /// What the phone saw on a Back Tap screenshot ("profile" / "chat"), so the server can think less on profiles.
+        var looksLike: String? = nil
     }
 
     static func generate(mode: RizzMode, tone: Tone? = nil, jpeg: Data? = nil, text: String? = nil, draft: String? = nil,
                          instruction: String? = nil, previous: [String] = [], length: ReplyLength? = nil,
                          earlier: [Data] = [], stance: String? = nil, stanceTopic: String? = nil,
-                         side: SideChoice? = nil, hook: String? = nil, speculative: Bool = false) async throws -> RizzResult {
+                         side: SideChoice? = nil, hook: String? = nil, speculative: Bool = false, looksLike: String? = nil) async throws -> RizzResult {
         let payload = ReplyPayload(
             mode: mode,
             tone: (tone ?? SharedStore.shared.tone).rawValue,
@@ -75,7 +77,8 @@ enum RizzAPI {
             stanceTopic: stanceTopic,
             side: side,
             hook: hook,
-            speculative: speculative ? true : nil
+            speculative: speculative ? true : nil,
+            looksLike: looksLike
         )
         return try await send("POST", "v1/replies", body: payload, timeout: 60)
     }
@@ -96,11 +99,12 @@ enum RizzAPI {
         stanceTopic: String? = nil,
         side: SideChoice? = nil,
         sideOptions: [SideChoice]? = nil,
-        hook: String? = nil
+        hook: String? = nil,
+        looksLike: String? = nil
     ) async throws -> SuggestionBatch {
         let batch = try await generateBatch(mode: mode, tone: tone, jpeg: jpeg, text: text, draft: draft, instruction: instruction,
                                             previous: previous, earlier: earlier, stance: stance, stanceTopic: stanceTopic,
-                                            side: side, sideOptions: sideOptions, hook: hook)
+                                            side: side, sideOptions: sideOptions, hook: hook, looksLike: looksLike)
         use(batch, jpeg: jpeg, keepScreenshot: keepScreenshot)
         return batch
     }
@@ -126,7 +130,8 @@ enum RizzAPI {
         side: SideChoice? = nil,
         sideOptions: [SideChoice]? = nil,
         hook: String? = nil,
-        speculative: Bool = false
+        speculative: Bool = false,
+        looksLike: String? = nil
     ) async throws -> SuggestionBatch {
         let store = SharedStore.shared
         let result: RizzResult
@@ -145,7 +150,7 @@ enum RizzAPI {
         } else {
             result = try await generate(mode: mode, tone: tone, jpeg: jpeg, text: text, draft: draft,
                                         instruction: instruction, previous: previous, earlier: earlier,
-                                        stance: stance, stanceTopic: stanceTopic, side: side, hook: hook, speculative: speculative)
+                                        stance: stance, stanceTopic: stanceTopic, side: side, hook: hook, speculative: speculative, looksLike: looksLike)
         }
         let batch = SuggestionBatch(
             generationId: result.generationId.isEmpty ? nil : result.generationId,

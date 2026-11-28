@@ -91,7 +91,7 @@ test("replies: the model reads the message first and labels each reply's form", 
   assert.match(system, /At least two are a question back to them/);
   assert.match(system, /comes from the user alone/);
   assert.match(system, /Never borrow their wording, tone or opinions/);
-  assert.ok(schema.properties.read.required.includes("as_user"), "the model thinks as the user before writing");
+  assert.ok(schema.properties.read.required.includes("play"), "the model settles on the angle before writing");
   assert.ok(schema.properties.read.required.includes("side_topic"), "it spots prompts that invite taking a side");
   assert.equal(schema.properties.read.properties.sides.items.properties.label.type, "string", "and offers sides labelled for the take");
 });

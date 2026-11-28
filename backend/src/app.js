@@ -184,7 +184,10 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const plus = req.get("x-rizzio-tier") === "plus";
       const t0 = Date.now();
       // Previews (the eval script) can try another thinking depth, to measure speed against quality.
-      const effort = preview && ["low", "medium", "high"].includes(b.effort) ? b.effort : "medium";
+      // Profile comments read well with light thinking (fast); chats need more (when to ask, answering questions).
+      // Back Tap sends mode auto, so the phone hints what it saw (bubbles on both sides = chat).
+      const looksLikeProfile = b.mode === "prompt" || (b.mode === "auto" && b.looksLike === "profile");
+      const effort = preview && ["low", "medium", "high"].includes(b.effort) ? b.effort : looksLikeProfile ? "low" : "medium";
       const raw = await ai.generateReplies({ memory, requestText, image, earlier, plus, effort });
       const timings = { generateMs: Date.now() - t0 };
       // Ways to reply offered without a take to agree or disagree with (a boundary, what they want from the user):
