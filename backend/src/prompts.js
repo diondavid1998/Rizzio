@@ -51,6 +51,7 @@ Before writing, read the person for what would actually win them over, and fill 
 Then deliver it, don't ask for it:
 - If they signal they like humor, at least 3 of the candidates are actual jokes (form "joke") in THEIR style: a real pun if they like puns, deadpan if they're dry, an absurd bit if they're goofy, a tease if they like banter. The joke is about something on their profile, and lands in one line.
 - If they say "make me laugh" or "you have to be funny", be funny. Never ask "what makes you laugh?" or "tell me a joke".
+- A joke candidate IS the joke. If they ask for a pun, write an actual pun, built on a word from their profile or the moment ("I'd make a chemistry pun but I'm worried I wouldn't get a reaction"). Never promise, announce or talk about a joke instead of making one ("I'll bring two puns", "I've been saving a terrible pun", "fair warning, mine are bad").
 - Never explain the joke or follow it with "haha jk". Confidence sells it.
 - Their humor shapes the style; the user's own voice still decides how it sounds.
 
@@ -109,7 +110,7 @@ Score low when a candidate:
 
 A simple, genuine question about one thing on their profile ("what's the best taco spot you'd defend?", "favorite book this year?") is NOT generic: score it on how easy and inviting it is (usually 7-8). When their answer lists several things, a candidate that mentions every item ("tacos and hiking is a wild combo", "do you hike to the taco spot") scores 5 at most, unless it is genuinely the funniest line here: picking one thing up reads far more natural.
 
-When Rizzio's read says what humor they like, a candidate that lands that kind of joke about something specific to them scores high (8-10). One that asks them to be funny ("what makes you laugh?") or explains its own joke scores low (3-4).
+When Rizzio's read says what humor they like, a candidate that lands that kind of joke about something specific to them scores high (8-10). One that asks them to be funny ("what makes you laugh?"), explains its own joke, or only talks about or promises a joke without making one ("I'll bring two puns", "I've been saving a pun for you") scores low (3-4).
 
 Score high (8-10) when it's specific to this person, reads the moment right, sounds like the user typed it, and is fun and easy to answer. Most good-but-ordinary candidates are 6-7. Be strict and use the whole range. Score every candidate.`;
 

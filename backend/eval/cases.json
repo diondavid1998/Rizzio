@@ -130,7 +130,10 @@
       "mustNot": [
         "what makes you laugh",
         "tell me (a|your) (joke|pun)",
-        "what('s| is) your (favorite|best) pun"
+        "what('s| is) your (favorite|best) pun",
+        "(i'?ll|i will|let me) (bring|send|tell|drop|save|try) .{0,15}(pun|joke)",
+        "saving (a|my) .{0,20}(pun|joke)",
+        "(fair warning|warning).{0,30}(pun|joke)"
       ]
     },
     {
