@@ -20,12 +20,19 @@ enum ImageTools {
     /// The status bar (top rows) is left out, since its clock changes between taps.
     static func fingerprint(_ data: Data) -> [UInt8]? {
         guard let image = UIImage(data: data)?.cgImage else { return nil }
-        var pixels = [UInt8](repeating: 0, count: 32 * 32)
-        guard let ctx = CGContext(data: &pixels, width: 32, height: 32, bitsPerComponent: 8, bytesPerRow: 32,
+        // Core Graphics owns the pixel memory for the whole draw (data: nil). Passing a Swift array with &pixels
+        // only lends a pointer for the init call, so drawing later wrote into freed memory and could crash.
+        guard let ctx = CGContext(data: nil, width: 32, height: 32, bitsPerComponent: 8, bytesPerRow: 0,
                                   space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return nil }
         ctx.interpolationQuality = .medium
         ctx.draw(image, in: CGRect(x: 0, y: 0, width: 32, height: 32))
-        return Array(pixels.dropFirst(32 * 2)) // drop the top 2 rows (status bar)
+        guard let base = ctx.data?.assumingMemoryBound(to: UInt8.self) else { return nil }
+        var pixels: [UInt8] = []
+        pixels.reserveCapacity(32 * 30)
+        for row in 2..<32 { // skip the top 2 rows (status bar)
+            for col in 0..<32 { pixels.append(base[row * ctx.bytesPerRow + col]) }
+        }
+        return pixels
     }
 
     /// Average difference per pixel (0 = identical screen, a different profile is usually well over 10).
