@@ -80,6 +80,7 @@ async function runCases() {
       const ok = kindOk && stageOk && !bad.length && !stock.length;
       console.log(`${ok ? "PASS" : "FAIL"}  ${c.id.padEnd(20)} kind=${row.kind}${kindOk ? "" : " (expected " + c.kind.join("/") + ")"}${c.stage ? ` stage=${row.stage}${stageOk ? "" : " (expected " + c.stage.join("/") + ")"}` : ""} score=${row.avgScore?.toFixed(1) ?? "-"} shown=${row.shown} ${Math.round(r.ms / 1000)}s`);
       if (r.judgeError) console.log(`      judge failed: ${r.judgeError}`);
+      if (r.timings && flag("verbose")) console.log(`      time: write ${Math.round(r.timings.generateMs / 1000)}s, judge ${Math.round((r.timings.judgeMs ?? 0) / 1000)}s, total ${Math.round(r.timings.totalMs / 1000)}s`);
       for (const b of bad) console.log(`      must-not: ${b}`);
       for (const s of stock) console.log(`      stock phrase: "${s}"`);
       if (flag("verbose")) texts.forEach((t) => console.log(`      - ${t}`));

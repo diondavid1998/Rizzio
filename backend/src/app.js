@@ -182,7 +182,9 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const requestText = [renderReplyRequest({ mode: b.mode, tone, text, draft, hasImage: !!image || earlier.length > 0, earlier: earlier.length, current: !!image, instruction, previous, length, ownRelated, stance, stanceTopic, side, overused, hook, lines: savedLines }), refs].filter(Boolean).join("\n\n");
       // Premium Plus (the app sends X-Rizzio-Tier: plus) is written by the stronger model.
       const plus = req.get("x-rizzio-tier") === "plus";
+      const t0 = Date.now();
       const raw = await ai.generateReplies({ memory, requestText, image, earlier, plus });
+      const timings = { generateMs: Date.now() - t0 };
       // Ways to reply offered without a take to agree or disagree with (a boundary, what they want from the user):
       // give them a topic anyway, so the app still asks which way to go.
       // The user is asked how to reply after every screenshot: make sure there are options and a topic.
@@ -199,7 +201,9 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       let judgeError = null;
       if (ai.judgeReplies && raw.replies.length >= 3) {
         try {
+          const tj = Date.now();
           scores = await ai.judgeReplies({ memory, requestText, read: raw.read, texts: raw.replies.map((r) => r.text), image, plus });
+          timings.judgeMs = Date.now() - tj;
         } catch (err) {
           judgeError = err.message;
           log.error?.(`judging replies failed: ${err.message}`); // fall back to the model's own order
@@ -265,7 +269,8 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const outcomes = !preview && !speculative && result.read?.transcript?.length ? recordOutcomes(req.userId, result.read.transcript, generationId) : [];
       if (result.read) delete result.read.transcript;
       // Previews (Test drive, the eval script) also say if the judge failed, to make that visible.
-      res.json({ generationId, ...result, ...(Object.keys(bySide).length ? { bySide } : {}), ...(outcomes.length ? { outcomes } : {}), ...(preview && judgeError ? { judgeError } : {}) });
+      timings.totalMs = Date.now() - t0;
+      res.json({ generationId, ...result, ...(Object.keys(bySide).length ? { bySide } : {}), ...(outcomes.length ? { outcomes } : {}), ...(preview ? { timings, ...(judgeError ? { judgeError } : {}) } : {}) });
     } catch (err) {
       next(err);
     }
