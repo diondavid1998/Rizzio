@@ -55,7 +55,8 @@
       "text": "Two truths and a lie\nI've met Beyonce, I can juggle, I've never been on a plane",
       "kind": [
         "profile_prompt",
-        "challenge_or_hot_take"
+        "challenge_or_hot_take",
+        "story_or_statement"
       ],
       "mustNot": [],
       "sideTopic": "which is the lie"
@@ -212,7 +213,7 @@
         "question"
       ],
       "mustNot": [
-        "what('s| is) the last thing you"
+        "^what('s| is) the last thing you"
       ]
     },
     {
@@ -242,7 +243,8 @@
       "text": "Me: i make a mean lasagna\nThem: mean as in good or mean as in it bites back",
       "kind": [
         "tease",
-        "challenge_or_hot_take"
+        "challenge_or_hot_take",
+        "question"
       ],
       "mustNot": [
         "i('m| am) sorry"
