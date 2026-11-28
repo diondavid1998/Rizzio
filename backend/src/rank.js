@@ -160,7 +160,7 @@ export function choose(candidates, { scores = null, flags = [], taste = null, wa
     x.adjusted = bestVal;
     chosen.push(x);
   }
-  // Show fewer rather than padding with weak ones: keep those that pass, but never fewer than MIN_SHOWN.
+  // Keep the best MAX_SHOWN (always 5 when there are 5 candidates: MIN_SHOWN = MAX_SHOWN).
   const passCount = chosen.filter((x) => x.judge >= PASS_SCORE).length;
   let picked = chosen.filter((x, k) => x.judge >= PASS_SCORE || k < MIN_SHOWN).slice(0, Math.max(MIN_SHOWN, passCount));
   picked.sort((a, b) => b.adjusted - a.adjusted);
