@@ -122,7 +122,7 @@ export function describeTaste(taste) {
  * the best MAX_SHOWN (5); the weakest of the 10 candidates never make it.
  * Returns the chosen replies, best first, each with its `score`.
  */
-export function choose(candidates, { scores = null, flags = [], taste = null } = {}) {
+export function choose(candidates, { scores = null, flags = [], taste = null, wantJoke = false } = {}) {
   const rows = candidates.map((r, i) => {
     // No judge (it failed, or too few candidates): keep the model's own order; flagged ones get rewritten later.
     const judge = scores?.[i]?.score ?? 10 - i * 0.1;
@@ -164,10 +164,16 @@ export function choose(candidates, { scores = null, flags = [], taste = null } =
   const passCount = chosen.filter((x) => x.judge >= PASS_SCORE).length;
   let picked = chosen.filter((x, k) => x.judge >= PASS_SCORE || k < MIN_SHOWN).slice(0, Math.max(MIN_SHOWN, passCount));
   picked.sort((a, b) => b.adjusted - a.adjusted);
+  // Keep at least one question back, and (when they signal they like humor) at least one real joke.
+  const keep = (test, protect = () => false) => {
+    if (picked.some(test)) return;
+    const add = ranked.find((x) => test(x) && x.judge >= PASS_SCORE && !picked.includes(x));
+    const drop = [...picked].reverse().find((x) => !protect(x));
+    if (add && drop) picked = [...picked.filter((x) => x !== drop), add];
+  };
   const isQ = (x) => QUESTION_FORMS.has(x.r.form) || x.r.text.includes("?");
-  if (!picked.some(isQ)) {
-    const q = ranked.find((x) => isQ(x) && x.judge >= PASS_SCORE && !picked.includes(x));
-    if (q) picked = [...picked.slice(0, picked.length - 1), q];
-  }
+  const isJoke = (x) => x.r.form === "joke";
+  keep(isQ);
+  if (wantJoke) keep(isJoke, isQ);
   return picked.map((x) => ({ ...x.r, score: Math.round(x.judge * 10) / 10 }));
 }

@@ -83,3 +83,14 @@ describe("redo", () => {
     assert.ok(t.weights.form_guess < 0 && t.weights.form_guess > -0.1);
   });
 });
+
+describe("humor they signal", () => {
+  test("when they like humor, a good joke is always in the shown set", () => {
+    const cands = [c("statement one"), c("statement two"), c("statement three"), c("which trail?", "follow_up_question"), c("statement four"), c("my GPS has trust issues with your hiking boots", "joke")];
+    const scores = [9, 9, 9, 8, 8, 6].map((score) => ({ score, issue: "" }));
+    assert.ok(!choose(cands, { scores }).some((r) => r.form === "joke"), "not forced without a humor signal");
+    const out = choose(cands, { scores, wantJoke: true });
+    assert.ok(out.some((r) => r.form === "joke"));
+    assert.ok(out.some((r) => r.form === "follow_up_question"), "the question back stays");
+  });
+});

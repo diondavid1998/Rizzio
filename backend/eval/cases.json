@@ -119,6 +119,31 @@
       "mustNot": []
     },
     {
+      "id": "wants-funny",
+      "mode": "prompt",
+      "text": "We'll get along if\nYou can make me laugh. Bonus points for a terrible pun",
+      "kind": [
+        "profile_wants_from_user",
+        "profile_prompt"
+      ],
+      "needForm": "joke",
+      "mustNot": [
+        "what makes you laugh",
+        "tell me (a|your) (joke|pun)",
+        "what('s| is) your (favorite|best) pun"
+      ]
+    },
+    {
+      "id": "dry-humor",
+      "mode": "prompt",
+      "text": "I'm fluent in\nSarcasm and overpriced coffee orders",
+      "kind": [
+        "profile_prompt"
+      ],
+      "needForm": "joke",
+      "mustNot": []
+    },
+    {
       "id": "unusual-skill",
       "mode": "prompt",
       "text": "Unusual skills\nI can do a backflip",

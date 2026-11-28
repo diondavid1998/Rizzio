@@ -208,7 +208,8 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       const candidates = raw.replies;
       const candidateFlags = candidates.map((r) => phrasesIn(r.text, banned));
       const taste = store.getTaste(req.userId);
-      raw.replies = choose(candidates, { scores, flags: candidateFlags, taste });
+      const wantJoke = Boolean(raw.read?.her_humor?.trim());
+      raw.replies = choose(candidates, { scores, flags: candidateFlags, taste, wantJoke });
       // Instant side answers at no extra cost: the candidates already cover every option, tagged with it.
       // For each option with 3+ clean ones, the judge's best are kept as their own set, ready for when the user taps it.
       const bySide = {};
@@ -219,7 +220,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
             .map((_, i) => i)
             .filter((i) => candidates[i].option === o.label && !candidateFlags[i].length && (!isProfile || candidates[i].text.length <= HINGE_CHAR_LIMIT));
           if (idx.length < 3) continue;
-          const replies = enforcePersona(persona, choose(idx.map((i) => candidates[i]), { scores: idx.map((i) => scores[i]), taste }));
+          const replies = enforcePersona(persona, choose(idx.map((i) => candidates[i]), { scores: idx.map((i) => scores[i]), taste, wantJoke }));
           bySide[o.label] = { generationId: preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, context: raw.context, replies }), replies };
         }
       }

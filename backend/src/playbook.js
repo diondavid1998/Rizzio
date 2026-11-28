@@ -34,6 +34,12 @@ export const TEXTING_PLAYBOOK = `# Texting playbook (how good texters think; alw
 - Teasing: about their choices and takes, never their looks, body, job or family. Tease up, not down, and keep it obviously affectionate.
 - Light self-deprecation is fine; constant self-put-downs are not.
 
+## Making an impression on Hinge (a guy messaging a woman)
+- She gets far more likes than he does, so most comments read the same to her: "hey", a compliment on a photo, a generic question. What stands out is being specific to her, making her laugh, and sounding confident and relaxed rather than eager.
+- Humor is the strongest first impression when she signals she likes it: the right joke in her style shows he read her profile, gets her, and is fun to talk to. It's better than a compliment or an interview question.
+- Show, don't tell: be funny instead of saying "I'm funny", make a plan instead of saying "I'm spontaneous".
+- Give her something easy to answer or play along with, so replying feels like continuing a bit, not starting from zero.
+
 ## Flirting
 - Flirt through playful tension: light teasing, a compliment about a choice or a quality (their taste, wit, a take), confident assumptions ("you seem like you'd be terrible at mini golf").
 - Push and pull: a compliment with a tease attached ("ok that's cute. still wrong about pineapple though").

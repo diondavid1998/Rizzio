@@ -5,7 +5,7 @@ import { ABOUT_SYSTEM, AUTOTUNE_SYSTEM, EXTRACT_SYSTEM, JUDGE_SYSTEM, PROFILE_SY
 /** How a reply responds to what was said. The model picks one per reply and must use at least 4 different ones. */
 export const REPLY_FORMS = [
   "answer", "answer_and_ask", "play_along", "comeback", "tease_back", "agree_and_raise", "playful_disagree",
-  "guess", "follow_up_question", "callback", "story", "compliment_back", "make_plans", "hook", "saved_line",
+  "guess", "follow_up_question", "callback", "story", "compliment_back", "make_plans", "hook", "saved_line", "joke",
 ];
 /** Where a conversation is, so replies aim one step forward (TinderGPT-style stage tracking, read per screenshot). */
 export const STAGES = ["first_comment", "getting_to_know", "building_rapport", "ready_to_ask_out", "making_plans", "reviving", "other"];
@@ -41,6 +41,8 @@ const REPLY_SCHEMA = {
         questions: { type: "array", items: { type: "string" }, description: "Every question they asked that needs an answer (empty if none)." },
         needs: { type: "string", description: "One line: what a good reply has to do here." },
         as_user: { type: "string", description: "One line: what the user would notice first and how they'd react, judging from their own messages." },
+        her_humor: { type: "string", description: "The kind of humor they signal they like, from their prompts, how they write and what they say they're into: e.g. 'puns and dad jokes', 'dry and sarcastic', 'dark', 'goofy and silly', 'banter and roasting', 'wants someone who makes her laugh'. Empty if nothing signals it." },
+        her_wants: { type: "string", description: "What they signal they want from whoever messages them (what would impress them): e.g. 'makes her laugh', 'confidence', 'a real plan', 'depth', 'adventure', 'shared nerdiness'. Empty if unclear." },
         play: { type: "string", description: "The one insight all 5 replies build on: who is asking whom for what, and the clever or charming angle on it. E.g. 'She wants a plan and someone calm: act calm while obviously having a plan.' Decide this before writing anything." },
         side_topic: { type: "string", description: "The take the user could agree or disagree with, in 2-6 words. For a dating-profile prompt that states something, fill it with the claim, preference or choice in their answer (e.g. 'pineapple on pizza', '11am church over 9am', 'naps after the market'). Empty when the prompt is a question for the user to answer. In a chat, only when they state an opinion or preference; otherwise empty." },
         sides: {
@@ -57,7 +59,7 @@ const REPLY_SCHEMA = {
           },
         },
       },
-      required: ["person", "hook", "visible_hooks", "kind", "transcript", "stage", "questions", "needs", "as_user", "play", "side_topic", "sides"],
+      required: ["person", "hook", "visible_hooks", "kind", "transcript", "stage", "questions", "needs", "as_user", "her_humor", "her_wants", "play", "side_topic", "sides"],
       additionalProperties: false,
     },
     context: { type: "string", description: "One short line naming what you replied to, using their exact words (e.g. 'Replying to: A life goal of mine: visit every national park')." },
@@ -269,7 +271,7 @@ export class ClaudeAI {
    * Returns [{ score, issue }] in the same order as `texts`.
    */
   async judgeReplies({ memory, requestText, read, texts, image, plus = false }) {
-    const readLine = read ? `Rizzio's read: kind ${read.kind}; stage ${read.stage}; hook: ${read.hook}; play: ${read.play}; needs: ${read.needs}` : "";
+    const readLine = read ? `Rizzio's read: kind ${read.kind}; stage ${read.stage}; hook: ${read.hook}; play: ${read.play}; needs: ${read.needs}; their humor: ${read.her_humor || "unknown"}; what they want: ${read.her_wants || "unclear"}` : "";
     const content = [];
     if (image) content.push(ClaudeAI.#image(image));
     content.push({

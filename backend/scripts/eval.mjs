@@ -59,6 +59,8 @@ async function runCases() {
       const texts = r.replies.map((x) => x.text);
       const bad = (c.mustNot ?? []).flatMap((re) => texts.filter((t) => new RegExp(re, "i").test(t)).map((t) => `/${re}/ in "${t}"`));
       const stock = texts.filter((t) => STOCK.test(t));
+      // They signal they like humor: at least one shown reply must be a real joke.
+      if (c.needForm && !r.replies.some((x) => x.form === c.needForm)) bad.push(`no "${c.needForm}" reply in the shown set (their humor: ${r.read?.her_humor || "not read"})`);
       // A list answer ("matcha and horror movies"): at most N replies may cram every item into one line.
       if (c.maxCombined != null) {
         const items = c.text.split("\n").slice(-1)[0].split(/,| and /i).map((x) => x.trim().toLowerCase().split(" ")[0]).filter(Boolean);
