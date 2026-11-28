@@ -5,6 +5,7 @@
 //   node scripts/eval.mjs                         # all cases, Premium, against $RIZZIO_URL
 //   node scripts/eval.mjs --plus                  # Premium Plus
 //   node scripts/eval.mjs --only askout,boundary  # some cases (ids or id prefixes)
+//   node scripts/eval.mjs --effort low            # try another thinking depth (speed vs quality)
 //   node scripts/eval.mjs --replay my-chats.jsonl # replay test with your own chats (see below)
 //
 // Env: RIZZIO_URL (default http://localhost:4000), APP_TOKEN (if the server has one).
@@ -39,7 +40,7 @@ async function reply(body) {
       ...(process.env.APP_TOKEN ? { authorization: `Bearer ${process.env.APP_TOKEN}` } : {}),
       ...(flag("plus") ? { "x-rizzio-tier": "plus" } : {}),
     },
-    body: JSON.stringify({ preview: true, persona, ...body }),
+    body: JSON.stringify({ preview: true, persona, ...(opt("effort") ? { effort: opt("effort") } : {}), ...body }),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
@@ -137,6 +138,6 @@ const replay = opt("replay");
 const rows = replay ? await runReplay(replay) : await runCases();
 const outDir = new URL("../eval/results/", import.meta.url);
 mkdirSync(outDir, { recursive: true });
-const out = new URL(`${replay ? "replay" : "cases"}-${flag("plus") ? "plus" : "premium"}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`, outDir);
+const out = new URL(`${replay ? "replay" : "cases"}-${flag("plus") ? "plus" : "premium"}${opt("effort") ? "-" + opt("effort") : ""}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`, outDir);
 writeFileSync(out, JSON.stringify(rows, null, 2));
 console.log(`Saved ${out.pathname}`);

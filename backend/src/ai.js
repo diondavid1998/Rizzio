@@ -243,7 +243,7 @@ export class ClaudeAI {
   /** memory: the user's rendered voice profile + examples. */
   /** earlier: screenshots taken just before this one (same profile, scrolled), oldest first. */
   /** plus: Premium Plus, written by the stronger model. */
-  async generateReplies({ memory, requestText, image, earlier = [], plus = false }) {
+  async generateReplies({ memory, requestText, image, earlier = [], plus = false, effort = "medium" }) {
     const content = [];
     earlier.forEach((img, i) => {
       content.push({ type: "text", text: `Earlier screenshot ${i + 1} of ${earlier.length}:` }, ClaudeAI.#image(img));
@@ -261,7 +261,7 @@ export class ClaudeAI {
       content,
       schema: REPLY_SCHEMA,
       model: plus ? this.plusModel : this.model,
-      effort: "medium", // reading who is asking whom for what needs real thinking, even for text-only prompts
+      effort, // medium: reading who is asking whom for what needs real thinking, even for text-only prompts
     });
     return { context: out.context, read: out.read, replies: out.replies.slice(0, CANDIDATES) };
   }

@@ -183,7 +183,9 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // Premium Plus (the app sends X-Rizzio-Tier: plus) is written by the stronger model.
       const plus = req.get("x-rizzio-tier") === "plus";
       const t0 = Date.now();
-      const raw = await ai.generateReplies({ memory, requestText, image, earlier, plus });
+      // Previews (the eval script) can try another thinking depth, to measure speed against quality.
+      const effort = preview && ["low", "medium", "high"].includes(b.effort) ? b.effort : "medium";
+      const raw = await ai.generateReplies({ memory, requestText, image, earlier, plus, effort });
       const timings = { generateMs: Date.now() - t0 };
       // Ways to reply offered without a take to agree or disagree with (a boundary, what they want from the user):
       // give them a topic anyway, so the app still asks which way to go.
