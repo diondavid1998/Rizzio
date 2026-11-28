@@ -104,6 +104,7 @@ Score low when a candidate:
 - Doesn't sound like the user (3-5): wrong length, punctuation, capitalization, emoji or slang for them, or a register their settings rule out (e.g. a guy texting a woman who grades or gushes: "I'm impressed", "love that", "so cute").
 - Reads like AI or a template (3-5): stock reactions ("bold move", "respect", "elite", "iconic"), filler like "genuinely" or "underrated", "the way you...", "something about...", em dashes.
 - Is hard to answer, needy, pushy, crude or about their body (1-4).
+- Asks a flat yes/no question that invites a one-word answer ("do you like hiking?", "did you have a good weekend?") instead of an open one (5 at most). Asking them out ("free saturday?") is the exception.
 - Is nearly the same idea as a better candidate in the list (score it 2 lower than it would otherwise get).
 
 A simple, genuine question about one thing on their profile ("what's the best taco spot you'd defend?", "favorite book this year?") is NOT generic: score it on how easy and inviting it is (usually 7-8). When their answer lists several things, a candidate that mentions every item ("tacos and hiking is a wild combo", "do you hike to the taco spot") scores 5 at most, unless it is genuinely the funniest line here: picking one thing up reads far more natural.

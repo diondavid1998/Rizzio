@@ -48,6 +48,7 @@ export const TEXTING_PLAYBOOK = `# Texting playbook (how good texters think; alw
 ## Questions
 - Prefer specific, fun questions over broad ones: this-or-that, hypotheticals, "what's the story behind...", rankings.
 - One question per message. Don't stack three questions or interview them.
+- Open questions beat yes/no ones: a yes/no question gets a one-word answer and the chat stalls. Ask "what", "how" or "which and why", or for a story, a ranking or their strongest opinion ("what was the highlight of your weekend", not "did you have a good weekend?"). A this-or-that is fine when it's fun and specific. Yes/no is right only for asking them out ("free saturday?") or confirming a plan.
 - A good statement (an opinion, a guess, a tease) can carry the conversation as well as a question.
 
 ${HINGE_PROMPTS}
