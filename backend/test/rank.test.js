@@ -86,8 +86,8 @@ describe("redo", () => {
 
 describe("humor they signal", () => {
   test("when they like humor, a good joke is always in the shown set", () => {
-    const cands = [c("statement one"), c("statement two"), c("statement three"), c("which trail?", "follow_up_question"), c("statement four"), c("my GPS has trust issues with your hiking boots", "joke")];
-    const scores = [9, 9, 9, 8, 8, 6].map((score) => ({ score, issue: "" }));
+    const cands = [c("alpha beta gamma", "guess"), c("delta epsilon zeta", "tease_back"), c("eta theta iota", "comeback"), c("which trail?", "follow_up_question"), c("kappa lambda mu", "play_along"), c("nu xi omicron", "agree_and_raise"), c("my GPS has trust issues with your hiking boots", "joke")];
+    const scores = [9, 9, 9, 8, 8, 8, 6].map((score) => ({ score, issue: "" }));
     assert.ok(!choose(cands, { scores }).some((r) => r.form === "joke"), "not forced without a humor signal");
     const out = choose(cands, { scores, wantJoke: true });
     assert.ok(out.some((r) => r.form === "joke"));
