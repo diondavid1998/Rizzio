@@ -222,7 +222,8 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
       // Instant side answers at no extra cost: the candidates already cover every option, tagged with it.
       // For each option with 3+ clean ones, the judge's best are kept as their own set, ready for when the user taps it.
       const bySide = {};
-      if (scores && !side?.label && !instruction && !stance) {
+      // Any instruction (a redo, "shorter", a typed take) shapes every candidate, so the per-side sets still fit it.
+      if (scores && !side?.label && !stance) {
         for (const o of raw.read?.sides ?? []) {
           const isProfile = b.mode === "prompt" || String(raw.read?.kind ?? "").startsWith("profile");
           const idx = candidates
