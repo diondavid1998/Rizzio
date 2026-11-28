@@ -6,6 +6,7 @@
 //   node scripts/eval.mjs --plus                  # Premium Plus
 //   node scripts/eval.mjs --only askout,boundary  # some cases (ids or id prefixes)
 //   node scripts/eval.mjs --effort low            # try another thinking depth (speed vs quality)
+//   node scripts/eval.mjs --no-about              # run as a user with an empty About you
 //   node scripts/eval.mjs --replay my-chats.jsonl # replay test with your own chats (see below)
 //
 // Env: RIZZIO_URL (default http://localhost:4000), APP_TOKEN (if the server has one).
@@ -49,7 +50,18 @@ async function reply(body) {
 
 const pct = (n, d) => (d ? `${Math.round((100 * n) / d)}%` : "-");
 
+/** The throwaway eval user gets a made-up About you, like a real user has (skip with --no-about). */
+async function setAbout() {
+  if (flag("no-about")) return;
+  await fetch(`${BASE}/v1/me`, {
+    method: "PUT",
+    headers: { "content-type": "application/json", "x-rizzio-user": USER, ...(process.env.APP_TOKEN ? { authorization: `Bearer ${process.env.APP_TOKEN}` } : {}) },
+    body: JSON.stringify({ aboutMe: "27, Austin, product designer at a startup, grew up in Ohio, one older sister, into tennis, cooking and bad horror movies, dry humor" }),
+  }).catch(() => {});
+}
+
 async function runCases() {
+  await setAbout();
   const { cases } = JSON.parse(readFileSync(new URL("../eval/cases.json", import.meta.url), "utf8"));
   const only = opt("only")?.split(",");
   const picked = only ? cases.filter((c) => only.some((o) => c.id.startsWith(o))) : cases;
