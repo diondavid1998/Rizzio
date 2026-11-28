@@ -150,7 +150,7 @@ export class AIError extends Error {
 /** Claude calls. Swap in a fake with the same three methods for tests. */
 export class ClaudeAI {
   constructor({ apiKey, model, plusModel }) {
-    this.client = new Anthropic({ apiKey });
+    this.client = new Anthropic({ apiKey, maxRetries: 4 }); // ride out brief "overloaded" errors
     // Premium = Claude Haiku (fast, cheap); Premium Plus = Claude Sonnet, which reads what a prompt is really
     // asking far better. RIZZIO_MODEL / RIZZIO_PLUS_MODEL override them.
     this.model = model || "claude-haiku-5-5";

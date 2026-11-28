@@ -442,15 +442,33 @@ enum RizzAPI {
         if store.engine == .premiumPlus { request.setValue("plus", forHTTPHeaderField: "X-Rizzio-Tier") }
         if let body { request.httpBody = try JSONEncoder().encode(body) }
 
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await URLSession.shared.data(for: request)
-        } catch {
-            throw RizzError.network(error.localizedDescription)
+        // The server restarts for a minute or two after each update (502/503/504, or the connection drops):
+        // wait and try again a few times instead of failing right away.
+        let waits: [UInt64] = [3, 6, 10]
+        var data = Data()
+        var status = 0
+        for attempt in 0...waits.count {
+            do {
+                let (body, response) = try await URLSession.shared.data(for: request)
+                data = body
+                status = (response as? HTTPURLResponse)?.statusCode ?? 0
+                if [502, 503, 504].contains(status), attempt < waits.count {
+                    try await Task.sleep(nanoseconds: waits[attempt] * 1_000_000_000)
+                    continue
+                }
+                break
+            } catch let error as URLError where [.cannotConnectToHost, .networkConnectionLost, .cannotFindHost, .dnsLookupFailed].contains(error.code) && attempt < waits.count {
+                try await Task.sleep(nanoseconds: waits[attempt] * 1_000_000_000)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                throw RizzError.network(error.localizedDescription)
+            }
         }
-        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else {
+            if [502, 503, 504].contains(status) || status == 0 {
+                throw RizzError.server("Rizzio's server is restarting after an update. Try again in a minute.")
+            }
             let msg = (try? JSONDecoder().decode(ErrorBody.self, from: data))?.error ?? "Server error (\(status))."
             throw RizzError.server(msg)
         }
