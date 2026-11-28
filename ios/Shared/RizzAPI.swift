@@ -174,9 +174,9 @@ enum RizzAPI {
     }
 
     /// The side tapped when the options were written ahead of time, so it counts as the user's choice.
-    static func recordChoiceInBackground(_ side: String) {
-        struct Body: Encodable { let side: String }
-        Task { _ = try? await send("POST", "v1/choice", body: Body(side: side)) as Empty }
+    static func recordChoiceInBackground(_ side: String, generationId: String? = nil) {
+        struct Body: Encodable { let side: String; let generationId: String? }
+        Task { _ = try? await send("POST", "v1/choice", body: Body(side: side, generationId: generationId)) as Empty }
     }
 
     /// Free mode: the chat lines the phone read, so the server can spot earlier Rizzio lines that got an answer.

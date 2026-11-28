@@ -81,6 +81,18 @@ struct SuggestionBatch: Codable {
     var bySide: [String: SideSet]? = nil
 }
 
+extension SuggestionBatch {
+    /// The same screen, switched to the replies already written for one side option (instant, no new request).
+    func switched(to set: SideSet, side: SideChoice) -> SuggestionBatch {
+        SuggestionBatch(
+            generationId: set.generationId, context: context, replies: set.replies, mode: mode, createdAt: Date(),
+            hasScreenshot: hasScreenshot, sourceText: sourceText, sourceDraft: sourceDraft, sideTopic: sideTopic,
+            stance: nil, sideOptions: sideOptions, sideLabel: side.label, visibleHooks: visibleHooks, hook: hook,
+            wins: nil, bySide: bySide
+        )
+    }
+}
+
 /// The best replies for one side option, saved on the server as their own set.
 struct SideSet: Codable {
     let generationId: String?

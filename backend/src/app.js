@@ -99,7 +99,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
 
   /** A chat screenshot shows one of Rizzio's lines got answered: record the real result (match / replied). */
   function recordOutcomes(userId, transcript, skipGenerationId = null) {
-    const found = findOutcomes(transcript, store.history(userId, 200).filter((g) => g.id !== skipGenerationId));
+    const found = findOutcomes(transcript, store.history(userId, 200, { includeHidden: true }).filter((g) => g.id !== skipGenerationId));
     for (const o of found) {
       store.addSignal(userId, { generationId: o.generationId, replyIndex: o.replyIndex, kind: o.kind, text: o.text });
       const gen = store.getGeneration(userId, o.generationId);
@@ -230,7 +230,7 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
             .filter((i) => candidates[i].option === o.label && !candidateFlags[i].length && (!isProfile || candidates[i].text.length <= HINGE_CHAR_LIMIT));
           if (idx.length < 3) continue;
           const replies = enforcePersona(persona, choose(idx.map((i) => candidates[i]), { scores: idx.map((i) => scores[i]), taste, wantJoke }));
-          bySide[o.label] = { generationId: preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, context: raw.context, replies }), replies };
+          bySide[o.label] = { generationId: preview ? null : store.saveGeneration(req.userId, { mode: b.mode, tone, context: raw.context, replies }, { hidden: true }), replies };
         }
       }
       // Safety net: a shown reply that still uses a stock or overused phrase the user never says is rewritten once.
@@ -522,6 +522,8 @@ export function createApp({ store, ai, appToken, log = console, hourlyLimit = HO
   app.post("/v1/choice", (req, res) => {
     const side = str(req.body?.side, 60)?.trim();
     if (side) store.recordChoice(req.userId, { side });
+    const generationId = str(req.body?.generationId, 64);
+    if (generationId) store.unhideGeneration(req.userId, generationId);
     res.json({ ok: true });
   });
 

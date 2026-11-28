@@ -65,6 +65,9 @@ export function openDb(path = ":memory:") {
   // Added after the first release: add the column to databases created before it.
   const cols = db.prepare("PRAGMA table_info(users)").all().map((c) => c.name);
   if (!cols.includes("persona_json")) db.exec("ALTER TABLE users ADD COLUMN persona_json TEXT");
+  // Side sets written alongside a Back Tap stay hidden (out of History and the overused-phrase check) until tapped.
+  const genCols = db.prepare("PRAGMA table_info(generations)").all().map((c) => c.name);
+  if (!genCols.includes("hidden")) db.exec("ALTER TABLE generations ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0");
   if (!cols.includes("choices_json")) db.exec("ALTER TABLE users ADD COLUMN choices_json TEXT");
   if (!cols.includes("taste_json")) db.exec("ALTER TABLE users ADD COLUMN taste_json TEXT");
   if (!cols.includes("profile_rules")) db.exec("ALTER TABLE users ADD COLUMN profile_rules INTEGER NOT NULL DEFAULT 0");
@@ -230,12 +233,17 @@ export class Store {
       .slice(0, limit);
   }
 
-  saveGeneration(userId, { mode, tone, context, replies }) {
+  saveGeneration(userId, { mode, tone, context, replies }, { hidden = false } = {}) {
     const id = randomUUID();
     this.db
-      .prepare("INSERT INTO generations (id, user_id, mode, tone, context, replies_json) VALUES (?, ?, ?, ?, ?, ?)")
-      .run(id, userId, mode, tone, context, JSON.stringify(replies));
+      .prepare("INSERT INTO generations (id, user_id, mode, tone, context, replies_json, hidden) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      .run(id, userId, mode, tone, context, JSON.stringify(replies), hidden ? 1 : 0);
     return id;
+  }
+
+  /** A hidden side set the user tapped: it's now a set they saw, so it shows in History. */
+  unhideGeneration(userId, id) {
+    this.db.prepare("UPDATE generations SET hidden = 0 WHERE user_id = ? AND id = ?").run(userId, id);
   }
 
   getGeneration(userId, id) {
@@ -243,9 +251,9 @@ export class Store {
     return row ? { ...row, replies: JSON.parse(row.replies_json) } : null;
   }
 
-  history(userId, limit = 30) {
+  history(userId, limit = 30, { includeHidden = false } = {}) {
     const gens = this.db
-      .prepare("SELECT * FROM generations WHERE user_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ?")
+      .prepare(`SELECT * FROM generations WHERE user_id = ?${includeHidden ? "" : " AND hidden = 0"} ORDER BY created_at DESC, rowid DESC LIMIT ?`)
       .all(userId, limit);
     const sigStmt = this.db.prepare("SELECT kind, reply_index, text, created_at FROM signals WHERE generation_id = ? ORDER BY id");
     return gens.map((g) => ({

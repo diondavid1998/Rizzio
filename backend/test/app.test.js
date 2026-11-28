@@ -219,6 +219,10 @@ describe("review fixes", () => {
     assert.deepEqual(Object.keys(r.body.bySide).sort(), ["Argue cereal", "Defend the soup"]);
     assert.ok(r.body.bySide["Argue cereal"].replies.every((x) => x.option === "Argue cereal"));
     assert.ok(r.body.bySide["Argue cereal"].generationId, "saved so picks train the ranking");
+    const ids = (await call("GET", "/v1/history")).body.items.map((g) => g.id);
+    assert.ok(!ids.includes(r.body.bySide["Argue cereal"].generationId), "side sets stay out of History until tapped");
+    await call("POST", "/v1/choice", { side: "Argue cereal", generationId: r.body.bySide["Argue cereal"].generationId });
+    assert.ok((await call("GET", "/v1/history")).body.items.some((g) => g.id === r.body.bySide["Argue cereal"].generationId));
     assert.equal(ai.calls.replies.length, calls, "no extra model calls");
     ai.generateReplies = orig;
     delete ai.judgeReplies;

@@ -109,6 +109,14 @@ final class KeyboardModel: ObservableObject {
     func pickSide(_ choice: SideChoice) {
         sideChoice = sideChoice == choice ? nil : choice
         side = nil
+        // Replies for this option were already written with the first set: switch to them instantly.
+        if let picked = sideChoice, asks.isEmpty, let current = batch, let set = current.bySide?[picked.label], set.replies.count >= 3 {
+            let switched = current.switched(to: set, side: picked)
+            batch = switched
+            SharedStore.shared.latestBatch = switched
+            if hasFullAccess { RizzAPI.recordChoiceInBackground(picked.label, generationId: set.generationId) }
+            return
+        }
         rewrite(instruction: nil)
     }
 
